@@ -10,7 +10,36 @@ backend-tests:
     - . .venv/bin/activate
     - python -m pip install --upgrade pip
     - python -m pip install -e .[dev]
-    - python -m pytest -q
+    - python -m pytest --cov --cov-report=term-missing
+
+lint-and-typecheck:
+  stage: test
+  image: python:3.12
+  script:
+    - cd services/api
+    - python -m venv .venv
+    - . .venv/bin/activate
+    - python -m pip install --upgrade pip
+    - python -m pip install -e .[dev]
+    - python -m ruff check .
+    - python -m ruff format --check .
+    - python -m mypy
+
+secret-and-env-scan:
+  stage: test
+  image: python:3.12
+  script:
+    - |
+      if git log --all --diff-filter=A --name-only --pretty=format: | grep -E '(^|/)\.env$' | grep -v '\.env\.example'; then
+        echo "A .env file was committed to this repo."; exit 1
+      fi
+    - |
+      if git ls-files | grep -E '(^|/)\.env$' | grep -v '\.env\.example'; then
+        echo ".env is tracked in the working tree."; exit 1
+      fi
+    - python -m pip install detect-secrets==1.5.0
+    - detect-secrets scan --all-files --exclude-files '(^|/)\.git/|services/api/\.venv/|node_modules/' > .detect-secrets-report.json
+    - python -c "import json,sys; r=json.load(open('.detect-secrets-report.json')); findings=[(f,s) for f,items in r.get('results',{}).items() for s in items]; sys.exit(1 if findings else 0)"
 
 static-checks:
   stage: test
@@ -21,3 +50,5 @@ static-checks:
     - test -f apps/web/app.js
     - test -f docs/ARCHITECTURE.md
     - test -f docs/TRADING_GUARDRAILS.md
+    - test -f docs/SECURITY_RUNBOOK.md
+    - test -f docs/CONTRIBUTING.md

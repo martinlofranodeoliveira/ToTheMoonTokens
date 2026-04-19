@@ -9,3 +9,9 @@ node_modules/
 .DS_Store
 .nexus-worktree.json
 .gemini/
+.env
+.coverage
+.coverage.*
+.mypy_cache/
+.ruff_cache/
+.detect-secrets-report.json

@@ -3,10 +3,29 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# NEXUS_ROOT_DIR must point to a working NexusOrchestrator checkout. The
+# legacy default (/mnt/c/SITES/gemini/NexusOrchestrator) is still honored for
+# backwards compatibility on the maintainer's workstation, but any other
+# environment must export NEXUS_ROOT_DIR explicitly or pass it inline.
 NEXUS_ROOT_DIR="${NEXUS_ROOT_DIR:-/mnt/c/SITES/gemini/NexusOrchestrator}"
 NEXUS_ENV_SOURCE="${NEXUS_ENV_SOURCE:-${NEXUS_ROOT_DIR}/.env}"
 NEXUS_PROJECT_ENV_FILE="${NEXUS_PROJECT_ENV_FILE:-${PROJECT_ROOT}/.nexus/nexus-launch.env}"
 ACTION="${1:-start}"
+
+if [ ! -d "${NEXUS_ROOT_DIR}" ]; then
+  cat >&2 <<EOF
+[run-nexus-local] NEXUS_ROOT_DIR does not exist: ${NEXUS_ROOT_DIR}
+Set NEXUS_ROOT_DIR to the local NexusOrchestrator checkout, e.g.:
+  NEXUS_ROOT_DIR=/path/to/NexusOrchestrator ./scripts/run-nexus-local.sh ${ACTION}
+EOF
+  exit 2
+fi
+
+if [ ! -x "${NEXUS_ROOT_DIR}/run-project-local.sh" ]; then
+  echo "[run-nexus-local] Missing runner: ${NEXUS_ROOT_DIR}/run-project-local.sh" >&2
+  exit 2
+fi
 
 if [ "$#" -gt 0 ]; then
   shift

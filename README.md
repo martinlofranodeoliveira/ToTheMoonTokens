@@ -27,6 +27,25 @@ ToTheMoonTokens e um workspace inicial para pesquisa, backtesting e paper tradin
 5. Em outro terminal, rode `make web-serve`.
 6. Abra `http://127.0.0.1:4173`.
 
+Ou use containers:
+
+```bash
+make docker-build && make docker-up
+# API:  http://127.0.0.1:8010
+# Web:  http://127.0.0.1:4173
+make docker-down   # quando terminar
+```
+
+## Qualidade e observabilidade
+
+- `make api-cov` — testes com cobertura (alvo 70%+).
+- `make api-lint` / `make api-format` — `ruff`.
+- `make api-typecheck` — `mypy --strict`.
+- Metricas Prometheus expostas em `GET /metrics`.
+- Logs estruturados em JSON via `structlog` (nivel controlado por `LOG_LEVEL`).
+- Guia completo em [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
+- Procedimentos de resposta a incidente em [docs/SECURITY_RUNBOOK.md](docs/SECURITY_RUNBOOK.md).
+
 ## Nexus local
 
 - Rode `make nexus-start` para subir uma instancia isolada do Nexus em `http://127.0.0.1:4116`.

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from .market_data import generate_sample_candles
 from .models import BacktestMetrics, BacktestRequest
+from .observability import BACKTESTS_RUN_TOTAL, get_logger
 from .strategies import build_signals
+
+
+log = get_logger(__name__)
 
 
 def _safe_pct(numerator: float, denominator: float) -> float:
@@ -84,6 +88,21 @@ def run_backtest(request: BacktestRequest, max_position_size_pct: float) -> Back
     elif net_profit < 0:
         edge_status = "negative"
 
+    BACKTESTS_RUN_TOTAL.labels(
+        strategy_id=request.strategy_id,
+        edge_status=edge_status,
+    ).inc()
+
+    log.info(
+        "backtest_completed",
+        strategy_id=request.strategy_id,
+        symbol=request.symbol,
+        lookback_bars=request.lookback_bars,
+        trade_count=closed_trades,
+        net_profit=net_profit,
+        edge_status=edge_status,
+    )
+
     return BacktestMetrics(
         initial_capital=request.initial_capital,
         ending_equity=ending_equity,
@@ -95,4 +114,3 @@ def run_backtest(request: BacktestRequest, max_position_size_pct: float) -> Back
         profit_factor=round(profit_factor, 4),
         edge_status=edge_status,
     )
-

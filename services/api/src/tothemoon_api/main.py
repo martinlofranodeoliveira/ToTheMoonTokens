@@ -6,11 +6,22 @@ from .backtesting import run_backtest
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
 from .models import BacktestRequest, DashboardResponse
+from .observability import (
+    LIVE_ARM_ATTEMPTS_TOTAL,
+    PrometheusMiddleware,
+    configure_logging,
+    get_logger,
+    metrics_response,
+)
 from .strategies import strategy_catalog
 
 
+configure_logging()
+log = get_logger(__name__)
+
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0")
+app.add_middleware(PrometheusMiddleware)
 
 
 def _default_metrics():
@@ -32,6 +43,11 @@ def health() -> dict[str, object]:
         "exchange": settings.default_exchange,
         "liveTradingEnabled": settings.enable_live_trading,
     }
+
+
+@app.get("/metrics")
+def metrics():
+    return metrics_response()
 
 
 @app.get("/api/strategies")
@@ -60,11 +76,18 @@ def get_dashboard():
 def arm_testnet_live_mode():
     guardrails = evaluate_guardrails(settings)
     if not guardrails.can_submit_testnet_orders:
+        LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="false").inc()
+        log.warning(
+            "live_arm_denied",
+            runtime_mode=settings.runtime_mode,
+            reasons=guardrails.reasons,
+        )
         raise HTTPException(status_code=423, detail=guardrails.model_dump())
 
+    LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="true").inc()
+    log.info("live_arm_allowed", runtime_mode=settings.runtime_mode)
     return {
         "ok": True,
         "message": "Runtime elegivel apenas para testnet guarded mode.",
         "guardrails": guardrails.model_dump(),
     }
-

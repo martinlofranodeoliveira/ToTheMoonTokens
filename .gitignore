@@ -2,10 +2,10 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .venv/
+*.egg-info/
 dist/
 build/
 node_modules/
 .DS_Store
 .nexus-worktree.json
 .gemini/
-

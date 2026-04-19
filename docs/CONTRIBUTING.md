@@ -47,6 +47,18 @@ make docker-up    # API em :8010, web em :4173
 make docker-down
 ```
 
+### Pre-commit hooks (opcional, mas recomendado)
+
+```bash
+pip install pre-commit
+pre-commit install                 # instala o hook no .git/hooks
+pre-commit run --all-files         # primeira execucao varre o repo inteiro
+```
+
+Os hooks rodam `ruff` (lint + format), `detect-secrets`, verificam YAML/TOML,
+bloqueiam merge conflicts, chaves privadas, arquivos enormes (> 512 KB) e um
+hook local que recusa commit de `.env`.
+
 ## Ciclo de contribuicao
 
 1. **Abrir issue** descrevendo o problema, hipotese ou estrategia proposta.

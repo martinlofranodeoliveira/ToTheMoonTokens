@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .backtesting import run_backtest
@@ -13,6 +13,7 @@ from .observability import (
     RequestIdMiddleware,
     SecurityHeadersMiddleware,
     configure_logging,
+    enforce_rate_limit,
     get_logger,
     metrics_response,
 )
@@ -100,7 +101,14 @@ def list_strategies():
 
 
 @app.post("/api/backtests/run")
-def create_backtest(request: BacktestRequest):
+def create_backtest(request: BacktestRequest, http_request: Request):
+    limited = enforce_rate_limit(
+        http_request,
+        limit=settings.rate_limit_backtest_per_minute,
+        window_seconds=60,
+    )
+    if limited is not None:
+        return limited
     return run_backtest(request, settings.max_position_size_pct)
 
 
@@ -117,7 +125,15 @@ def get_dashboard():
 
 
 @app.post("/api/live/arm")
-def arm_testnet_live_mode():
+def arm_testnet_live_mode(http_request: Request):
+    limited = enforce_rate_limit(
+        http_request,
+        limit=settings.rate_limit_live_arm_per_minute,
+        window_seconds=60,
+    )
+    if limited is not None:
+        return limited
+
     guardrails = evaluate_guardrails(settings)
     if not guardrails.can_submit_testnet_orders:
         LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="false").inc()

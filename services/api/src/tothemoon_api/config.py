@@ -107,6 +107,20 @@ class Settings:
     cors_allowed_origins: list[str] = field(
         default_factory=lambda: _as_list(os.getenv("CORS_ALLOWED_ORIGINS"), _DEFAULT_CORS_ORIGINS)
     )
+    rate_limit_live_arm_per_minute: int = field(
+        default_factory=lambda: _as_int(
+            os.getenv("RATE_LIMIT_LIVE_ARM_PER_MINUTE"),
+            5,
+            name="RATE_LIMIT_LIVE_ARM_PER_MINUTE",
+        )
+    )
+    rate_limit_backtest_per_minute: int = field(
+        default_factory=lambda: _as_int(
+            os.getenv("RATE_LIMIT_BACKTEST_PER_MINUTE"),
+            30,
+            name="RATE_LIMIT_BACKTEST_PER_MINUTE",
+        )
+    )
 
     @property
     def runtime_mode(self) -> str:
@@ -138,6 +152,14 @@ class Settings:
             errors.append(f"MAX_OPEN_POSITIONS must be >= 1, got {self.max_open_positions}")
         if self.default_fee_bps < 0 or self.default_slippage_bps < 0:
             errors.append("DEFAULT_FEE_BPS and DEFAULT_SLIPPAGE_BPS must be >= 0")
+        if self.rate_limit_live_arm_per_minute < 1:
+            errors.append(
+                f"RATE_LIMIT_LIVE_ARM_PER_MINUTE must be >= 1, got {self.rate_limit_live_arm_per_minute}"
+            )
+        if self.rate_limit_backtest_per_minute < 1:
+            errors.append(
+                f"RATE_LIMIT_BACKTEST_PER_MINUTE must be >= 1, got {self.rate_limit_backtest_per_minute}"
+            )
         if self.app_env == "production" and self.allow_mainnet_trading:
             errors.append("ALLOW_MAINNET_TRADING=true is forbidden in production by project policy")
         if errors:

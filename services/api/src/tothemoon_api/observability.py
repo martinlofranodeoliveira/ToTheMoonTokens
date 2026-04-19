@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+import threading
 import time
 import uuid
+from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -11,10 +14,51 @@ import structlog
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 
 REQUEST_ID_HEADER = "X-Request-ID"
+
+
+SENSITIVE_FIELD_PATTERN = re.compile(
+    r"(token|secret|password|passwd|seed|private[_-]?key|api[_-]?key|acknowledg|authorization|bearer)",
+    re.IGNORECASE,
+)
+REDACTED_PLACEHOLDER = "[REDACTED]"
+
+
+def redact_sensitive_fields(
+    _logger: Any, _method_name: str, event_dict: dict[str, Any]
+) -> dict[str, Any]:
+    """structlog processor that redacts values for keys matching sensitive patterns.
+
+    Runs before the JSON renderer so no raw secret ever hits stdout.
+    Nested dicts are walked recursively; lists/tuples are replaced wholesale
+    if they look suspicious (we cannot redact opaque sequences selectively).
+    """
+
+    def _walk(value: Any, *, parent_key: str = "") -> Any:
+        if isinstance(value, dict):
+            return {
+                key: (
+                    REDACTED_PLACEHOLDER
+                    if SENSITIVE_FIELD_PATTERN.search(str(key))
+                    else _walk(sub, parent_key=str(key))
+                )
+                for key, sub in value.items()
+            }
+        if isinstance(value, (list, tuple)) and SENSITIVE_FIELD_PATTERN.search(parent_key):
+            return REDACTED_PLACEHOLDER
+        return value
+
+    return {
+        key: (
+            REDACTED_PLACEHOLDER
+            if SENSITIVE_FIELD_PATTERN.search(str(key))
+            else _walk(value, parent_key=str(key))
+        )
+        for key, value in event_dict.items()
+    }
 
 
 SECURITY_HEADERS: dict[str, str] = {
@@ -46,6 +90,7 @@ def configure_logging() -> None:
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
+            redact_sensitive_fields,
             structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),
@@ -90,6 +135,84 @@ LIVE_ARM_ATTEMPTS_TOTAL = Counter(
     "Attempts to arm testnet live mode.",
     ["allowed"],
 )
+
+RATE_LIMIT_REJECTIONS_TOTAL = Counter(
+    "rate_limit_rejections_total",
+    "Requests rejected by the in-memory rate limiter.",
+    ["path"],
+)
+
+
+class InMemoryRateLimiter:
+    """Thread-safe sliding-window rate limiter.
+
+    We intentionally keep this dependency-free: slowapi would pull in extra
+    transitive deps (limits, redis stubs) for a two-endpoint use case. For a
+    single-process API the sliding window is sufficient; if the service ever
+    scales horizontally, swap the backing store for Redis.
+    """
+
+    def __init__(self) -> None:
+        self._hits: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+        self._lock = threading.Lock()
+
+    def allow(self, *, key: str, scope: str, limit: int, window_seconds: float) -> bool:
+        if limit <= 0 or window_seconds <= 0:
+            return True
+        now = time.monotonic()
+        cutoff = now - window_seconds
+        bucket_key = (scope, key)
+        with self._lock:
+            bucket = self._hits[bucket_key]
+            while bucket and bucket[0] < cutoff:
+                bucket.popleft()
+            if len(bucket) >= limit:
+                return False
+            bucket.append(now)
+            return True
+
+    def reset(self) -> None:
+        with self._lock:
+            self._hits.clear()
+
+
+rate_limiter = InMemoryRateLimiter()
+
+
+def _client_key(request: Request) -> str:
+    forwarded = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    if forwarded:
+        return forwarded
+    client = request.client
+    return client.host if client else "unknown"
+
+
+def enforce_rate_limit(request: Request, *, limit: int, window_seconds: float) -> Response | None:
+    """Returns a 429 response when the caller exceeds the budget, else None."""
+
+    scope = request.url.path
+    key = _client_key(request)
+    if rate_limiter.allow(key=key, scope=scope, limit=limit, window_seconds=window_seconds):
+        return None
+    RATE_LIMIT_REJECTIONS_TOTAL.labels(path=scope).inc()
+    get_logger().warning(
+        "rate_limit_rejected",
+        client=key,
+        path=scope,
+        limit=limit,
+        window_seconds=window_seconds,
+    )
+    retry_after = max(1, int(window_seconds))
+    return JSONResponse(
+        status_code=429,
+        content={
+            "ok": False,
+            "error": "rate_limited",
+            "message": "Too many requests. Slow down and try again shortly.",
+            "retry_after_seconds": retry_after,
+        },
+        headers={"Retry-After": str(retry_after)},
+    )
 
 
 class PrometheusMiddleware(BaseHTTPMiddleware):

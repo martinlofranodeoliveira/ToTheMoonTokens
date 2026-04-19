@@ -209,6 +209,31 @@ button.secondary {
   margin-bottom: 6px;
 }
 
+.status-banner {
+  margin-top: 18px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  border: 1px solid var(--panel-border);
+  background: rgba(10, 24, 36, 0.6);
+  color: var(--muted);
+}
+
+.status-banner[data-variant="success"] {
+  border-color: rgba(45, 212, 191, 0.45);
+  color: var(--accent);
+}
+
+.status-banner[data-variant="warning"] {
+  border-color: rgba(255, 159, 67, 0.45);
+  color: var(--accent-warm);
+}
+
+.status-banner[data-variant="error"] {
+  border-color: rgba(255, 93, 115, 0.45);
+  color: var(--danger);
+}
+
 @media (max-width: 980px) {
   .shell,
   .metrics-grid,

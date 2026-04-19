@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -11,6 +12,18 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+
+
+REQUEST_ID_HEADER = "X-Request-ID"
+
+
+SECURITY_HEADERS: dict[str, str] = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
 
 
 _CONFIGURED = False
@@ -94,6 +107,39 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             method=request.method, path=path, status=str(response.status_code)
         ).inc()
         HTTP_REQUEST_DURATION_SECONDS.labels(method=request.method, path=path).observe(elapsed)
+        return response
+
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        incoming = request.headers.get(REQUEST_ID_HEADER, "").strip()
+        request_id = incoming if 0 < len(incoming) <= 128 else uuid.uuid4().hex
+        structlog.contextvars.bind_contextvars(
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+        )
+        try:
+            response = await call_next(request)
+        finally:
+            structlog.contextvars.clear_contextvars()
+        response.headers[REQUEST_ID_HEADER] = request_id
+        return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        response = await call_next(request)
+        for header, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(header, value)
         return response
 
 

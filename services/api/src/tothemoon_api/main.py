@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from .backtesting import run_backtest
 from .config import get_settings
@@ -9,6 +10,8 @@ from .models import BacktestRequest, DashboardResponse
 from .observability import (
     LIVE_ARM_ATTEMPTS_TOTAL,
     PrometheusMiddleware,
+    RequestIdMiddleware,
+    SecurityHeadersMiddleware,
     configure_logging,
     get_logger,
     metrics_response,
@@ -20,8 +23,35 @@ configure_logging()
 log = get_logger(__name__)
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(
+    title=settings.app_name,
+    version="0.1.0",
+    description=(
+        "Research and paper-trading API. Mainnet trading is permanently blocked "
+        "by policy. See docs/TRADING_GUARDRAILS.md."
+    ),
+)
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(PrometheusMiddleware)
+app.add_middleware(RequestIdMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
+    max_age=600,
+)
+
+log.info(
+    "api_startup",
+    app_env=settings.app_env,
+    runtime_mode=settings.runtime_mode,
+    cors_origins=settings.cors_allowed_origins,
+    exchange=settings.default_exchange,
+)
 
 
 def _default_metrics():
@@ -43,6 +73,20 @@ def health() -> dict[str, object]:
         "exchange": settings.default_exchange,
         "liveTradingEnabled": settings.enable_live_trading,
     }
+
+
+@app.get("/ready")
+def ready() -> dict[str, object]:
+    checks: dict[str, bool] = {
+        "settings_valid": True,
+        "strategies_loaded": len(strategy_catalog()) > 0,
+        "mainnet_permanently_blocked": not evaluate_guardrails(settings).can_submit_mainnet_orders,
+    }
+    ok = all(checks.values())
+    if not ok:
+        log.error("readiness_failed", checks=checks)
+        raise HTTPException(status_code=503, detail={"ok": False, "checks": checks})
+    return {"ok": True, "checks": checks, "mode": settings.runtime_mode}
 
 
 @app.get("/metrics")

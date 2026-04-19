@@ -1,0 +1,15 @@
+# Default owner for anything not matched below.
+*                                            @martinlofranodeoliveira
+
+# Trading safety — any change here requires the maintainer's review.
+/services/api/src/tothemoon_api/guards.py    @martinlofranodeoliveira
+/services/api/src/tothemoon_api/config.py    @martinlofranodeoliveira
+/services/api/tests/test_guardrails.py       @martinlofranodeoliveira
+/.nexus/                                     @martinlofranodeoliveira
+/docs/TRADING_GUARDRAILS.md                  @martinlofranodeoliveira
+/docs/SECURITY_RUNBOOK.md                    @martinlofranodeoliveira
+
+# CI/CD — changes touch every future PR, so the maintainer signs off.
+/.github/                                    @martinlofranodeoliveira
+/.gitlab-ci.yml                              @martinlofranodeoliveira
+/Makefile                                    @martinlofranodeoliveira

@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="ttm-api-base-url" content="http://127.0.0.1:8010" />
     <title>ToTheMoonTokens</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -36,6 +37,7 @@
             <button id="refresh-button">Refresh dashboard</button>
             <button id="connect-wallet-button" class="secondary">Connect MetaMask</button>
           </div>
+          <p id="status-banner" class="status-banner" role="status" aria-live="polite" hidden></p>
         </section>
 
         <section class="grid metrics-grid">

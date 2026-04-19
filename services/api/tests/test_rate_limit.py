@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 import tothemoon_api.main as main_module
 from tothemoon_api.observability import rate_limiter
 
-
 client = TestClient(main_module.app)
 
 

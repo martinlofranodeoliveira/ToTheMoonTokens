@@ -89,6 +89,20 @@ def test_full_approval_allows_testnet_but_never_mainnet():
     assert status.reasons == []
 
 
+def test_high_risk_tier_remains_research_only_even_with_full_approval():
+    status = evaluate_guardrails(
+        _make_settings(
+            enable_live_trading=True,
+            live_trading_acknowledgement="I_ACCEPT_TESTNET_ONLY",
+            live_trading_approval_token="token-123",
+        ),
+        risk_tier="high",
+    )
+    assert status.can_submit_testnet_orders is False
+    assert status.can_submit_mainnet_orders is False
+    assert any("RISK_TIER=high" in reason for reason in status.reasons)
+
+
 def test_wallet_mode_manual_requires_manual_signature():
     status = evaluate_guardrails(_make_settings(wallet_mode="manual_only"))
     assert status.requires_manual_wallet_signature is True

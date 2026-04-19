@@ -15,7 +15,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-
+from structlog.typing import EventDict, ProcessorReturnValue, WrappedLogger
 
 REQUEST_ID_HEADER = "X-Request-ID"
 
@@ -28,8 +28,8 @@ REDACTED_PLACEHOLDER = "[REDACTED]"
 
 
 def redact_sensitive_fields(
-    _logger: Any, _method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+    _logger: WrappedLogger, _method_name: str, event_dict: EventDict
+) -> ProcessorReturnValue:
     """structlog processor that redacts values for keys matching sensitive patterns.
 
     Runs before the JSON renderer so no raw secret ever hits stdout.

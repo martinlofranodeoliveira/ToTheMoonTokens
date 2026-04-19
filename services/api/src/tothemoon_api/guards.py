@@ -1,17 +1,46 @@
 from __future__ import annotations
 
-from .config import Settings
-from .models import ConnectorStatus, GuardrailStatus
-from .observability import GUARDRAIL_EVALUATIONS_TOTAL, get_logger
+import os
 
+from .config import Settings
+from .market_data import connector_state
+from .models import ConnectorStatus, GuardrailStatus, RiskTier
+from .observability import GUARDRAIL_EVALUATIONS_TOTAL, get_logger
 
 log = get_logger(__name__)
 
+FORBIDDEN_SECRETS = [
+    "BINANCE_API_SECRET",
+    "BINANCE_SECRET_KEY",
+    "BINANCE_SECRET",
+    "WALLET_PRIVATE_KEY",
+    "PRIVATE_KEY",
+    "WEB3_PRIVATE_KEY",
+    "MAINNET_API_KEY",
+    "MAINNET_PRIVATE_KEY",
+]
 
-def evaluate_guardrails(settings: Settings) -> GuardrailStatus:
+
+def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> GuardrailStatus:
     reasons: list[str] = []
     can_submit_testnet_orders = False
     can_submit_mainnet_orders = False
+
+    if risk_tier == "high":
+        reasons.append(
+            "RISK_TIER=high: perfis agressivos permanecem elegiveis apenas para pesquisa e paper trading."
+        )
+
+    for secret in FORBIDDEN_SECRETS:
+        if os.getenv(secret):
+            reasons.append(
+                f"FORBIDDEN_SECRET: {secret} detectado. Segredos de carteira e keys reais sao bloqueados."
+            )
+
+    if settings.wallet_mode != "manual_only":
+        reasons.append(
+            f"WALLET_MODE={settings.wallet_mode!r}: apenas 'manual_only' e aceito para qualquer fluxo armado."
+        )
 
     if not settings.enable_live_trading:
         reasons.append("ENABLE_LIVE_TRADING=false: runtime bloqueado em paper mode.")
@@ -25,7 +54,8 @@ def evaluate_guardrails(settings: Settings) -> GuardrailStatus:
         )
     elif not settings.live_trading_approval_token:
         reasons.append("LIVE_TRADING_APPROVAL_TOKEN ausente: falta aprovacao manual explicita.")
-    else:
+
+    if not reasons:
         can_submit_testnet_orders = True
 
     GUARDRAIL_EVALUATIONS_TOTAL.labels(
@@ -34,11 +64,9 @@ def evaluate_guardrails(settings: Settings) -> GuardrailStatus:
     ).inc()
 
     if reasons:
-        log.info(
-            "guardrail_blocked",
-            runtime_mode=settings.runtime_mode,
-            reasons=reasons,
-        )
+        log.warning("guardrail_blocked", runtime_mode=settings.runtime_mode, reasons=reasons)
+    else:
+        log.info("guardrail_passed", runtime_mode=settings.runtime_mode, risk_tier=risk_tier)
 
     return GuardrailStatus(
         mode=settings.runtime_mode,
@@ -56,4 +84,7 @@ def connector_status(settings: Settings) -> ConnectorStatus:
         binance_base_url=settings.binance_testnet_base_url,
         user_stream_url=settings.binance_user_data_stream_url,
         metamask_ready=settings.wallet_mode == "manual_only",
+        latency_ms=connector_state.last_latency_ms or None,
+        reconnect_count=connector_state.reconnect_count,
+        last_error=connector_state.last_error,
     )

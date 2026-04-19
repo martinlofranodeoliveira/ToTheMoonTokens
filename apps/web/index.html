@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ToTheMoonTokens</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="rail">
+        <div class="brand">
+          <div class="brand-mark">TT</div>
+          <div>
+            <p class="eyebrow">Research-first trading stack</p>
+            <h1>ToTheMoonTokens</h1>
+          </div>
+        </div>
+        <div class="guardrail">
+          <p class="label">Runtime mode</p>
+          <strong id="runtime-mode">loading</strong>
+          <p id="guardrail-copy">Paper trading guardrails are loading.</p>
+        </div>
+        <div class="connector-list" id="connector-list"></div>
+      </aside>
+
+      <main class="content">
+        <section class="hero">
+          <p class="eyebrow">Binance testnet + wallet manual approval</p>
+          <h2>Measure edge before touching capital.</h2>
+          <p class="lede">
+            This workspace compares strategies, tracks drawdown, and keeps mainnet execution blocked
+            unless there is explicit human approval.
+          </p>
+          <div class="hero-actions">
+            <button id="refresh-button">Refresh dashboard</button>
+            <button id="connect-wallet-button" class="secondary">Connect MetaMask</button>
+          </div>
+        </section>
+
+        <section class="grid metrics-grid">
+          <article class="metric-card">
+            <p class="label">Net profit</p>
+            <strong id="net-profit">-</strong>
+          </article>
+          <article class="metric-card">
+            <p class="label">Return</p>
+            <strong id="return-pct">-</strong>
+          </article>
+          <article class="metric-card">
+            <p class="label">Max drawdown</p>
+            <strong id="drawdown-pct">-</strong>
+          </article>
+          <article class="metric-card">
+            <p class="label">Profit factor</p>
+            <strong id="profit-factor">-</strong>
+          </article>
+        </section>
+
+        <section class="grid lower-grid">
+          <article class="panel">
+            <div class="panel-heading">
+              <p class="eyebrow">Strategies</p>
+              <h3>Catalog</h3>
+            </div>
+            <div id="strategy-list" class="strategy-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <p class="eyebrow">Execution controls</p>
+              <h3>Guardrails</h3>
+            </div>
+            <ul id="guardrail-reasons" class="reason-list"></ul>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
+

@@ -1,0 +1,7 @@
+{
+  "id": "project-scope",
+  "title": "ToTheMoonTokens Project Scope",
+  "description": "Mantem os agentes no escopo de research, paper trading e risk-first.",
+  "roles": ["ceo", "pm", "architect", "sm", "dev", "qa", "devops"]
+}
+

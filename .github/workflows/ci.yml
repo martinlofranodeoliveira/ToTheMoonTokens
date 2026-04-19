@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install API dependencies
+        run: |
+          cd services/api
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+      - name: Run API tests
+        run: |
+          cd services/api
+          . .venv/bin/activate
+          python -m pytest -q
+
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify web and docs assets
+        run: |
+          test -f apps/web/index.html
+          test -f apps/web/styles.css
+          test -f apps/web/app.js
+          test -f docs/ARCHITECTURE.md
+          test -f docs/TRADING_GUARDRAILS.md
+

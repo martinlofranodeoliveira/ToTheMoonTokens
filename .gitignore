@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+dist/
+build/
+node_modules/
+.DS_Store
+.nexus-worktree.json
+.gemini/
+

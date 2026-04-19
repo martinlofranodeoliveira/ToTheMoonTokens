@@ -1,0 +1,23 @@
+stages:
+  - test
+
+backend-tests:
+  stage: test
+  image: python:3.12
+  script:
+    - cd services/api
+    - python -m venv .venv
+    - . .venv/bin/activate
+    - python -m pip install --upgrade pip
+    - python -m pip install -e .[dev]
+    - python -m pytest -q
+
+static-checks:
+  stage: test
+  image: python:3.12
+  script:
+    - test -f apps/web/index.html
+    - test -f apps/web/styles.css
+    - test -f apps/web/app.js
+    - test -f docs/ARCHITECTURE.md
+    - test -f docs/TRADING_GUARDRAILS.md

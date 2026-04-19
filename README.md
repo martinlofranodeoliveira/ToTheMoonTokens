@@ -27,9 +27,17 @@ ToTheMoonTokens e um workspace inicial para pesquisa, backtesting e paper tradin
 5. Em outro terminal, rode `make web-serve`.
 6. Abra `http://127.0.0.1:4173`.
 
+## Nexus local
+
+- Rode `make nexus-start` para subir uma instancia isolada do Nexus em `http://127.0.0.1:4116`.
+- O profile versionado em `.nexus/nexus-launch.env` aponta o Nexus para este repo, para o mirror GitLab e para as issues `TTM-*` no GitHub.
+- Os segredos continuam fora deste repo. O bootstrap le credenciais do `.env` do `NexusOrchestrator` e so versiona a configuracao nao sensivel do projeto.
+- A topologia padrao sobe `role_cells`: 14 salas interligadas, CEO singleton e 7 replicas por sala operacional.
+- `NEXUS_AUTO_DISPATCH=true` fica ativo por default neste profile, mas os hooks locais continuam bloqueando qualquer tentativa de mainnet, live trading ou comandos com segredos.
+- Use `make nexus-status` para validar `instance_id=tothemoontokens-local` e `make nexus-stop` para parar a instancia.
+
 ## Operacao segura
 
 - `ENABLE_LIVE_TRADING=false` mantem o runtime em `paper`.
 - `ALLOW_MAINNET_TRADING=false` e politica permanente desta base.
 - qualquer evolucao para testnet live precisa de validacao humana, backtest positivo e evidencia de paper trading.
-

@@ -1,7 +1,7 @@
 PYTHON ?= python3
 API_DIR := services/api
 
-.PHONY: api-install api-test api-run web-serve
+.PHONY: api-install api-test api-run web-serve nexus-start nexus-stop nexus-status nexus-logs
 
 api-install:
 	cd $(API_DIR) && $(PYTHON) -m pip install -e .[dev]
@@ -15,3 +15,14 @@ api-run:
 web-serve:
 	$(PYTHON) -m http.server 4173 --directory apps/web
 
+nexus-start:
+	./scripts/run-nexus-local.sh start
+
+nexus-stop:
+	./scripts/run-nexus-local.sh stop
+
+nexus-status:
+	./scripts/run-nexus-local.sh status
+
+nexus-logs:
+	./scripts/run-nexus-local.sh logs

@@ -1,0 +1,48 @@
+{
+    "result": {
+        "content": [
+            {
+                "type": "text",
+                "text": "Title: Interact with contracts\nLink: https://docs.arc.network/arc/tutorials/interact-with-contracts#interact-with-contracts\nPage: arc/tutorials/interact-with-contracts\nContent: guides you through interacting with <mark><b>smart contract</b></mark>s deployed on\nArc Testnet. "
+            },
+            {
+                "type": "text",
+                "text": "Title: Deploy contracts\nLink: https://docs.arc.network/arc/tutorials/deploy-contracts\nPage: arc/tutorials/deploy-contracts\nContent: Deploy contracts\nDeploy pre-audited <mark><b>smart contract</b></mark> templates on Arc with Circle "
+            },
+            {
+                "type": "text",
+                "text": "Title: Contract addresses\nLink: https://docs.arc.network/arc/references/contract-addresses\nPage: arc/references/contract-addresses\nContent: <mark><b>Contract</b></mark> addresses\nArc <mark><b>contract</b></mark> addresses for "
+            },
+            {
+                "type": "text",
+                "text": "Title: ERC-8004 contracts on Arc testnet\nLink: https://docs.arc.network/arc/tutorials/register-your-first-ai-agent#erc-8004-contracts-on-arc-testnet\nPage: arc/tutorials/register-your-first-ai-agent\nContent: ERC-8004 <mark><b>contract</b></mark>s on Arc testnet\n<mark><b>Contract</b></mark> Address IdentityRegistry 0x8004A818BFB912233c491871b3d84c89A494BD9e ReputationRegistry 0x8004B663056A597Dffe9eCcC1965A193B7388713 "
+            },
+            {
+                "type": "text",
+                "text": "Title: Account abstraction\nLink: https://docs.arc.network/arc/tools/account-abstraction#account-abstraction\nPage: arc/tools/account-abstraction\nContent: gas\nsponsorship, and batched operations. <mark><b>Arc support</b></mark>s the ERC-4337 standard, so "
+            },
+            {
+                "type": "text",
+                "text": "Title: Deploy on Arc\nLink: https://docs.arc.network/integrate/deploy-on-arc\nPage: integrate/deploy-on-arc\nContent: and interact with a Solidity <mark><b>smart contract</b></mark> on the Arc Testnet."
+            },
+            {
+                "type": "text",
+                "text": "Title: Deploy on Arc\nLink: https://docs.arc.network/arc/tutorials/deploy-on-arc\nPage: arc/tutorials/deploy-on-arc\nContent: and interact with a Solidity <mark><b>smart contract</b></mark> on the Arc Testnet."
+            },
+            {
+                "type": "text",
+                "text": "Title: ERC-8183 contract on Arc testnet\nLink: https://docs.arc.network/arc/tutorials/create-your-first-erc-8183-job#erc-8183-contract-on-arc-testnet\nPage: arc/tutorials/create-your-first-erc-8183-job\nContent: ERC-8183 <mark><b>contract</b></mark> on Arc testnet\n<mark><b>Contract</b></mark> Address "
+            },
+            {
+                "type": "text",
+                "text": "Title: Monitor contract events\nLink: https://docs.arc.network/arc/tutorials/monitor-contract-events#monitor-contract-events\nPage: arc/tutorials/monitor-contract-events\nContent: Monitor <mark><b>contract</b></mark> events\nTrack <mark><b>contract</b></mark> events and "
+            },
+            {
+                "type": "text",
+                "text": "Title: Build on Arc\nLink: https://docs.arc.network/build#build-on-arc\nPage: build\nContent: with stablecoins. Whether you're deploying <mark><b>smart contract</b></mark>s, moving USDC across\nchains, "
+            }
+        ]
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+}

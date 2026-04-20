@@ -23,3 +23,6 @@
 - live trading real bloqueado por politica
 - qualquer teste em exchange deve começar por testnet
 
+## Graduacao para modo real
+
+Qualquer possibilidade futura de execucao em mainnet deve seguir rigorosamente as regras descritas em [docs/REAL_MODE_GRADUATION.md](./REAL_MODE_GRADUATION.md). O projeto proibe bots totalmente autonomos para dinheiro real e exige aprovacao manual em todos os cenarios reais.

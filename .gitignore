@@ -15,3 +15,6 @@ node_modules/
 .mypy_cache/
 .ruff_cache/
 .detect-secrets-report.json
+.claude/
+.nexus/contracts/
+ops/evidence/*.json

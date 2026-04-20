@@ -178,7 +178,7 @@ button.secondary {
 }
 
 .lower-grid {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .panel {
@@ -190,13 +190,17 @@ button.secondary {
 }
 
 .strategy-list,
-.reason-list {
+.reason-list,
+.aggregate-list,
+.journal-list {
   display: grid;
   gap: 12px;
 }
 
 .strategy-item,
-.reason-list li {
+.reason-list li,
+.aggregate-item,
+.journal-item {
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.03);
@@ -207,6 +211,41 @@ button.secondary {
   display: block;
   color: var(--text);
   margin-bottom: 6px;
+}
+
+.aggregate-item strong,
+.journal-item strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.aggregate-summary {
+  border: 1px solid rgba(45, 212, 191, 0.22);
+}
+
+.journal-panel {
+  min-height: 260px;
+}
+
+.journal-header,
+.journal-metrics {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.journal-header span {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+}
+
+.journal-metrics {
+  margin-top: 10px;
+  font-size: 0.9rem;
 }
 
 .status-banner {
@@ -241,4 +280,3 @@ button.secondary {
     grid-template-columns: 1fr;
   }
 }
-

@@ -4,7 +4,6 @@ import math
 
 from .models import Candle, StrategyDescriptor, StrategyId
 
-
 STRATEGIES: list[StrategyDescriptor] = [
     StrategyDescriptor(
         id="ema_crossover",
@@ -77,4 +76,3 @@ def build_signals(strategy_id: StrategyId, candles: list[Candle]) -> list[str]:
             signals[index] = "sell"
 
     return signals
-

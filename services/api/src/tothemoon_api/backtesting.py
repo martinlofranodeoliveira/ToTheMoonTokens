@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from .market_data import generate_sample_candles
 from .models import BacktestMetrics, BacktestRequest
 from .observability import BACKTESTS_RUN_TOTAL, get_logger
 from .strategies import build_signals
-
 
 log = get_logger(__name__)
 
@@ -80,9 +81,11 @@ def run_backtest(request: BacktestRequest, max_position_size_pct: float) -> Back
     net_profit = round(ending_equity - request.initial_capital, 4)
     closed_trades = trade_count if trade_count > 0 else 0
     win_rate = _safe_pct(wins, closed_trades) if closed_trades else 0.0
-    profit_factor = gross_wins / gross_losses if gross_losses else (gross_wins if gross_wins else 0.0)
+    profit_factor = (
+        gross_wins / gross_losses if gross_losses else (gross_wins if gross_wins else 0.0)
+    )
 
-    edge_status = "flat"
+    edge_status: Literal["positive", "flat", "negative"] = "flat"
     if net_profit > 0:
         edge_status = "positive"
     elif net_profit < 0:

@@ -4,7 +4,6 @@ from .config import Settings
 from .models import ConnectorStatus, GuardrailStatus
 from .observability import GUARDRAIL_EVALUATIONS_TOTAL, get_logger
 
-
 log = get_logger(__name__)
 
 

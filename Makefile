@@ -2,7 +2,8 @@ PYTHON ?= python3
 API_DIR := services/api
 
 .PHONY: api-install api-test api-cov api-lint api-format api-typecheck api-run web-serve \
-	docker-build docker-up docker-down nexus-start nexus-stop nexus-status nexus-logs
+	docker-build docker-up docker-down nexus-start nexus-stop nexus-status nexus-logs \
+	mirror-verify validation-evidence
 
 api-install:
 	cd $(API_DIR) && $(PYTHON) -m pip install -e .[dev]
@@ -48,3 +49,9 @@ nexus-status:
 
 nexus-logs:
 	./scripts/run-nexus-local.sh logs
+
+mirror-verify:
+	./scripts/verify_mirror.sh main $$(git rev-parse --abbrev-ref HEAD)
+
+validation-evidence:
+	$(PYTHON) ./scripts/collect_validation_evidence.py --task GH-6

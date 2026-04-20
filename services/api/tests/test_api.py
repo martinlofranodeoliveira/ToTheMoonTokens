@@ -1,7 +1,9 @@
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 from tothemoon_api.main import app
-
+from tothemoon_api.market_data import generate_sample_candles
 
 client = TestClient(app)
 
@@ -13,6 +15,7 @@ def test_health_endpoint_exposes_paper_mode_by_default():
     assert payload["ok"] is True
     assert payload["mode"] == "paper"
     assert payload["liveTradingEnabled"] is False
+    assert "market_connector" in payload
 
 
 def test_dashboard_includes_guardrails_and_metrics():
@@ -22,6 +25,8 @@ def test_dashboard_includes_guardrails_and_metrics():
     assert payload["guardrails"]["can_submit_mainnet_orders"] is False
     assert payload["metrics"]["trade_count"] >= 0
     assert payload["connectors"]["exchange"] == "binance_spot_testnet"
+    assert payload["recent_trades"] == []
+    assert payload["performance"]["total_trades"] == 0
 
 
 def test_backtest_endpoint_returns_consistent_metrics():
@@ -50,3 +55,25 @@ def test_live_arm_is_blocked_without_manual_acknowledgement():
     assert payload["can_submit_testnet_orders"] is False
     assert payload["can_submit_mainnet_orders"] is False
 
+
+def test_market_klines_endpoint_returns_candles():
+    with patch(
+        "tothemoon_api.main.BinanceMarketData.fetch_klines",
+        return_value=generate_sample_candles(length=4),
+    ):
+        response = client.get("/api/market/klines?limit=4")
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 4
+    assert payload[0]["close"] > 0
+
+
+def test_market_health_endpoint_returns_probe_status():
+    with patch(
+        "tothemoon_api.main.BinanceMarketData.ping",
+        return_value={"status": "online", "latency_ms": 12.4, "last_error": None},
+    ):
+        response = client.get("/api/market/health")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "online"

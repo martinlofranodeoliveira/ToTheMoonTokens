@@ -50,5 +50,9 @@ static-checks:
     - test -f apps/web/app.js
     - test -f docs/ARCHITECTURE.md
     - test -f docs/TRADING_GUARDRAILS.md
+    - test -f docs/REAL_MODE_GRADUATION.md
+    - test -f docs/DELIVERY_VALIDATION.md
     - test -f docs/SECURITY_RUNBOOK.md
     - test -f docs/CONTRIBUTING.md
+    - test -f scripts/verify_mirror.sh
+    - test -f scripts/collect_validation_evidence.py

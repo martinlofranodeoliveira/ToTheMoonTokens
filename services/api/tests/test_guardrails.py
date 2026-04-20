@@ -109,12 +109,8 @@ def test_connector_status_exposes_testnet_endpoints():
 
 def test_runtime_mode_transitions():
     assert _make_settings().runtime_mode == "paper"
+    assert _make_settings(enable_live_trading=True).runtime_mode == "guarded_testnet"
     assert (
-        _make_settings(enable_live_trading=True).runtime_mode == "guarded_testnet"
-    )
-    assert (
-        _make_settings(
-            enable_live_trading=True, allow_mainnet_trading=True
-        ).runtime_mode
+        _make_settings(enable_live_trading=True, allow_mainnet_trading=True).runtime_mode
         == "blocked_mainnet"
     )

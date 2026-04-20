@@ -17,6 +17,7 @@ ToTheMoonTokens e um workspace inicial para pesquisa, backtesting e paper tradin
 - `apps/web`: dashboard estatico para acompanhar estrategias, risco e conectores
 - `.nexus`: hooks e skill local para os agentes do Nexus
 - `docs`: arquitetura, guardrails e briefing de UI para Stitch
+- `ops/evidence`: artefatos locais de validacao, mirror e review
 
 ## Quickstart
 
@@ -41,10 +42,13 @@ make docker-down   # quando terminar
 - `make api-cov` — testes com cobertura (alvo 70%+).
 - `make api-lint` / `make api-format` — `ruff`.
 - `make api-typecheck` — `mypy --strict`.
+- `make mirror-verify` — compara branches esperadas entre GitHub e GitLab.
+- `make validation-evidence` — coleta evidencias locais do runtime e do review gate.
 - Metricas Prometheus expostas em `GET /metrics`.
 - Logs estruturados em JSON via `structlog` (nivel controlado por `LOG_LEVEL`).
 - Guia completo em [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 - Procedimentos de resposta a incidente em [docs/SECURITY_RUNBOOK.md](docs/SECURITY_RUNBOOK.md).
+- Fluxo de validacao operacional em [docs/DELIVERY_VALIDATION.md](docs/DELIVERY_VALIDATION.md).
 
 ## Nexus local
 
@@ -60,3 +64,4 @@ make docker-down   # quando terminar
 - `ENABLE_LIVE_TRADING=false` mantem o runtime em `paper`.
 - `ALLOW_MAINNET_TRADING=false` e politica permanente desta base.
 - qualquer evolucao para testnet live precisa de validacao humana, backtest positivo e evidencia de paper trading.
+- criterios mais rigidos para qualquer futuro modo real estao em [docs/REAL_MODE_GRADUATION.md](docs/REAL_MODE_GRADUATION.md).

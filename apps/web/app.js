@@ -51,7 +51,7 @@ function setText(id, value) {
   }
 }
 
-function renderConnectors(connectors) {
+function renderConnectors(connectors, marketHealth) {
   const connectorList = document.getElementById("connector-list");
   if (!connectorList) return;
   connectorList.innerHTML = `
@@ -64,6 +64,12 @@ function renderConnectors(connectors) {
       <p class="label">Wallet mode</p>
       <strong>${escapeHtml(connectors.wallet_mode)}</strong>
       <p>MetaMask ready: ${connectors.metamask_ready ? "yes" : "no"}</p>
+    </div>
+    <div class="connector-item">
+      <p class="label">Market heartbeat</p>
+      <strong>${escapeHtml(marketHealth.status ?? "unknown")}</strong>
+      <p>Latency: ${formatNumber(marketHealth.latency_ms ?? 0, " ms")}</p>
+      <p>${escapeHtml(marketHealth.last_error ?? "Testnet connector responsive.")}</p>
     </div>
   `;
 }
@@ -107,6 +113,69 @@ function renderMetrics(metrics) {
   setText("profit-factor", formatNumber(metrics.profit_factor));
 }
 
+function renderAggregates(performance) {
+  const list = document.getElementById("aggregates-list");
+  if (!list) return;
+
+  if (!performance || performance.total_trades === 0) {
+    list.innerHTML = `<div class="aggregate-item"><strong>No paper trades yet.</strong><p>Post journal entries to compare strategies by realized PnL and drawdown.</p></div>`;
+    return;
+  }
+
+  const strategyEntries = Object.entries(performance.by_strategy || {});
+  list.innerHTML = `
+    <div class="aggregate-item aggregate-summary">
+      <strong>${performance.total_trades} trades tracked</strong>
+      <p>Total PnL: ${formatNumber(performance.total_pnl, " USD")}</p>
+      <p>Win rate: ${formatNumber(performance.win_rate_pct, "%")}</p>
+      <p>Avg drawdown: ${formatNumber(performance.average_drawdown)}</p>
+    </div>
+    ${strategyEntries
+      .map(
+        ([strategyId, aggregate]) => `
+          <div class="aggregate-item">
+            <strong>${escapeHtml(strategyId)}</strong>
+            <p>Trades: ${aggregate.total_trades}</p>
+            <p>PnL: ${formatNumber(aggregate.total_pnl, " USD")}</p>
+            <p>Win rate: ${formatNumber(aggregate.win_rate_pct, "%")}</p>
+          </div>
+        `,
+      )
+      .join("")}
+  `;
+}
+
+function renderRecentTrades(trades) {
+  const list = document.getElementById("journal-list");
+  if (!list) return;
+
+  if (!trades || trades.length === 0) {
+    list.innerHTML = `<div class="journal-item"><strong>No journal entries yet.</strong><p>Use the paper journal endpoints to accumulate structured trade evidence.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = trades
+    .map(
+      (trade) => `
+        <article class="journal-item">
+          <div class="journal-header">
+            <strong>${escapeHtml(trade.symbol)} ${escapeHtml(trade.direction.toUpperCase())}</strong>
+            <span>${escapeHtml(trade.status)}</span>
+          </div>
+          <p>${escapeHtml(trade.strategy_id)} · ${escapeHtml(trade.timeframe)} · ${escapeHtml(trade.market_regime)}</p>
+          <p>${escapeHtml(trade.setup_reason)}</p>
+          <div class="journal-metrics">
+            <span>Entry ${formatNumber(trade.entry_price)}</span>
+            <span>Exit ${trade.exit_price !== null ? formatNumber(trade.exit_price) : "-"}</span>
+            <span>PnL ${trade.pnl !== null ? formatNumber(trade.pnl, " USD") : "-"}</span>
+            <span>DD ${trade.drawdown !== null ? formatNumber(trade.drawdown) : "-"}</span>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function showStatus(message, variant = "info") {
   const banner = document.getElementById("status-banner");
   if (!banner) return;
@@ -117,11 +186,16 @@ function showStatus(message, variant = "info") {
 
 async function loadDashboard() {
   showStatus("");
-  const dashboard = await fetchJson("/api/dashboard");
+  const [dashboard, marketHealth] = await Promise.all([
+    fetchJson("/api/dashboard"),
+    fetchJson("/api/market/health"),
+  ]);
   renderMetrics(dashboard.metrics);
   renderGuardrails(dashboard.guardrails);
-  renderConnectors(dashboard.connectors);
+  renderConnectors(dashboard.connectors, marketHealth || {});
   renderStrategies(dashboard.strategies);
+  renderAggregates(dashboard.performance);
+  renderRecentTrades(dashboard.recent_trades);
 }
 
 async function connectMetaMask() {

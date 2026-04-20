@@ -133,7 +133,9 @@ class Settings:
     def validate(self) -> None:
         errors: list[str] = []
         if self.log_level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
-            errors.append(f"LOG_LEVEL must be one of DEBUG/INFO/WARNING/ERROR/CRITICAL, got {self.log_level!r}")
+            errors.append(
+                f"LOG_LEVEL must be one of DEBUG/INFO/WARNING/ERROR/CRITICAL, got {self.log_level!r}"
+            )
         if not 1 <= self.port <= 65535:
             errors.append(f"API_PORT must be between 1 and 65535, got {self.port}")
         if self.wallet_mode not in {"manual_only", "custodial", "disabled"}:
@@ -145,9 +147,7 @@ class Settings:
                 f"MAX_POSITION_SIZE_PCT must be in (0, 100], got {self.max_position_size_pct}"
             )
         if not 0 < self.max_daily_loss_pct <= 100:
-            errors.append(
-                f"MAX_DAILY_LOSS_PCT must be in (0, 100], got {self.max_daily_loss_pct}"
-            )
+            errors.append(f"MAX_DAILY_LOSS_PCT must be in (0, 100], got {self.max_daily_loss_pct}")
         if self.max_open_positions < 1:
             errors.append(f"MAX_OPEN_POSITIONS must be >= 1, got {self.max_open_positions}")
         if self.default_fee_bps < 0 or self.default_slippage_bps < 0:

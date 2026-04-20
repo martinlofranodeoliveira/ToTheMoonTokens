@@ -196,6 +196,7 @@ async function loadDashboard() {
   renderStrategies(dashboard.strategies);
   renderAggregates(dashboard.performance);
   renderRecentTrades(dashboard.recent_trades);
+  await renderJobs();
 }
 
 async function connectMetaMask() {
@@ -239,4 +240,87 @@ loadDashboard().catch((error) => {
     "API offline. Start the FastAPI service to view metrics.",
   );
   showStatus("API offline — dashboard will retry on refresh.", "error");
+});
+
+
+async function apiAction(path, method="POST", body=null) {
+  const options = { method, headers: { "Content-Type": "application/json", Accept: "application/json" } };
+  if (body) options.body = JSON.stringify(body);
+  const response = await fetch(`${API_BASE_URL}${path}`, options);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Request failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+async function renderJobs() {
+  const list = document.getElementById("jobs-list");
+  if (!list) return;
+
+  try {
+    const jobs = await fetchJson("/api/jobs");
+    if (!jobs || jobs.length === 0) {
+      list.innerHTML = `<div class="journal-item"><strong>No Nexus Jobs.</strong></div>`;
+      return;
+    }
+
+    list.innerHTML = jobs.map(job => {
+      let actionBtn = "";
+      if (job.state === "REQUESTED") {
+        actionBtn = `<button onclick="advanceJob('${job.id}', 'unlock_payment')" class="secondary">Unlock Payment</button>`;
+      } else if (job.state === "PAYMENT_UNLOCKED") {
+        actionBtn = `<button onclick="advanceJob('${job.id}', 'reserve_work')" class="secondary">Reserve Work</button>`;
+      } else if (job.state === "WORK_RESERVED") {
+        actionBtn = `<button onclick="advanceJob('${job.id}', 'request_review')" class="secondary">Request Review</button>`;
+      } else if (job.state === "REVIEW_PENDING") {
+        actionBtn = `<button onclick="advanceJob('${job.id}', 'deliver')" class="secondary">Deliver</button>`;
+      }
+
+      return `
+        <article class="journal-item">
+          <div class="journal-header">
+            <strong>Job ${escapeHtml(job.id)}</strong>
+            <span>${escapeHtml(job.state)}</span>
+          </div>
+          <p>${escapeHtml(job.description)}</p>
+          <div style="margin-top: 10px;">${actionBtn}</div>
+          <div style="font-size: 0.8em; margin-top: 10px; color: #666;">
+            <strong>Transitions:</strong>
+            <ul>
+              ${job.transitions.map(t => `<li>${t.from_state ? t.from_state + ' &rarr; ' : ''}${t.to_state}: ${t.reason}</li>`).join('')}
+            </ul>
+          </div>
+        </article>
+      `;
+    }).join("");
+  } catch (error) {
+    list.innerHTML = `<div class="journal-item"><strong>Error loading jobs.</strong></div>`;
+  }
+}
+
+window.advanceJob = async function(id, action) {
+  try {
+    await apiAction(`/api/jobs/${id}/${action}`, "POST");
+    await renderJobs();
+    showStatus(`Job ${id} advanced via ${action}.`, "success");
+  } catch(e) {
+    showStatus(e.message, "error");
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  const createBtn = document.getElementById("create-job-button");
+  if (createBtn) {
+    createBtn.addEventListener("click", async () => {
+      try {
+        const id = "JOB-" + Math.floor(Math.random() * 10000);
+        await apiAction("/api/jobs", "POST", { id, description: "New paid research job" });
+        await renderJobs();
+        showStatus(`Job ${id} created.`, "success");
+      } catch (e) {
+        showStatus(e.message, "error");
+      }
+    });
+  }
 });

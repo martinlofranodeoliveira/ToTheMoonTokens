@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from .backtesting import run_backtest, run_walk_forward
 from .config import get_settings
@@ -37,6 +38,16 @@ from .models import (
     WalkForwardRequest,
 )
 from .news import check_news_risk_filter, get_recent_news, ingest_news
+from .nexus_jobs import (
+    NexusJob,
+    create_job,
+    deliver_job,
+    get_job,
+    list_jobs,
+    request_review,
+    reserve_work,
+    unlock_payment,
+)
 from .observability import (
     LIVE_ARM_ATTEMPTS_TOTAL,
     PrometheusMiddleware,
@@ -371,3 +382,55 @@ def api_get_depth(symbol: str = "BTCUSDT", limit: int = Query(default=20, ge=5, 
         return get_depth(symbol, limit=limit)
     except ExchangeDegradationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+
+class CreateJobRequest(BaseModel):
+    id: str
+    description: str
+
+@app.post("/api/jobs", response_model=NexusJob)
+def api_create_job(req: CreateJobRequest):
+    if get_job(req.id):
+        raise HTTPException(status_code=400, detail="Job already exists")
+    return create_job(req.id, req.description)
+
+@app.get("/api/jobs", response_model=list[NexusJob])
+def api_list_jobs():
+    return list_jobs()
+
+@app.get("/api/jobs/{job_id}", response_model=NexusJob)
+def api_get_job(job_id: str):
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+@app.post("/api/jobs/{job_id}/unlock_payment", response_model=NexusJob)
+def api_unlock_payment(job_id: str):
+    job = unlock_payment(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or invalid state")
+    return job
+
+@app.post("/api/jobs/{job_id}/reserve_work", response_model=NexusJob)
+def api_reserve_work(job_id: str):
+    job = reserve_work(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or invalid state")
+    return job
+
+@app.post("/api/jobs/{job_id}/request_review", response_model=NexusJob)
+def api_request_review(job_id: str):
+    job = request_review(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or invalid state")
+    return job
+
+@app.post("/api/jobs/{job_id}/deliver", response_model=NexusJob)
+def api_deliver_job(job_id: str):
+    job = deliver_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or invalid state")
+    return job
+

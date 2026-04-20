@@ -19,10 +19,10 @@
         </div>
         <div class="guardrail">
           <p class="label">Runtime mode</p>
-          <strong id="runtime-mode">loading</strong>
-          <p id="guardrail-copy">Paper trading guardrails are loading.</p>
+          <strong id="runtime-mode" data-testid="guardrail-status">loading</strong>
+          <p id="guardrail-copy" data-testid="guardrail-message">Paper trading guardrails are loading.</p>
         </div>
-        <div class="connector-list" id="connector-list"></div>
+        <div class="connector-list" id="connector-list" data-testid="connector-list"></div>
       </aside>
 
       <main class="content">
@@ -34,28 +34,28 @@
             unless there is explicit human approval.
           </p>
           <div class="hero-actions">
-            <button id="refresh-button">Refresh dashboard</button>
-            <button id="connect-wallet-button" class="secondary">Connect MetaMask</button>
+            <button id="refresh-button" data-testid="dashboard-button-refresh">Refresh dashboard</button>
+            <button id="connect-wallet-button" class="secondary" data-testid="wallet-button-connect">Connect MetaMask</button>
           </div>
-          <p id="status-banner" class="status-banner" role="status" aria-live="polite" hidden></p>
+          <p id="status-banner" class="status-banner" role="status" aria-live="polite" data-testid="dashboard-banner-status" hidden></p>
         </section>
 
         <section class="grid metrics-grid">
           <article class="metric-card">
             <p class="label">Net profit</p>
-            <strong id="net-profit">-</strong>
+            <strong id="net-profit" data-testid="metric-net-profit">-</strong>
           </article>
           <article class="metric-card">
             <p class="label">Return</p>
-            <strong id="return-pct">-</strong>
+            <strong id="return-pct" data-testid="metric-return-pct">-</strong>
           </article>
           <article class="metric-card">
             <p class="label">Max drawdown</p>
-            <strong id="drawdown-pct">-</strong>
+            <strong id="drawdown-pct" data-testid="metric-drawdown-pct">-</strong>
           </article>
           <article class="metric-card">
             <p class="label">Profit factor</p>
-            <strong id="profit-factor">-</strong>
+            <strong id="profit-factor" data-testid="metric-profit-factor">-</strong>
           </article>
         </section>
 
@@ -65,7 +65,7 @@
               <p class="eyebrow">Strategies</p>
               <h3>Catalog</h3>
             </div>
-            <div id="strategy-list" class="strategy-list"></div>
+            <div id="strategy-list" class="strategy-list" data-testid="strategy-list"></div>
           </article>
 
           <article class="panel">
@@ -73,7 +73,7 @@
               <p class="eyebrow">Execution controls</p>
               <h3>Guardrails</h3>
             </div>
-            <ul id="guardrail-reasons" class="reason-list"></ul>
+            <ul id="guardrail-reasons" class="reason-list" data-testid="guardrail-reasons-list"></ul>
           </article>
 
           <article class="panel">
@@ -81,7 +81,7 @@
               <p class="eyebrow">Paper learning loop</p>
               <h3>Performance</h3>
             </div>
-            <div id="aggregates-list" class="aggregate-list"></div>
+            <div id="aggregates-list" class="aggregate-list" data-testid="performance-list"></div>
           </article>
         </section>
 
@@ -90,7 +90,7 @@
             <p class="eyebrow">Recent paper trades</p>
             <h3>Journal</h3>
           </div>
-          <div id="journal-list" class="journal-list"></div>
+          <div id="journal-list" class="journal-list" data-testid="journal-list"></div>
         </section>
       </main>
     </div>

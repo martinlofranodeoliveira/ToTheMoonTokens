@@ -55,17 +55,17 @@ function renderConnectors(connectors, marketHealth) {
   const connectorList = document.getElementById("connector-list");
   if (!connectorList) return;
   connectorList.innerHTML = `
-    <div class="connector-item">
+    <div class="connector-item" data-testid="connector-item">
       <p class="label">Exchange</p>
       <strong>${escapeHtml(connectors.exchange)}</strong>
       <p>${escapeHtml(connectors.binance_base_url)}</p>
     </div>
-    <div class="connector-item">
+    <div class="connector-item" data-testid="connector-item">
       <p class="label">Wallet mode</p>
       <strong>${escapeHtml(connectors.wallet_mode)}</strong>
       <p>MetaMask ready: ${connectors.metamask_ready ? "yes" : "no"}</p>
     </div>
-    <div class="connector-item">
+    <div class="connector-item" data-testid="connector-item">
       <p class="label">Market heartbeat</p>
       <strong>${escapeHtml(marketHealth.status ?? "unknown")}</strong>
       <p>Latency: ${formatNumber(marketHealth.latency_ms ?? 0, " ms")}</p>
@@ -80,7 +80,7 @@ function renderStrategies(strategies) {
   strategyList.innerHTML = strategies
     .map(
       (strategy) => `
-        <div class="strategy-item">
+        <div class="strategy-item" data-testid="strategy-item">
           <strong>${escapeHtml(strategy.name)}</strong>
           <p>${escapeHtml(strategy.description)}</p>
           <p class="label">Best regime: ${escapeHtml(strategy.market_regime)}</p>
@@ -118,7 +118,7 @@ function renderAggregates(performance) {
   if (!list) return;
 
   if (!performance || performance.total_trades === 0) {
-    list.innerHTML = `<div class="aggregate-item"><strong>No paper trades yet.</strong><p>Post journal entries to compare strategies by realized PnL and drawdown.</p></div>`;
+    list.innerHTML = `<div class="aggregate-item" data-testid="performance-list-empty"><strong>No paper trades yet.</strong><p>Post journal entries to compare strategies by realized PnL and drawdown.</p></div>`;
     return;
   }
 
@@ -150,14 +150,14 @@ function renderRecentTrades(trades) {
   if (!list) return;
 
   if (!trades || trades.length === 0) {
-    list.innerHTML = `<div class="journal-item"><strong>No journal entries yet.</strong><p>Use the paper journal endpoints to accumulate structured trade evidence.</p></div>`;
+    list.innerHTML = `<div class="journal-item" data-testid="journal-list-empty"><strong>No journal entries yet.</strong><p>Use the paper journal endpoints to accumulate structured trade evidence.</p></div>`;
     return;
   }
 
   list.innerHTML = trades
     .map(
       (trade) => `
-        <article class="journal-item">
+        <article class="journal-item" data-testid="journal-item">
           <div class="journal-header">
             <strong>${escapeHtml(trade.symbol)} ${escapeHtml(trade.direction.toUpperCase())}</strong>
             <span>${escapeHtml(trade.status)}</span>

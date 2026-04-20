@@ -74,22 +74,6 @@ function renderConnectors(connectors, marketHealth) {
   `;
 }
 
-function renderStrategies(strategies) {
-  const strategyList = document.getElementById("strategy-list");
-  if (!strategyList) return;
-  strategyList.innerHTML = strategies
-    .map(
-      (strategy) => `
-        <div class="strategy-item">
-          <strong>${escapeHtml(strategy.name)}</strong>
-          <p>${escapeHtml(strategy.description)}</p>
-          <p class="label">Best regime: ${escapeHtml(strategy.market_regime)}</p>
-        </div>
-      `,
-    )
-    .join("");
-}
-
 function renderGuardrails(guardrails) {
   setText("runtime-mode", guardrails.mode);
   setText(
@@ -98,82 +82,6 @@ function renderGuardrails(guardrails) {
       ? "Testnet guarded mode armed; manual wallet signature remains required."
       : "Paper mode remains active until explicit human approval unlocks guarded testnet execution.",
   );
-
-  const reasonList = document.getElementById("guardrail-reasons");
-  if (!reasonList) return;
-  reasonList.innerHTML = guardrails.reasons
-    .map((reason) => `<li>${escapeHtml(reason)}</li>`)
-    .join("");
-}
-
-function renderMetrics(metrics) {
-  setText("net-profit", formatNumber(metrics.net_profit, " USD"));
-  setText("return-pct", formatNumber(metrics.total_return_pct, "%"));
-  setText("drawdown-pct", formatNumber(metrics.max_drawdown_pct, "%"));
-  setText("profit-factor", formatNumber(metrics.profit_factor));
-}
-
-function renderAggregates(performance) {
-  const list = document.getElementById("aggregates-list");
-  if (!list) return;
-
-  if (!performance || performance.total_trades === 0) {
-    list.innerHTML = `<div class="aggregate-item"><strong>No paper trades yet.</strong><p>Post journal entries to compare strategies by realized PnL and drawdown.</p></div>`;
-    return;
-  }
-
-  const strategyEntries = Object.entries(performance.by_strategy || {});
-  list.innerHTML = `
-    <div class="aggregate-item aggregate-summary">
-      <strong>${performance.total_trades} trades tracked</strong>
-      <p>Total PnL: ${formatNumber(performance.total_pnl, " USD")}</p>
-      <p>Win rate: ${formatNumber(performance.win_rate_pct, "%")}</p>
-      <p>Avg drawdown: ${formatNumber(performance.average_drawdown)}</p>
-    </div>
-    ${strategyEntries
-      .map(
-        ([strategyId, aggregate]) => `
-          <div class="aggregate-item">
-            <strong>${escapeHtml(strategyId)}</strong>
-            <p>Trades: ${aggregate.total_trades}</p>
-            <p>PnL: ${formatNumber(aggregate.total_pnl, " USD")}</p>
-            <p>Win rate: ${formatNumber(aggregate.win_rate_pct, "%")}</p>
-          </div>
-        `,
-      )
-      .join("")}
-  `;
-}
-
-function renderRecentTrades(trades) {
-  const list = document.getElementById("journal-list");
-  if (!list) return;
-
-  if (!trades || trades.length === 0) {
-    list.innerHTML = `<div class="journal-item"><strong>No journal entries yet.</strong><p>Use the paper journal endpoints to accumulate structured trade evidence.</p></div>`;
-    return;
-  }
-
-  list.innerHTML = trades
-    .map(
-      (trade) => `
-        <article class="journal-item">
-          <div class="journal-header">
-            <strong>${escapeHtml(trade.symbol)} ${escapeHtml(trade.direction.toUpperCase())}</strong>
-            <span>${escapeHtml(trade.status)}</span>
-          </div>
-          <p>${escapeHtml(trade.strategy_id)} · ${escapeHtml(trade.timeframe)} · ${escapeHtml(trade.market_regime)}</p>
-          <p>${escapeHtml(trade.setup_reason)}</p>
-          <div class="journal-metrics">
-            <span>Entry ${formatNumber(trade.entry_price)}</span>
-            <span>Exit ${trade.exit_price !== null ? formatNumber(trade.exit_price) : "-"}</span>
-            <span>PnL ${trade.pnl !== null ? formatNumber(trade.pnl, " USD") : "-"}</span>
-            <span>DD ${trade.drawdown !== null ? formatNumber(trade.drawdown) : "-"}</span>
-          </div>
-        </article>
-      `,
-    )
-    .join("");
 }
 
 function showStatus(message, variant = "info") {
@@ -186,16 +94,22 @@ function showStatus(message, variant = "info") {
 
 async function loadDashboard() {
   showStatus("");
-  const [dashboard, marketHealth] = await Promise.all([
-    fetchJson("/api/dashboard"),
-    fetchJson("/api/market/health"),
-  ]);
-  renderMetrics(dashboard.metrics);
-  renderGuardrails(dashboard.guardrails);
-  renderConnectors(dashboard.connectors, marketHealth || {});
-  renderStrategies(dashboard.strategies);
-  renderAggregates(dashboard.performance);
-  renderRecentTrades(dashboard.recent_trades);
+  try {
+    const [dashboard, marketHealth] = await Promise.all([
+      fetchJson("/api/dashboard"),
+      fetchJson("/api/market/health"),
+    ]);
+    renderGuardrails(dashboard.guardrails);
+    renderConnectors(dashboard.connectors, marketHealth || {});
+  } catch (error) {
+    console.error(error);
+    setText("runtime-mode", "offline");
+    setText(
+      "guardrail-copy",
+      "API offline. Start the FastAPI service to view metrics.",
+    );
+    showStatus("API offline — dashboard will retry on refresh.", "error");
+  }
 }
 
 async function connectMetaMask() {
@@ -219,10 +133,7 @@ async function connectMetaMask() {
 const refreshButton = document.getElementById("refresh-button");
 if (refreshButton) {
   refreshButton.addEventListener("click", () => {
-    loadDashboard().catch((error) => {
-      console.error(error);
-      showStatus("Could not refresh dashboard.", "error");
-    });
+    loadDashboard();
   });
 }
 
@@ -231,12 +142,95 @@ if (connectButton) {
   connectButton.addEventListener("click", connectMetaMask);
 }
 
-loadDashboard().catch((error) => {
-  console.error(error);
-  setText("runtime-mode", "offline");
-  setText(
-    "guardrail-copy",
-    "API offline. Start the FastAPI service to view metrics.",
-  );
-  showStatus("API offline — dashboard will retry on refresh.", "error");
+// Economic Flow Logic
+const artifactSelectionView = document.getElementById("artifact-selection-view");
+const economicFlowView = document.getElementById("economic-flow-view");
+const btnReset = document.getElementById("btn-reset");
+const btnPay = document.getElementById("btn-pay");
+const btnDownload = document.getElementById("btn-download");
+
+const stepPayment = document.getElementById("step-payment");
+const stepJob = document.getElementById("step-job");
+const stepReview = document.getElementById("step-review");
+const stepDelivery = document.getElementById("step-delivery");
+
+function resetFlow() {
+  artifactSelectionView.hidden = false;
+  economicFlowView.hidden = true;
+  
+  [stepPayment, stepJob, stepReview, stepDelivery].forEach(step => {
+    step.classList.remove("active", "completed");
+    step.classList.add("pending");
+    step.querySelector(".step-status").textContent = "Waiting";
+  });
+  
+  stepPayment.classList.remove("pending");
+  stepPayment.classList.add("active");
+  stepPayment.querySelector(".step-status").textContent = "Pending";
+  
+  btnPay.disabled = false;
+  btnPay.textContent = "Sign Transaction (Stub)";
+  btnDownload.hidden = true;
+  btnDownload.textContent = "Download Artifact";
+  stepDelivery.querySelector("p").textContent = "Artifact is locked until payment and review clear.";
+}
+
+function updateStepStatus(stepElement, statusClass, statusText) {
+  stepElement.classList.remove("pending", "active", "completed");
+  stepElement.classList.add(statusClass);
+  stepElement.querySelector(".step-status").textContent = statusText;
+}
+
+document.querySelectorAll(".action-select-artifact").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    const artifactName = e.target.getAttribute("data-artifact");
+    const price = e.target.getAttribute("data-price");
+    
+    setText("selected-artifact-name", artifactName);
+    setText("flow-price", price);
+    
+    resetFlow();
+    artifactSelectionView.hidden = true;
+    economicFlowView.hidden = false;
+  });
 });
+
+if (btnReset) {
+  btnReset.addEventListener("click", resetFlow);
+}
+
+if (btnPay) {
+  btnPay.addEventListener("click", async () => {
+    btnPay.disabled = true;
+    btnPay.textContent = "Processing...";
+    
+    // Simulate payment transaction
+    await new Promise(r => setTimeout(r, 1000));
+    updateStepStatus(stepPayment, "completed", "Paid");
+    updateStepStatus(stepJob, "active", "Processing");
+    
+    // Simulate Job state
+    await new Promise(r => setTimeout(r, 2000));
+    updateStepStatus(stepJob, "completed", "Done");
+    updateStepStatus(stepReview, "active", "Validating");
+    
+    // Simulate Review state
+    await new Promise(r => setTimeout(r, 2000));
+    updateStepStatus(stepReview, "completed", "Approved");
+    updateStepStatus(stepDelivery, "active", "Unlocked");
+    
+    // Unlock Delivery
+    stepDelivery.querySelector("p").textContent = "Artifact successfully validated and unlocked.";
+    btnDownload.hidden = false;
+  });
+}
+
+if (btnDownload) {
+  btnDownload.addEventListener("click", () => {
+    btnDownload.textContent = "Downloaded!";
+    updateStepStatus(stepDelivery, "completed", "Delivered");
+  });
+}
+
+// Init
+loadDashboard();

@@ -14,7 +14,7 @@
           <div class="brand-mark">TT</div>
           <div>
             <p class="eyebrow">Research-first trading stack</p>
-            <h1>ToTheMoonTokens</h1>
+            <h1>Nexus Delivery</h1>
           </div>
         </div>
         <div class="guardrail">
@@ -27,70 +27,98 @@
 
       <main class="content">
         <section class="hero">
-          <p class="eyebrow">Binance testnet + wallet manual approval</p>
-          <h2>Measure edge before touching capital.</h2>
+          <p class="eyebrow">Nexus Artifact Marketplace</p>
+          <h2>Acquire validated research artifacts.</h2>
           <p class="lede">
-            This workspace compares strategies, tracks drawdown, and keeps mainnet execution blocked
-            unless there is explicit human approval.
+            Request custom backtests, risk models, and signals. Fully verifiable, securely delivered.
           </p>
           <div class="hero-actions">
-            <button id="refresh-button">Refresh dashboard</button>
-            <button id="connect-wallet-button" class="secondary">Connect MetaMask</button>
+            <button id="refresh-button">Refresh status</button>
+            <button id="connect-wallet-button" class="secondary">Connect Wallet</button>
           </div>
           <p id="status-banner" class="status-banner" role="status" aria-live="polite" hidden></p>
         </section>
 
-        <section class="grid metrics-grid">
-          <article class="metric-card">
-            <p class="label">Net profit</p>
-            <strong id="net-profit">-</strong>
+        <!-- Artifact Selection & Pricing -->
+        <section class="grid artifact-grid" id="artifact-selection-view">
+          <article class="panel artifact-card">
+             <div class="panel-heading">
+                <p class="eyebrow">Standard</p>
+                <h3>Historical Backtest</h3>
+                <strong class="price">500 USDC</strong>
+             </div>
+             <p class="artifact-desc">Comprehensive 5-year tick-data backtest with slippage and fee simulation.</p>
+             <button class="primary action-select-artifact" data-artifact="Historical Backtest" data-price="500">Select Artifact</button>
           </article>
-          <article class="metric-card">
-            <p class="label">Return</p>
-            <strong id="return-pct">-</strong>
+          <article class="panel artifact-card">
+             <div class="panel-heading">
+                <p class="eyebrow">Premium</p>
+                <h3>Walk-Forward Analysis</h3>
+                <strong class="price">1,200 USDC</strong>
+             </div>
+             <p class="artifact-desc">Robust walk-forward optimization report including regime classification.</p>
+             <button class="primary action-select-artifact" data-artifact="Walk-Forward Analysis" data-price="1200">Select Artifact</button>
           </article>
-          <article class="metric-card">
-            <p class="label">Max drawdown</p>
-            <strong id="drawdown-pct">-</strong>
-          </article>
-          <article class="metric-card">
-            <p class="label">Profit factor</p>
-            <strong id="profit-factor">-</strong>
-          </article>
-        </section>
-
-        <section class="grid lower-grid">
-          <article class="panel">
-            <div class="panel-heading">
-              <p class="eyebrow">Strategies</p>
-              <h3>Catalog</h3>
-            </div>
-            <div id="strategy-list" class="strategy-list"></div>
-          </article>
-
-          <article class="panel">
-            <div class="panel-heading">
-              <p class="eyebrow">Execution controls</p>
-              <h3>Guardrails</h3>
-            </div>
-            <ul id="guardrail-reasons" class="reason-list"></ul>
-          </article>
-
-          <article class="panel">
-            <div class="panel-heading">
-              <p class="eyebrow">Paper learning loop</p>
-              <h3>Performance</h3>
-            </div>
-            <div id="aggregates-list" class="aggregate-list"></div>
+          <article class="panel artifact-card">
+             <div class="panel-heading">
+                <p class="eyebrow">Enterprise</p>
+                <h3>Live Strategy Deployment</h3>
+                <strong class="price">5,000 USDC</strong>
+             </div>
+             <p class="artifact-desc">Paper-trading validated setup ready for testnet execution.</p>
+             <button class="primary action-select-artifact" data-artifact="Live Strategy Deployment" data-price="5000">Select Artifact</button>
           </article>
         </section>
 
-        <section class="panel journal-panel">
-          <div class="panel-heading">
-            <p class="eyebrow">Recent paper trades</p>
-            <h3>Journal</h3>
-          </div>
-          <div id="journal-list" class="journal-list"></div>
+        <!-- Job Flow / Economic Flow Status -->
+        <section class="panel flow-panel" id="economic-flow-view" hidden>
+           <div class="panel-heading">
+             <p class="eyebrow">Order Flow</p>
+             <h3>Artifact Delivery Status: <span id="selected-artifact-name"></span></h3>
+           </div>
+           <div class="flow-steps">
+              <div class="flow-step" id="step-payment">
+                 <div class="step-header">
+                   <strong>1. Payment State</strong>
+                   <span class="step-status">Pending</span>
+                 </div>
+                 <div class="step-content">
+                   <p>Awaiting <strong id="flow-price">0</strong> USDC payment...</p>
+                   <button id="btn-pay" class="primary">Sign Transaction (Stub)</button>
+                 </div>
+              </div>
+              <div class="flow-step pending" id="step-job">
+                 <div class="step-header">
+                   <strong>2. Job State</strong>
+                   <span class="step-status">Waiting</span>
+                 </div>
+                 <div class="step-content">
+                   <p>Worker computation pending.</p>
+                 </div>
+              </div>
+              <div class="flow-step pending" id="step-review">
+                 <div class="step-header">
+                   <strong>3. Review State</strong>
+                   <span class="step-status">Waiting</span>
+                 </div>
+                 <div class="step-content">
+                   <p>Awaiting consensus validation.</p>
+                 </div>
+              </div>
+              <div class="flow-step pending" id="step-delivery">
+                 <div class="step-header">
+                   <strong>4. Delivery State</strong>
+                   <span class="step-status">Locked</span>
+                 </div>
+                 <div class="step-content">
+                   <p>Artifact is locked until payment and review clear.</p>
+                   <button id="btn-download" class="primary" hidden>Download Artifact</button>
+                 </div>
+              </div>
+           </div>
+           <div class="flow-actions" style="margin-top: 1rem;">
+              <button id="btn-reset" class="secondary">Start New Order</button>
+           </div>
         </section>
       </main>
     </div>

@@ -280,3 +280,109 @@ button.secondary {
     grid-template-columns: 1fr;
   }
 }
+
+/* Economic Flow Specific Styles */
+.artifact-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.artifact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.artifact-card .panel-heading {
+  margin-bottom: 0;
+}
+
+.artifact-card .price {
+  display: block;
+  font-size: 1.8rem;
+  color: var(--accent);
+  margin-top: 12px;
+}
+
+.artifact-desc {
+  color: var(--muted);
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.action-select-artifact {
+  margin-top: auto;
+  width: 100%;
+}
+
+.flow-panel {
+  max-width: 800px;
+}
+
+.flow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.flow-step {
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+  transition: all 0.3s ease;
+}
+
+.flow-step.pending {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.flow-step.active {
+  background: rgba(45, 212, 191, 0.08);
+  border-color: rgba(45, 212, 191, 0.4);
+}
+
+.flow-step.completed {
+  background: rgba(45, 212, 191, 0.04);
+  border-color: rgba(45, 212, 191, 0.2);
+}
+
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.step-header strong {
+  font-size: 1.1rem;
+}
+
+.step-status {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.flow-step.active .step-status {
+  background: rgba(45, 212, 191, 0.2);
+  color: var(--accent);
+}
+
+.flow-step.completed .step-status {
+  background: rgba(45, 212, 191, 0.1);
+  color: var(--accent);
+}
+
+.step-content p {
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.step-content button {
+  margin-top: 8px;
+}
+

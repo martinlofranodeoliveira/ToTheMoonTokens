@@ -59,6 +59,7 @@ make docker-down   # quando terminar
 - Guia completo em [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 - Procedimentos de resposta a incidente em [docs/SECURITY_RUNBOOK.md](docs/SECURITY_RUNBOOK.md).
 - Fluxo de validacao operacional em [docs/DELIVERY_VALIDATION.md](docs/DELIVERY_VALIDATION.md).
+- Contrato de teste e escopo E2E em [docs/TEST_IDS.md](docs/TEST_IDS.md).
 
 ## Nexus local
 

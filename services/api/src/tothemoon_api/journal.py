@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
 from collections import defaultdict
 from collections.abc import Iterable
 from pathlib import Path
@@ -28,13 +29,13 @@ def _load_raw() -> list[dict[str, object]]:
 
 
 def load_trades() -> list[PaperTradeRecord]:
-    records: list[PaperTradeRecord] = []
+    trades: list[PaperTradeRecord] = []
     for payload in _load_raw():
         try:
-            records.append(PaperTradeRecord.model_validate(payload))
+            trades.append(PaperTradeRecord.model_validate(payload))
         except Exception:
             continue
-    return records
+    return trades
 
 
 def _persist(records: list[PaperTradeRecord]) -> None:
@@ -49,21 +50,37 @@ def _persist(records: list[PaperTradeRecord]) -> None:
 
 
 def add_trade(record: PaperTradeRecord) -> PaperTradeRecord:
+    if not record.id:
+        record.id = uuid.uuid4().hex
     records = load_trades()
     records.append(record)
     _persist(records)
     return record
 
 
+def record_trade(trade: PaperTradeRecord) -> PaperTradeRecord:
+    return add_trade(trade)
+
+
+def get_journal(limit: int | None = None) -> list[PaperTradeRecord]:
+    trades = sorted(load_trades(), key=lambda trade: trade.entry_time, reverse=True)
+    if limit is None:
+        return trades
+    return trades[: max(limit, 0)]
+
+
 def get_recent_trades(limit: int = 12) -> list[PaperTradeRecord]:
-    records = sorted(load_trades(), key=lambda record: record.entry_time, reverse=True)
-    return records[: max(limit, 0)]
+    return get_journal(limit=limit)
 
 
 def clear_trades() -> None:
     path = _journal_path()
     if path.exists():
         path.unlink()
+
+
+def clear_journal() -> None:
+    clear_trades()
 
 
 def _bucket(records: Iterable[PaperTradeRecord]) -> AggregateBucket:
@@ -89,22 +106,59 @@ def _bucket(records: Iterable[PaperTradeRecord]) -> AggregateBucket:
 
 
 def get_performance_aggregate() -> PerformanceAggregates:
+    return get_performance_aggregates()
+
+
+def get_performance_aggregates(
+    strategy_id: str | None = None,
+    symbol: str | None = None,
+    timeframe: str | None = None,
+) -> PerformanceAggregates:
     trades = load_trades()
+    if strategy_id:
+        trades = [trade for trade in trades if trade.strategy_id == strategy_id]
+    if symbol:
+        trades = [trade for trade in trades if trade.symbol == symbol]
+    if timeframe:
+        trades = [trade for trade in trades if trade.timeframe == timeframe]
 
     by_strategy: dict[str, list[PaperTradeRecord]] = defaultdict(list)
     by_symbol: dict[str, list[PaperTradeRecord]] = defaultdict(list)
     by_timeframe: dict[str, list[PaperTradeRecord]] = defaultdict(list)
+    outcomes_by_regime: dict[str, dict[str, int]] = {}
 
     for trade in trades:
         by_strategy[trade.strategy_id].append(trade)
         by_symbol[trade.symbol].append(trade)
         by_timeframe[trade.timeframe].append(trade)
+        regime = trade.market_regime
+        outcomes_by_regime.setdefault(regime, {"win": 0, "loss": 0, "breakeven": 0, "open": 0})
+        outcomes_by_regime[regime][trade.outcome] += 1
+
+    total_pnl = round(sum(trade.pnl or 0.0 for trade in trades), 4)
+    closed_trades = [
+        trade for trade in trades if trade.outcome != "open" or trade.status == "closed"
+    ]
+    wins = len([trade for trade in closed_trades if trade.outcome == "win"])
+    gross_wins = sum(
+        trade.pnl for trade in closed_trades if trade.pnl is not None and trade.pnl > 0
+    )
+    gross_losses = sum(
+        abs(trade.pnl) for trade in closed_trades if trade.pnl is not None and trade.pnl < 0
+    )
+    profit_factor = (
+        (gross_wins / gross_losses) if gross_losses > 0 else (gross_wins if gross_wins > 0 else 0.0)
+    )
+    summary_bucket = _bucket(trades)
 
     return PerformanceAggregates(
         total_trades=len(trades),
-        total_pnl=round(sum(trade.pnl or 0.0 for trade in trades), 4),
-        win_rate_pct=_bucket(trades).win_rate_pct if trades else 0.0,
-        average_drawdown=_bucket(trades).average_drawdown if trades else 0.0,
+        total_pnl=total_pnl,
+        win_rate=round((wins / len(closed_trades)), 4) if closed_trades else 0.0,
+        win_rate_pct=summary_bucket.win_rate_pct,
+        profit_factor=round(profit_factor, 4),
+        average_drawdown=summary_bucket.average_drawdown,
+        outcomes_by_regime=outcomes_by_regime,
         by_strategy={key: _bucket(value) for key, value in sorted(by_strategy.items())},
         by_symbol={key: _bucket(value) for key, value in sorted(by_symbol.items())},
         by_timeframe={key: _bucket(value) for key, value in sorted(by_timeframe.items())},

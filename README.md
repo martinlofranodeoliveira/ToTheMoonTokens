@@ -19,6 +19,16 @@ ToTheMoonTokens e um workspace inicial para pesquisa, backtesting e paper tradin
 - `docs`: arquitetura, guardrails e briefing de UI para Stitch
 - `ops/evidence`: artefatos locais de validacao, mirror e review
 
+## API de research
+
+- `POST /api/backtests/run`: backtest deterministico com checklist de probabilidade e tiers de risco.
+- `POST /api/backtests/walk-forward`: split treino/validacao para validar robustez fora da amostra.
+- `GET /api/dashboard`: snapshot unico com estrategias, metricas, guardrails, conectores, journal e performance.
+- `POST /api/journal/trades`, `POST /api/paper/journal` e `GET /api/journal/performance`: diario de paper trading com agregados por regime, estrategia e simbolo.
+- `POST /api/news/ingest`, `GET /api/news` e `GET /api/news/risk`: ingestao local de noticias e filtro de risco.
+- `POST /api/scalp/validate`: validacao de setup de scalp por contexto, custo e R:R minimo.
+- `GET /api/market/klines`, `GET /api/market/ticker`, `GET /api/market/depth` e `GET /api/market/stream-preview`: leitura de mercado com degradacao controlada.
+
 ## Quickstart
 
 1. Copie `.env.example` para `.env` e mantenha `ENABLE_LIVE_TRADING=false`.
@@ -41,7 +51,7 @@ make docker-down   # quando terminar
 
 - `make api-cov` — testes com cobertura (alvo 70%+).
 - `make api-lint` / `make api-format` — `ruff`.
-- `make api-typecheck` — `mypy --strict`.
+- `make api-typecheck` — `mypy` no pacote `tothemoon_api`.
 - `make mirror-verify` — compara branches esperadas entre GitHub e GitLab.
 - `make validation-evidence` — coleta evidencias locais do runtime e do review gate.
 - Metricas Prometheus expostas em `GET /metrics`.

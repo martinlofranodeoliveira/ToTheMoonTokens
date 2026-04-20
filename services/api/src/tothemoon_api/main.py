@@ -1,20 +1,42 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .backtesting import run_backtest
+from .backtesting import run_backtest, run_walk_forward
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
-from .journal import add_trade, clear_trades, get_performance_aggregate, get_recent_trades
-from .market_data import BinanceMarketData, MarketDataError
+from .journal import (
+    clear_journal,
+    get_journal,
+    get_performance_aggregate,
+    get_performance_aggregates,
+    get_recent_trades,
+    record_trade,
+)
+from .market_data import (
+    BinanceMarketData,
+    ExchangeDegradationError,
+    connector_state,
+    get_depth,
+    get_ticker,
+)
 from .models import (
+    ArmRequest,
     BacktestRequest,
     Candle,
     DashboardResponse,
+    Horizon,
+    NewsCategory,
+    NewsIngestRequest,
     PaperTradeRecord,
     PerformanceAggregates,
+    ProbabilityChecklist,
+    ScalpValidationRequest,
+    ValidationResult,
+    WalkForwardRequest,
 )
+from .news import check_news_risk_filter, get_recent_news, ingest_news
 from .observability import (
     LIVE_ARM_ATTEMPTS_TOTAL,
     PrometheusMiddleware,
@@ -25,6 +47,7 @@ from .observability import (
     get_logger,
     metrics_response,
 )
+from .scalp import validate_scalp_setup
 from .strategies import strategy_catalog
 
 configure_logging()
@@ -68,6 +91,14 @@ def _default_metrics():
         timeframe=settings.default_timeframe,
         fee_bps=settings.default_fee_bps,
         slippage_bps=settings.default_slippage_bps,
+        risk_tier="low",
+        checklist=ProbabilityChecklist(
+            trend_alignment=True,
+            momentum_confirm=True,
+            volume_expansion=True,
+            key_level_rejection=True,
+            no_upcoming_news=True,
+        ),
     )
     return run_backtest(request, settings.max_position_size_pct)
 
@@ -81,17 +112,20 @@ def _market_connector() -> BinanceMarketData:
 
 @app.get("/health")
 def health() -> dict[str, object]:
+    status = "online" if connector_state.is_healthy else "degraded"
     return {
         "ok": True,
         "app": settings.app_name,
         "mode": settings.runtime_mode,
         "exchange": settings.default_exchange,
         "liveTradingEnabled": settings.enable_live_trading,
+        "latency_ms": connector_state.last_latency_ms,
+        "reconnect_count": connector_state.reconnect_count,
+        "last_error": connector_state.last_error,
         "market_connector": {
-            "status": "unknown",
-            "latency_ms": 0.0,
-            "last_error": None,
-            "last_stream": None,
+            "status": status,
+            "latency_ms": connector_state.last_latency_ms,
+            "last_error": connector_state.last_error,
             "sample_count": 0,
         },
     }
@@ -133,8 +167,21 @@ def create_backtest(request: BacktestRequest, http_request: Request):
     return run_backtest(request, settings.max_position_size_pct)
 
 
+@app.post("/api/backtests/walk-forward")
+def create_walk_forward(request: WalkForwardRequest, http_request: Request):
+    limited = enforce_rate_limit(
+        http_request,
+        limit=settings.rate_limit_backtest_per_minute,
+        window_seconds=60,
+    )
+    if limited is not None:
+        return limited
+    return run_walk_forward(request, settings.max_position_size_pct)
+
+
 @app.get("/api/dashboard", response_model=DashboardResponse)
 def get_dashboard():
+    performance = get_performance_aggregate()
     return DashboardResponse(
         app_name=settings.app_name,
         runtime_mode=settings.runtime_mode,
@@ -143,7 +190,8 @@ def get_dashboard():
         guardrails=evaluate_guardrails(settings),
         connectors=connector_status(settings),
         recent_trades=get_recent_trades(limit=8),
-        performance=get_performance_aggregate(),
+        performance=performance,
+        journal_performance=performance,
     )
 
 
@@ -166,26 +214,6 @@ def get_market_klines(
     )
 
 
-@app.get("/api/market/ticker")
-def get_market_ticker(symbol: str | None = None) -> dict[str, object]:
-    connector = _market_connector()
-    try:
-        return connector.fetch_ticker(symbol or settings.default_symbol)
-    except MarketDataError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-
-@app.get("/api/market/depth")
-def get_market_depth(symbol: str | None = None, limit: int = 5) -> dict[str, object]:
-    connector = _market_connector()
-    try:
-        return connector.fetch_depth(
-            symbol or settings.default_symbol, limit=max(1, min(limit, 100))
-        )
-    except MarketDataError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-
 @app.get("/api/market/stream-preview")
 def get_market_stream_preview(
     stream_name: str = "btcusdt@trade",
@@ -193,7 +221,8 @@ def get_market_stream_preview(
 ) -> dict[str, object]:
     connector = _market_connector()
     messages = connector.listen_stream(
-        stream_name=stream_name, max_messages=max(1, min(max_messages, 3))
+        stream_name=stream_name,
+        max_messages=max(1, min(max_messages, 3)),
     )
     return {
         "ok": True,
@@ -204,19 +233,80 @@ def get_market_stream_preview(
     }
 
 
+@app.post("/api/live/arm")
+def arm_testnet_live_mode(http_request: Request, request: ArmRequest | None = None):
+    limited = enforce_rate_limit(
+        http_request,
+        limit=settings.rate_limit_live_arm_per_minute,
+        window_seconds=60,
+    )
+    if limited is not None:
+        return limited
+
+    risk_tier = request.risk_tier if request else "low"
+    guardrails = evaluate_guardrails(settings, risk_tier=risk_tier)
+    if not guardrails.can_submit_testnet_orders:
+        LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="false").inc()
+        if risk_tier == "high":
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "message": "High-risk profiles remain research-only until explicit human approval exists.",
+                    "risk_tier": risk_tier,
+                    "guardrails": guardrails.model_dump(),
+                },
+            )
+        log.warning(
+            "live_arm_denied", runtime_mode=settings.runtime_mode, reasons=guardrails.reasons
+        )
+        raise HTTPException(status_code=423, detail=guardrails.model_dump())
+
+    LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="true").inc()
+    log.info("live_arm_allowed", runtime_mode=settings.runtime_mode, risk_tier=risk_tier)
+    return {
+        "ok": True,
+        "message": "Runtime elegivel apenas para testnet guarded mode.",
+        "tier": risk_tier,
+        "guardrails": guardrails.model_dump(),
+    }
+
+
+@app.get("/api/journal/trades", response_model=list[PaperTradeRecord])
+def list_journal_trades():
+    return get_journal()
+
+
+@app.post("/api/journal/trades", response_model=PaperTradeRecord)
+def add_journal_trade(trade: PaperTradeRecord):
+    return record_trade(trade)
+
+
+@app.get("/api/journal/performance", response_model=PerformanceAggregates)
+def get_journal_performance(
+    strategy_id: str | None = None,
+    symbol: str | None = None,
+    timeframe: str | None = None,
+):
+    return get_performance_aggregates(
+        strategy_id=strategy_id,
+        symbol=symbol,
+        timeframe=timeframe,
+    )
+
+
 @app.post("/api/paper/journal", response_model=PaperTradeRecord)
 def create_paper_journal_entry(record: PaperTradeRecord) -> PaperTradeRecord:
-    return add_trade(record)
+    return record_trade(record)
 
 
 @app.get("/api/paper/journal", response_model=list[PaperTradeRecord])
 def list_paper_journal(limit: int = 20) -> list[PaperTradeRecord]:
-    return get_recent_trades(limit=max(1, min(limit, 200)))
+    return get_journal(limit=max(1, min(limit, 200)))
 
 
 @app.delete("/api/paper/journal")
 def delete_paper_journal() -> dict[str, object]:
-    clear_trades()
+    clear_journal()
     return {"ok": True, "message": "Paper trading journal cleared."}
 
 
@@ -240,35 +330,44 @@ def delete_journal_entries_alias() -> dict[str, object]:
     return delete_paper_journal()
 
 
-@app.get("/api/journal/performance", response_model=PerformanceAggregates)
-def get_journal_performance_alias() -> PerformanceAggregates:
-    return get_paper_performance()
+@app.post("/api/news/ingest")
+def api_ingest_news(request: NewsIngestRequest):
+    item = ingest_news(request)
+    if not item:
+        return {"status": "ignored", "reason": "duplicate"}
+    return {"status": "ingested", "item": item}
 
 
-@app.post("/api/live/arm")
-def arm_testnet_live_mode(http_request: Request):
-    limited = enforce_rate_limit(
-        http_request,
-        limit=settings.rate_limit_live_arm_per_minute,
-        window_seconds=60,
-    )
-    if limited is not None:
-        return limited
+@app.get("/api/news")
+def api_get_news(
+    limit: int = Query(default=50, ge=1, le=200),
+    horizon: Horizon | None = None,
+    category: NewsCategory | None = None,
+):
+    return get_recent_news(limit=limit, horizon=horizon, category=category)
 
-    guardrails = evaluate_guardrails(settings)
-    if not guardrails.can_submit_testnet_orders:
-        LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="false").inc()
-        log.warning(
-            "live_arm_denied",
-            runtime_mode=settings.runtime_mode,
-            reasons=guardrails.reasons,
-        )
-        raise HTTPException(status_code=423, detail=guardrails.model_dump())
 
-    LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="true").inc()
-    log.info("live_arm_allowed", runtime_mode=settings.runtime_mode)
-    return {
-        "ok": True,
-        "message": "Runtime elegivel apenas para testnet guarded mode.",
-        "guardrails": guardrails.model_dump(),
-    }
+@app.get("/api/news/risk")
+def api_news_risk(symbol: str = "BTCUSDT"):
+    return check_news_risk_filter(symbol)
+
+
+@app.post("/api/scalp/validate", response_model=ValidationResult)
+def validate_scalp(request: ScalpValidationRequest):
+    return validate_scalp_setup(request.setup, request.context)
+
+
+@app.get("/api/market/ticker")
+def api_get_ticker(symbol: str = "BTCUSDT"):
+    try:
+        return get_ticker(symbol)
+    except ExchangeDegradationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/market/depth")
+def api_get_depth(symbol: str = "BTCUSDT", limit: int = Query(default=20, ge=5, le=100)):
+    try:
+        return get_depth(symbol, limit=limit)
+    except ExchangeDegradationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc

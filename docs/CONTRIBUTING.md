@@ -70,7 +70,7 @@ hook local que recusa commit de `.env`.
    make api-cov        # testes com cobertura (alvo >= 70%)
    make api-lint       # ruff check
    make api-format     # ruff format
-   make api-typecheck  # mypy --strict
+   make api-typecheck  # mypy no pacote tothemoon_api
    ```
 5. **Commit** com mensagem seguindo o padrao existente
    (`feat:`, `fix:`, `chore:`, `docs:`).

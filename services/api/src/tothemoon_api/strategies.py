@@ -10,18 +10,21 @@ STRATEGIES: list[StrategyDescriptor] = [
         name="EMA Crossover",
         description="Segue tendencia quando a media curta cruza acima da longa.",
         market_regime="trend",
+        risk_tier="low",
     ),
     StrategyDescriptor(
         id="breakout",
         name="Breakout Range",
         description="Compra rompimento de maxima recente e sai na perda de estrutura.",
         market_regime="expansion",
+        risk_tier="medium",
     ),
     StrategyDescriptor(
         id="mean_reversion",
         name="Mean Reversion",
         description="Compra desvios negativos contra uma media curta em mercado lateral.",
         market_regime="range",
+        risk_tier="medium",
     ),
 ]
 

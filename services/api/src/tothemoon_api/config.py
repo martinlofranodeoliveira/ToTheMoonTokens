@@ -102,6 +102,9 @@ class Settings:
             name="RATE_LIMIT_BACKTEST_PER_MINUTE",
         )
     )
+    arc_rpc_url: str = field(
+        default_factory=lambda: os.getenv("ARC_RPC_URL", "https://rpc.testnet.arc.network")
+    )
 
     @property
     def runtime_mode(self) -> str:
@@ -133,6 +136,8 @@ class Settings:
             errors.append(
                 f"RATE_LIMIT_BACKTEST_PER_MINUTE must be >= 1, got {self.rate_limit_backtest_per_minute}"
             )
+        if not self.arc_rpc_url.startswith(("http://", "https://")):
+            errors.append(f"ARC_RPC_URL must start with http:// or https://, got {self.arc_rpc_url!r}")
         if errors:
             raise SettingsError("\n".join(errors))
 

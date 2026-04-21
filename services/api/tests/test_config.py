@@ -64,3 +64,9 @@ def test_multiple_errors_are_reported_together():
     assert "LOG_LEVEL" in message
     assert "WALLET_MODE" in message
     assert "MAX_POSITION_SIZE_PCT" in message
+
+
+def test_invalid_arc_rpc_url_rejected():
+    settings = Settings(arc_rpc_url="ws://rpc.testnet.arc.network")
+    with pytest.raises(SettingsError, match="ARC_RPC_URL"):
+        settings.validate()

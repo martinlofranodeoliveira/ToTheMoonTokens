@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .arc import ping_arc_network
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
@@ -156,6 +157,11 @@ def health() -> dict[str, object]:
             "sample_count": 0,
         },
     }
+
+
+@app.get("/api/arc/health")
+def arc_health() -> dict[str, object]:
+    return ping_arc_network()
 
 
 @app.get("/ready")

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .backtesting import run_backtest, run_walk_forward
 from .config import get_settings
+from .demo_agent import router as demo_agent_router
 from .guards import connector_status, evaluate_guardrails
 from .journal import (
     clear_journal,
@@ -75,6 +76,8 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
     max_age=600,
 )
+
+app.include_router(demo_agent_router)
 
 log.info(
     "api_startup",

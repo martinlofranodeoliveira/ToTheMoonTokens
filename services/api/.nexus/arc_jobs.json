@@ -82,5 +82,33 @@
       "adapter_version": "1.0",
       "chain": "stubbed-testnet"
     }
+  },
+  {
+    "job_id": "job_arc_7_1776781722",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xff5c99f62e1d3ed69ea1d2b17bbccc2133d36a61f1d2a875de2762b31bc48df9",
+    "timestamp": "2026-04-21T14:28:42.064547Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_8_1776781736",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xc23e1d6c1f68f9c9539befea5b99a7dee998a36cfca03a46fcd64301b0728270",
+    "timestamp": "2026-04-21T14:28:56.748657Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
   }
 ]

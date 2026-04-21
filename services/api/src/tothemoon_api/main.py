@@ -47,6 +47,7 @@ from .observability import (
     get_logger,
     metrics_response,
 )
+from .payments import router as payments_router
 from .scalp import validate_scalp_setup
 from .strategies import strategy_catalog
 
@@ -75,6 +76,8 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
     max_age=600,
 )
+
+app.include_router(payments_router)
 
 log.info(
     "api_startup",

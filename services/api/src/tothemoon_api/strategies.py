@@ -26,6 +26,13 @@ STRATEGIES: list[StrategyDescriptor] = [
         market_regime="range",
         risk_tier="medium",
     ),
+    StrategyDescriptor(
+        id="agentic",
+        name="Agentic Strategy",
+        description="Estrategia orientada por agentes.",
+        market_regime="trend",
+        risk_tier="medium",
+    ),
 ]
 
 
@@ -64,6 +71,14 @@ def build_signals(strategy_id: StrategyId, candles: list[Candle]) -> list[str]:
             if candles[index].close > prior_high:
                 signals[index] = "buy"
             elif candles[index].close < prior_low:
+                signals[index] = "sell"
+        return signals
+
+    if strategy_id == "agentic":
+        for index in range(len(candles)):
+            if candles[index].regime == "bull":
+                signals[index] = "buy"
+            elif candles[index].regime == "bear":
                 signals[index] = "sell"
         return signals
 

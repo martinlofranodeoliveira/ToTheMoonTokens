@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
-StrategyId = Literal["ema_crossover", "breakout", "mean_reversion"]
+StrategyId = Literal["ema_crossover", "breakout", "mean_reversion", "agentic"]
 RiskTier = Literal["low", "medium", "high"]
 Horizon = Literal["short", "medium", "long"]
 NewsCategory = Literal[

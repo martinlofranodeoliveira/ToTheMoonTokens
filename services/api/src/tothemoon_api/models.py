@@ -242,6 +242,29 @@ class PerformanceAggregates(BaseModel):
     by_timeframe: dict[str, AggregateBucket] = Field(default_factory=dict)
 
 
+ArcJobStatus = Literal["pending", "active", "completed", "failed"]
+
+
+class ArcProof(BaseModel):
+    proof_id: str
+    job_id: str
+    agent_id: str
+    timestamp: datetime
+    merkle_root: str | None = None
+    transaction_hash: str | None = None
+    evidence_payload: dict = Field(default_factory=dict)
+
+
+class ArcJob(BaseModel):
+    id: str
+    nexus_task_id: str
+    status: ArcJobStatus
+    created_at: datetime
+    updated_at: datetime
+    proof: ArcProof | None = None
+    reward_amount: float = 0.0
+
+
 class DashboardResponse(BaseModel):
     app_name: str
     runtime_mode: str
@@ -252,6 +275,7 @@ class DashboardResponse(BaseModel):
     recent_trades: list[PaperTradeRecord] = Field(default_factory=list)
     performance: PerformanceAggregates | None = None
     journal_performance: PerformanceAggregates | None = None
+    arc_jobs: list[ArcJob] = Field(default_factory=list)
 
 
 class NewsItem(BaseModel):

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "arc_job_330965462d17",
+    "nexus_task_id": "test_nexus_task_123",
+    "status": "completed",
+    "created_at": "2026-04-21T18:28:14.657987",
+    "updated_at": "2026-04-21T18:28:14.671161",
+    "proof": {
+      "proof_id": "proof_0a76f157f761482c",
+      "job_id": "arc_job_330965462d17",
+      "agent_id": "nexus_agent_1",
+      "timestamp": "2026-04-21T18:28:14.671161",
+      "merkle_root": null,
+      "transaction_hash": "0x_stub_af051711314d4499929a165cb3de719f",
+      "evidence_payload": {
+        "profit": 500,
+        "trade_count": 10
+      }
+    },
+    "reward_amount": 10.0
+  },
+  {
+    "id": "arc_job_9f2c24ee3c8d",
+    "nexus_task_id": "test_nexus_task_123",
+    "status": "completed",
+    "created_at": "2026-04-21T18:28:28.560795Z",
+    "updated_at": "2026-04-21T18:28:28.581628Z",
+    "proof": {
+      "proof_id": "proof_575a6da98bd94993",
+      "job_id": "arc_job_9f2c24ee3c8d",
+      "agent_id": "nexus_agent_1",
+      "timestamp": "2026-04-21T18:28:28.581628Z",
+      "merkle_root": null,
+      "transaction_hash": "0x_stub_90e364fe963f4560b99ffe1db3e526fd",
+      "evidence_payload": {
+        "profit": 500,
+        "trade_count": 10
+      }
+    },
+    "reward_amount": 10.0
+  },
+  {
+    "id": "arc_job_f7eae559ced9",
+    "nexus_task_id": "test_nexus_task_123",
+    "status": "completed",
+    "created_at": "2026-04-21T18:29:18.824040Z",
+    "updated_at": "2026-04-21T18:29:18.839043Z",
+    "proof": {
+      "proof_id": "proof_1329616ea3f94d33",
+      "job_id": "arc_job_f7eae559ced9",
+      "agent_id": "nexus_agent_1",
+      "timestamp": "2026-04-21T18:29:18.839043Z",
+      "merkle_root": null,
+      "transaction_hash": "0x_stub_992d9d5febd34faa8ebb5acbb8f1c344",
+      "evidence_payload": {
+        "profit": 500,
+        "trade_count": 10
+      }
+    },
+    "reward_amount": 10.0
+  },
+  {
+    "id": "arc_job_9bf3c87322fd",
+    "nexus_task_id": "test_nexus_task_123",
+    "status": "completed",
+    "created_at": "2026-04-21T18:29:42.749817Z",
+    "updated_at": "2026-04-21T18:29:42.768232Z",
+    "proof": {
+      "proof_id": "proof_e0ee41df8e27487d",
+      "job_id": "arc_job_9bf3c87322fd",
+      "agent_id": "nexus_agent_1",
+      "timestamp": "2026-04-21T18:29:42.768232Z",
+      "merkle_root": null,
+      "transaction_hash": "0x_stub_063e449c30b642b9a76adec4afb4c936",
+      "evidence_payload": {
+        "profit": 500,
+        "trade_count": 10
+      }
+    },
+    "reward_amount": 10.0
+  }
+]

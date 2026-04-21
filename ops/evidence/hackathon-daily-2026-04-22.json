@@ -1,0 +1,14 @@
+{
+  "date": "2026-04-22",
+  "counts": {
+    "todo": 6,
+    "in_progress": 2,
+    "done": 4,
+    "blocked": 0
+  },
+  "investigations": {
+    "blocked_over_8h": []
+  },
+  "ttm_020_status": "todo",
+  "dependencies_respected": true
+}

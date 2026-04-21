@@ -223,7 +223,7 @@
       "bloquear setups abaixo do score minimo por tier"
     ],
     "acceptance_criteria": [
-      "cada trade ou simulação referencia explicitamente um tier de risco",
+      "cada trade ou simula\u00e7\u00e3o referencia explicitamente um tier de risco",
       "o score do checklist aparece na API e pode ser auditado",
       "os tiers mais agressivos continuam inelegiveis para qualquer modo real"
     ],
@@ -291,11 +291,195 @@
     "out_of_scope": [
       "ordens reais",
       "assinatura automatica de carteira",
-      "integração com dinheiro real"
+      "integra\u00e7\u00e3o com dinheiro real"
     ],
     "execution_rules": [
       "this issue is architecture and governance only",
       "do not implement real trading execution paths in this scope"
     ]
+  },
+  {
+    "backlog_id": "TTM-011",
+    "title": "TTM-011 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "ready",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-012",
+    "title": "TTM-012 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "ready",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-013",
+    "title": "TTM-013 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-011"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-014",
+    "title": "TTM-014 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-011",
+      "TTM-012"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-015",
+    "title": "TTM-015 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-014"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-016",
+    "title": "TTM-016 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-015"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-017",
+    "title": "TTM-017 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-013",
+      "TTM-015"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-018",
+    "title": "TTM-018 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-017"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-019",
+    "title": "TTM-019 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-016",
+      "TTM-018"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-020",
+    "title": "TTM-020 Hackathon task",
+    "objective": "Hackathon delivery",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [
+      "TTM-019"
+    ],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
+  },
+  {
+    "backlog_id": "TTM-021",
+    "title": "TTM-021 [P1] Parent epic tracking TTM-011 to TTM-020 hackathon delivery milestones",
+    "objective": "Epic coordenadora",
+    "initial_status": "backlog",
+    "priority": "P1",
+    "phase": "Hackathon",
+    "suggested_squad": "all",
+    "approved_scope": [],
+    "acceptance_criteria": [],
+    "dependencies": [],
+    "external_access_gaps": [],
+    "out_of_scope": [],
+    "execution_rules": []
   }
 ]

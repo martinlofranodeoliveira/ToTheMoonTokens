@@ -20,3 +20,4 @@ node_modules/
 .nexus/contracts/
 ops/evidence/*.json
 !ops/evidence/arc-mcp-check.json
+.env.hackathon

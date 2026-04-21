@@ -300,3 +300,34 @@ class ValidationResult(BaseModel):
 class ScalpValidationRequest(BaseModel):
     setup: ScalpSetup
     context: MarketContext
+
+
+class BillableArtifact(BaseModel):
+    id: str
+    name: str
+    description: str
+    price_usd: float
+    type: Literal["backtest_report", "walk_forward_report", "live_trade_signal"]
+
+
+class PaymentIntentRequest(BaseModel):
+    artifact_id: str
+    buyer_address: str
+
+
+class PaymentIntentResponse(BaseModel):
+    payment_id: str
+    amount_usd: float
+    deposit_address: str
+    status: Literal["pending", "verified", "failed"]
+
+
+class PaymentVerificationRequest(BaseModel):
+    payment_id: str
+    tx_hash: str
+
+
+class PaymentVerificationResponse(BaseModel):
+    payment_id: str
+    status: Literal["pending", "verified", "failed"]
+    unlocked_artifact_id: str | None = None

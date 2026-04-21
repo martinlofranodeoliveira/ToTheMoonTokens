@@ -104,6 +104,11 @@ class Settings:
             "BINANCE_USER_DATA_STREAM_URL", "wss://stream.testnet.binance.vision/ws"
         )
     )
+    arc_testnet_rpc_url: str = field(
+        default_factory=lambda: os.getenv(
+            "ARC_TESTNET_RPC_URL", "https://rpc.testnet.arc.network"
+        )
+    )
     cors_allowed_origins: list[str] = field(
         default_factory=lambda: _as_list(os.getenv("CORS_ALLOWED_ORIGINS"), _DEFAULT_CORS_ORIGINS)
     )

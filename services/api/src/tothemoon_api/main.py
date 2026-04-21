@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .arc import ping_arc_network
 from .backtesting import run_backtest, run_walk_forward
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
@@ -198,6 +199,11 @@ def get_dashboard():
 @app.get("/api/market/health")
 def get_market_health() -> dict[str, object]:
     return _market_connector().ping()
+
+
+@app.get("/api/network/arc/health")
+def get_arc_network_health() -> dict[str, object]:
+    return ping_arc_network()
 
 
 @app.get("/api/market/klines", response_model=list[Candle])

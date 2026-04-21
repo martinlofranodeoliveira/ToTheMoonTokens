@@ -72,3 +72,4 @@ def test_market_health_endpoint_returns_probe_status():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "online"
+

@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .arc_mcp import mcp as arc_mcp
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
@@ -60,6 +61,8 @@ app = FastAPI(
         "Order submission is permanently blocked by policy."
     ),
 )
+
+app.mount("/mcp", arc_mcp.sse_app())
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(PrometheusMiddleware)

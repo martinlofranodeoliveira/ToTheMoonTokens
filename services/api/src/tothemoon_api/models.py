@@ -242,6 +242,8 @@ class PerformanceAggregates(BaseModel):
     by_timeframe: dict[str, AggregateBucket] = Field(default_factory=dict)
 
 
+from .arc_adapter import ArcJobProof
+
 class DashboardResponse(BaseModel):
     app_name: str
     runtime_mode: str
@@ -252,6 +254,7 @@ class DashboardResponse(BaseModel):
     recent_trades: list[PaperTradeRecord] = Field(default_factory=list)
     performance: PerformanceAggregates | None = None
     journal_performance: PerformanceAggregates | None = None
+    arc_jobs: list[ArcJobProof] = Field(default_factory=list)
 
 
 class NewsItem(BaseModel):

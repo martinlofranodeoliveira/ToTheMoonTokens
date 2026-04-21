@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
 from .backtesting import run_backtest, run_walk_forward
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
@@ -195,6 +196,7 @@ def get_dashboard():
         recent_trades=get_recent_trades(limit=8),
         performance=performance,
         journal_performance=performance,
+        arc_jobs=get_arc_jobs(limit=5),
     )
 
 
@@ -374,3 +376,12 @@ def api_get_depth(symbol: str = "BTCUSDT", limit: int = Query(default=20, ge=5, 
         return get_depth(symbol, limit=limit)
     except ExchangeDegradationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/api/arc/jobs", response_model=ArcJobProof)
+def create_arc_job(event: NexusTaskEvent):
+    return submit_nexus_task_event(event)
+
+@app.get("/api/arc/jobs", response_model=list[ArcJobProof])
+def list_arc_jobs(limit: int = 20):
+    return get_arc_jobs(limit=limit)

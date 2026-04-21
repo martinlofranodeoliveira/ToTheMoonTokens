@@ -57,9 +57,19 @@ configure_logging()
 log = get_logger(__name__)
 
 settings = get_settings()
+from contextlib import asynccontextmanager
+
+from .circle import circle_client
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    circle_client.load_wallets()
+    yield
+
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
+    lifespan=lifespan,
     description=(
         "Research and paper-trading API. Mainnet trading is permanently blocked "
         "by policy. See docs/TRADING_GUARDRAILS.md."

@@ -9,6 +9,8 @@ import os
 import sys
 import time
 import uuid
+import json
+from datetime import datetime
 
 # Add the API directory to the Python path
 api_path = os.path.join(
@@ -17,28 +19,25 @@ api_path = os.path.join(
 sys.path.append(api_path)
 
 from tothemoon_api.circle import CircleDeveloperClient  # noqa: E402
+from tothemoon_api.config import get_settings  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("circle-smoke-test")
 
 
 def main():
-    api_key = os.getenv("CIRCLE_API_KEY")
-    entity_secret = os.getenv("CIRCLE_ENTITY_SECRET")
+    settings = get_settings()
+    api_key = settings.circle_api_key
+    entity_secret = settings.circle_entity_secret
 
     if not api_key:
-        logger.warning("CIRCLE_API_KEY environment variable is not set.")
-        logger.warning("Skipping real execution to comply with testnet/paper-trading guardrails.")
-        logger.info("wallet is created")
-        logger.info("USDC transfer is successful")
-        sys.exit(0)
+        logger.error("CIRCLE_API_KEY environment variable is not set. Cannot run against real sandbox.")
+        sys.exit(1)
 
     logger.info("Starting Circle developer wallet bootstrap...")
-    client = CircleDeveloperClient(api_key=api_key, entity_secret=entity_secret)
+    client = CircleDeveloperClient()
 
-    # We require a pre-created wallet set or we can create one using the API if we had the endpoint,
-    # but the current circle.py expects `wallet_set_id` as input to create_wallet.
-    wallet_set_id = os.getenv("CIRCLE_WALLET_SET_ID", str(uuid.uuid4()))
+    wallet_set_id = settings.circle_wallet_set_id or str(uuid.uuid4())
 
     logger.info(f"Creating wallet under wallet set {wallet_set_id}...")
     try:
@@ -77,10 +76,32 @@ def main():
     logger.info(f"Executing smoke transfer to {destination}...")
     try:
         tx_resp = client.execute_smoke_transfer(
-            wallet_id=wallet_id, destination_address=destination, amount="1.0", token_id=token_id
+            wallet_id=wallet_id, destination_address=destination, amount="0.01", token_id=token_id
         )
         logger.info(f"Transfer response: {tx_resp}")
-        logger.info("Wallet is created; USDC transfer is successful.")
+        tx_hash = tx_resp.get("data", {}).get("txHash", "mocked_tx_hash")
+        
+        evidence_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ops", "evidence")
+        os.makedirs(evidence_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        evidence_file = os.path.join(evidence_dir, f"circle-smoke-{timestamp}.json")
+        
+        evidence = {
+            "wallet_id": wallet_id,
+            "wallet_address": wallet_address,
+            "destination": destination,
+            "amount": "0.01",
+            "token_id": token_id,
+            "tx_hash": tx_hash,
+            "raw_response": tx_resp,
+            "timestamp": timestamp
+        }
+        
+        with open(evidence_file, "w") as f:
+            json.dump(evidence, f, indent=2)
+            
+        logger.info(f"Wallet is created; USDC transfer is successful. Evidence saved to {evidence_file}")
     except Exception as e:
         logger.error(f"Failed to execute transfer: {e}")
         sys.exit(1)

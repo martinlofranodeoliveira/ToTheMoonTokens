@@ -10,6 +10,8 @@ from .models import (
     PaymentVerificationResponse,
 )
 
+from .circle import circle_client
+
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 ARTIFACT_CATALOG: dict[str, BillableArtifact] = {
@@ -54,12 +56,14 @@ def create_payment_intent(request: PaymentIntentRequest):
     artifact = ARTIFACT_CATALOG[request.artifact_id]
     payment_id = str(uuid.uuid4())
 
+    deposit_address = circle_client.get_wallet_address("TREASURY") or "0xMockDepositAddressForTestnetOnly"
+
     intent = {
         "payment_id": payment_id,
         "artifact_id": request.artifact_id,
         "amount_usd": artifact.price_usd,
         "buyer_address": request.buyer_address,
-        "deposit_address": "0xMockDepositAddressForTestnetOnly",
+        "deposit_address": deposit_address,
         "status": "pending",
     }
     _PAYMENT_INTENTS[payment_id] = intent

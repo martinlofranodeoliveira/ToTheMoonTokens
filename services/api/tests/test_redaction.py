@@ -1,4 +1,7 @@
+
 from __future__ import annotations
+
+import pytest
 
 from tothemoon_api.observability import (
     REDACTED_PLACEHOLDER,
@@ -10,18 +13,21 @@ def _run(event_dict: dict[str, object]) -> dict[str, object]:
     return redact_sensitive_fields(None, "info", event_dict)
 
 
+@pytest.mark.test_id("QA-HAPPY-006")
 def test_top_level_token_is_redacted():
     out = _run({"event": "live_arm", "approval_token": "ttm_approval_abc"})
     assert out["approval_token"] == REDACTED_PLACEHOLDER
     assert out["event"] == "live_arm"
 
 
+@pytest.mark.test_id("QA-HAPPY-006")
 def test_nested_secret_is_redacted():
     out = _run({"event": "x", "settings": {"api_secret": "abc", "exchange": "binance"}})
     assert out["settings"]["api_secret"] == REDACTED_PLACEHOLDER
     assert out["settings"]["exchange"] == "binance"
 
 
+@pytest.mark.test_id("QA-HAPPY-006")
 def test_live_trading_acknowledgement_key_is_redacted():
     out = _run({"acknowledgement": "I_ACCEPT_TESTNET_ONLY"})
     assert out["acknowledgement"] == REDACTED_PLACEHOLDER

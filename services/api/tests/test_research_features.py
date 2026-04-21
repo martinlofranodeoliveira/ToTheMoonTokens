@@ -1,5 +1,7 @@
+
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from tothemoon_api.journal import clear_journal
@@ -16,6 +18,7 @@ def setup_function() -> None:
     rate_limiter.reset()
 
 
+@pytest.mark.test_id("QA-HAPPY-003")
 def test_walk_forward_endpoint_returns_split_metrics() -> None:
     response = client.post(
         "/api/backtests/walk-forward",
@@ -135,6 +138,7 @@ def test_news_endpoints_ingest_filter_and_block_high_risk_headlines() -> None:
     assert risk_payload["reasons"]
 
 
+@pytest.mark.test_id("QA-HAPPY-005")
 def test_scalp_validation_endpoint_accepts_clean_low_risk_setup() -> None:
     response = client.post(
         "/api/scalp/validate",

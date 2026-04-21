@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 import tothemoon_api.main as main_module
@@ -12,6 +13,7 @@ def setup_function() -> None:
     rate_limiter.reset()
 
 
+@pytest.mark.test_id("QA-ERR-001")
 def test_live_arm_rate_limiter_returns_429_after_budget_exhausted():
     limit = main_module.settings.rate_limit_live_arm_per_minute
     for _ in range(limit):

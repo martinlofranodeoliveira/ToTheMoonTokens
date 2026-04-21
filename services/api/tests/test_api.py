@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from tothemoon_api.main import app
@@ -8,6 +9,7 @@ from tothemoon_api.market_data import generate_sample_candles
 client = TestClient(app)
 
 
+@pytest.mark.test_id("QA-HAPPY-004")
 def test_health_endpoint_exposes_paper_mode_by_default():
     response = client.get("/health")
     assert response.status_code == 200
@@ -18,6 +20,7 @@ def test_health_endpoint_exposes_paper_mode_by_default():
     assert "market_connector" in payload
 
 
+@pytest.mark.test_id("QA-EMPTY-001")
 def test_dashboard_includes_guardrails_and_metrics():
     response = client.get("/api/dashboard")
     assert response.status_code == 200
@@ -29,6 +32,7 @@ def test_dashboard_includes_guardrails_and_metrics():
     assert payload["performance"]["total_trades"] == 0
 
 
+@pytest.mark.test_id("QA-HAPPY-002")
 def test_backtest_endpoint_returns_consistent_metrics():
     response = client.post(
         "/api/backtests/run",
@@ -48,6 +52,7 @@ def test_backtest_endpoint_returns_consistent_metrics():
     assert payload["edge_status"] in {"positive", "flat", "negative"}
 
 
+@pytest.mark.test_id("QA-ERR-004")
 def test_live_arm_is_blocked_without_manual_acknowledgement():
     response = client.post("/api/live/arm")
     assert response.status_code == 423
@@ -56,6 +61,7 @@ def test_live_arm_is_blocked_without_manual_acknowledgement():
     assert payload["can_submit_mainnet_orders"] is False
 
 
+@pytest.mark.test_id("QA-HAPPY-001")
 def test_market_klines_endpoint_returns_candles():
     with patch(
         "tothemoon_api.main.BinanceMarketData.fetch_klines",

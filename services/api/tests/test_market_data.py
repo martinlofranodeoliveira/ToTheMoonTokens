@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import httpx
+import pytest
 
 import tothemoon_api.market_data as market_data
 from tothemoon_api.market_data import BinanceMarketData, MarketDataError
@@ -30,6 +31,7 @@ def test_ping_success_marks_connector_online():
     assert status["last_error"] is None
 
 
+@pytest.mark.test_id("QA-ERR-002")
 def test_fetch_klines_falls_back_to_sample_candles_on_api_failure():
     market = BinanceMarketData()
     with patch.object(market.client, "get") as mock_get:
@@ -42,6 +44,7 @@ def test_fetch_klines_falls_back_to_sample_candles_on_api_failure():
     assert "network down" in str(market.operational_status["last_error"])
 
 
+@pytest.mark.test_id("QA-ERR-002")
 def test_fetch_ticker_raises_market_data_error_on_failure():
     market = BinanceMarketData()
     with patch.object(market.client, "get") as mock_get:
@@ -83,6 +86,7 @@ def test_listen_stream_degrades_gracefully_on_websocket_failure():
     assert market.operational_status["last_stream"] == "btcusdt@trade"
 
 
+@pytest.mark.test_id("QA-ERR-002")
 def test_historical_candles_fall_back_to_synthetic_when_exchange_fails(monkeypatch):
     def fake_fetch_json(url: str, params: dict[str, object]) -> object:
         raise RuntimeError("exchange temporarily unavailable")

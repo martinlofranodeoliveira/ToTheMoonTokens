@@ -18,6 +18,7 @@ def _make_settings(**overrides: object) -> Settings:
     return Settings(**defaults)  # type: ignore[arg-type]
 
 
+@pytest.mark.test_id("QA-PERM-001")
 def test_paper_mode_blocks_all_orders():
     status = evaluate_guardrails(_make_settings())
     assert status.mode == "paper"
@@ -26,6 +27,7 @@ def test_paper_mode_blocks_all_orders():
     assert any("ENABLE_LIVE_TRADING=false" in reason for reason in status.reasons)
 
 
+@pytest.mark.test_id("QA-PERM-002")
 def test_mainnet_is_always_blocked_even_with_full_approval():
     status = evaluate_guardrails(
         _make_settings(
@@ -40,6 +42,7 @@ def test_mainnet_is_always_blocked_even_with_full_approval():
     assert any("ALLOW_MAINNET_TRADING=true" in reason for reason in status.reasons)
 
 
+@pytest.mark.test_id("QA-PERM-003")
 def test_acknowledgement_typo_blocks_testnet():
     status = evaluate_guardrails(
         _make_settings(
@@ -64,6 +67,7 @@ def test_acknowledgement_case_and_whitespace_sensitive(bad_value: str):
     assert status.can_submit_testnet_orders is False
 
 
+@pytest.mark.test_id("QA-PERM-003")
 def test_missing_approval_token_blocks_testnet():
     status = evaluate_guardrails(
         _make_settings(
@@ -89,6 +93,7 @@ def test_full_approval_allows_testnet_but_never_mainnet():
     assert status.reasons == []
 
 
+@pytest.mark.test_id("QA-PERM-004")
 def test_high_risk_tier_remains_research_only_even_with_full_approval():
     status = evaluate_guardrails(
         _make_settings(
@@ -103,6 +108,7 @@ def test_high_risk_tier_remains_research_only_even_with_full_approval():
     assert any("RISK_TIER=high" in reason for reason in status.reasons)
 
 
+@pytest.mark.test_id("QA-PERM-005")
 def test_wallet_mode_manual_requires_manual_signature():
     status = evaluate_guardrails(_make_settings(wallet_mode="manual_only"))
     assert status.requires_manual_wallet_signature is True

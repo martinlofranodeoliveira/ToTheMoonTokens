@@ -36,6 +36,9 @@ where = ["src"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+markers = [
+  "test_id(id): QA Test ID mapping"
+]
 
 [tool.coverage.run]
 source = ["tothemoon_api"]

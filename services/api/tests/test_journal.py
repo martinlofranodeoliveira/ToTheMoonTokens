@@ -1,5 +1,7 @@
+
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from tothemoon_api.journal import clear_trades
@@ -85,3 +87,18 @@ def test_paper_journal_lifecycle_and_alias_endpoints(tmp_path, monkeypatch):
     assert cleared.status_code == 200
     assert cleared.json()["ok"] is True
     assert client.get("/api/journal/entries").json() == []
+
+@pytest.mark.test_id("QA-EMPTY-002")
+def test_empty_journal_returns_empty_list_and_zero_metrics(tmp_path, monkeypatch):
+    monkeypatch.setenv("PAPER_JOURNAL_FILE", str(tmp_path / "paper_journal.json"))
+    clear_trades()
+
+    entries = client.get("/api/paper/journal")
+    assert entries.status_code == 200
+    assert entries.json() == []
+
+    performance = client.get("/api/paper/performance")
+    assert performance.status_code == 200
+    metrics = performance.json()
+    assert metrics["total_trades"] == 0
+    assert metrics["total_pnl"] == 0.0

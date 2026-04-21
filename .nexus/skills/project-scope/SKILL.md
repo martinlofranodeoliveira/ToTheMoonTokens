@@ -4,36 +4,31 @@ Use esta skill quando a task envolver este repositorio.
 
 ## Regras do projeto
 
-- trate o produto como plataforma de pesquisa e paper trading
-- nao prometa lucro
-- nao implemente execucao em mainnet
-- Binance deve permanecer testnet-first
-- qualquer operacao com carteira deve ser manual-signature only
-- exija evidencias de backtest e paper trading antes de declarar edge
+- trate o produto como vertical segura do hackathon para o Nexus
+- priorize request -> execution -> review -> delivery do MVP
+- use os endpoints de research apenas como geradores de artefato e evidencia
+- nao reabra fluxos de bot de trading, live arm ou paper runtime
+- nao prometa lucro nem prontidao operacional de execucao
+- mantenha qualquer wallet flow em modo manual e auditavel
 
 ## O que priorizar
 
-- backtesting confiavel
-- metricas de risco
-- observabilidade de PnL
-- inteligencia de mercado por horizonte
-- diarios de paper trading e score de checklist
-- UX clara sobre modo paper/testnet
-- testes automatizados
+- backlog `ARC-HACK-*`
+- narrativa clara para juizes em menos de 90 segundos
+- journal, metricas e provas de estado
+- fluxo economico audivel e seguro
+- UI legivel para demo
+- testes automatizados no caminho principal
 
 ## Leituras obrigatorias antes de implementar
 
-- `docs/TRADING_RESEARCH_PLAYBOOK.md`
-- `docs/TRADING_GUARDRAILS.md`
-
-## Diretriz de pesquisa
-
-- trate noticias e eventos como filtro de risco, nao como gatilho unico
-- separe sempre curto, medio e longo prazo
-- qualquer tier alto de risco continua sendo apenas de pesquisa ate existir aprovacao manual explicita
+- `docs/hackathon/HACKATHON_5_DAY_PLAN.md`
+- `docs/hackathon/HACKATHON_EXECUTION_PACK.md`
+- `ops/arc_circle_hackathon_backlog.json`
 
 ## O que evitar
 
-- hardcode de segredos
-- automacoes que assinem ou enviem ordens em mainnet
-- claims de “prever mercado” sem medições reproduzíveis
+- backlog legado `TTM-*`
+- qualquer nova automacao de trading
+- fluxos de ativacao manual para ordem
+- refactors amplos fora do MVP

@@ -33,3 +33,16 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+
+  pitch:
+    image: python:3.12-slim
+    container_name: tothemoontokens-pitch
+    working_dir: /srv
+    command: ["python", "-m", "http.server", "4174"]
+    volumes:
+      - ./apps/pitch:/srv:ro
+    ports:
+      - "4174:4174"
+    depends_on:
+      - api
+    restart: unless-stopped

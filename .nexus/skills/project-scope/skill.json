@@ -1,7 +1,6 @@
 {
   "id": "project-scope",
   "title": "ToTheMoonTokens Project Scope",
-  "description": "Mantem os agentes no escopo de research, paper trading e risk-first.",
+  "description": "Mantem os agentes focados no MVP do hackathon, com artefatos de research e sem retorno ao bot de trading.",
   "roles": ["ceo", "pm", "architect", "sm", "dev", "qa", "devops"]
 }
-

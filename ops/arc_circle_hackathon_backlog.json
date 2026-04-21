@@ -1,0 +1,216 @@
+[
+  {
+    "backlogRef": "ARC-HACK-001",
+    "title": "ARC-HACK-001 [P0] Implement Circle payment intent and verification flow for priced agent actions",
+    "status": "ready",
+    "priority": "p0",
+    "phase": "Phase 1 - Payments",
+    "suggestedSquad": "backend + architecture + devops",
+    "objective": "Create the first working economic action flow so a buyer can request a paid artifact, satisfy payment requirements, and unlock execution.",
+    "approvedScope": [
+      "define a billable action catalog for at least three artifact types",
+      "add a payment intent or payment requirement endpoint for the buyer flow",
+      "add a payment verification path that marks the job as economically unlocked",
+      "keep the implementation testnet or mock-safe only"
+    ],
+    "acceptanceCriteria": [
+      "the system can present a price for at least one artifact",
+      "the API can verify a completed payment or test payment signal",
+      "the job lifecycle advances only after valid payment confirmation"
+    ],
+    "dependencies": [],
+    "externalAccessGaps": [
+      "production-grade credentials can be stubbed if missing as long as interfaces are real and demo-safe"
+    ],
+    "outOfScope": [
+      "mainnet settlement",
+      "custodial flows",
+      "real-money trading"
+    ],
+    "executionRules": [
+      "optimize for a working demo path rather than a broad payment matrix",
+      "keep every payment flow auditable and reversible in test mode"
+    ],
+    "labels": ["hackathon", "arc", "circle", "payments"]
+  },
+  {
+    "backlogRef": "ARC-HACK-002",
+    "title": "ARC-HACK-002 [P0] Add Arc-side job, proof, and agent-economy adapter for Nexus work units",
+    "status": "ready",
+    "priority": "p0",
+    "phase": "Phase 1 - Arc Integration",
+    "suggestedSquad": "architecture + backend + devops",
+    "objective": "Represent Nexus work as an economic unit that can be mapped to Arc-side jobs, proofs, or agent identity/reputation flows.",
+    "approvedScope": [
+      "define the minimal Arc integration surface needed for the demo",
+      "map a Nexus task lifecycle to an Arc economic action or job representation",
+      "persist proof metadata that can be shown in the UI as economic evidence"
+    ],
+    "acceptanceCriteria": [
+      "there is a concrete Arc adapter layer in the codebase",
+      "a paid job can be associated with Arc-facing metadata or proof",
+      "the demo can explain what is stored or referenced on the Arc side"
+    ],
+    "dependencies": [],
+    "externalAccessGaps": [
+      "if full Arc onchain write access is missing, keep the adapter real and the write path safely stubbed"
+    ],
+    "outOfScope": [
+      "large contract surface area",
+      "speculative tokenomics"
+    ],
+    "executionRules": [
+      "build the thinnest credible Arc integration that still demonstrates economic coordination"
+    ],
+    "labels": ["hackathon", "arc", "onchain", "jobs"]
+  },
+  {
+    "backlogRef": "ARC-HACK-003",
+    "title": "ARC-HACK-003 [P0] Bridge paid jobs into Nexus orchestration, review, and delivery unlock",
+    "status": "backlog",
+    "priority": "p0",
+    "phase": "Phase 2 - Nexus Job Lifecycle",
+    "suggestedSquad": "backend + architecture + qa",
+    "objective": "Make payment, execution, review, and delivery behave like one coherent lifecycle instead of disconnected demo steps.",
+    "approvedScope": [
+      "create a paid-job state model",
+      "open or reserve Nexus work only after payment is unlocked",
+      "block delivery until review or validation is complete",
+      "persist timestamps and status transitions for the audit trail"
+    ],
+    "acceptanceCriteria": [
+      "a paid request creates a visible Nexus-side lifecycle",
+      "review becomes a first-class gate before delivery",
+      "the UI can show the full state progression from request to unlock"
+    ],
+    "dependencies": ["ARC-HACK-001", "ARC-HACK-002"],
+    "externalAccessGaps": ["none at this stage"],
+    "outOfScope": [
+      "cross-project marketplace routing",
+      "multi-buyer billing"
+    ],
+    "executionRules": [
+      "prefer an explicit lifecycle state machine over hidden flags"
+    ],
+    "labels": ["hackathon", "nexus", "workflow"]
+  },
+  {
+    "backlogRef": "ARC-HACK-004",
+    "title": "ARC-HACK-004 [P0] Build buyer UI for request, payment status, job status, and artifact delivery",
+    "status": "ready",
+    "priority": "p0",
+    "phase": "Phase 2 - Product Demo UI",
+    "suggestedSquad": "frontend + product + qa",
+    "objective": "Turn the current research dashboard into a buyer-facing economic flow that judges can understand in under 90 seconds.",
+    "approvedScope": [
+      "add artifact selection and pricing presentation",
+      "show payment state, job state, review state, and delivery state clearly",
+      "preserve the premium operational feel of the current dashboard direction",
+      "support desktop-first demo with acceptable mobile fallback"
+    ],
+    "acceptanceCriteria": [
+      "the UI can demonstrate the economic flow end to end",
+      "the user can distinguish pre-payment, in-progress, in-review, and unlocked states",
+      "the vertical demo still clearly communicates paper-only safety"
+    ],
+    "dependencies": ["ARC-HACK-001"],
+    "externalAccessGaps": [
+      "wallet polish can be stubbed as long as payment state transitions are visible"
+    ],
+    "outOfScope": [
+      "full design-system expansion",
+      "marketing site detour"
+    ],
+    "executionRules": [
+      "optimize the screen for live demo readability rather than feature breadth"
+    ],
+    "labels": ["hackathon", "frontend", "demo-ui"]
+  },
+  {
+    "backlogRef": "ARC-HACK-005",
+    "title": "ARC-HACK-005 [P1] Reuse ToTheMoonTokens as a paid research-artifact vertical in strict paper mode",
+    "status": "backlog",
+    "priority": "p1",
+    "phase": "Phase 3 - Vertical Demo",
+    "suggestedSquad": "backend + product + qa",
+    "objective": "Expose at least one strong vertical workload that proves the agentic-economy model with real product value.",
+    "approvedScope": [
+      "package backtest, walk-forward, or risk-audit outputs as purchasable artifacts",
+      "reuse existing research endpoints wherever possible",
+      "keep all outputs explicitly paper-only and research-only"
+    ],
+    "acceptanceCriteria": [
+      "at least one real artifact type can be bought and delivered",
+      "the final report is understandable to a judge without product context",
+      "nothing in the vertical implies live-trading readiness"
+    ],
+    "dependencies": ["ARC-HACK-001", "ARC-HACK-003"],
+    "externalAccessGaps": ["none at this stage"],
+    "outOfScope": [
+      "real-money execution",
+      "live exchange automation"
+    ],
+    "executionRules": [
+      "keep the vertical valuable but safe",
+      "prefer one polished artifact over many shallow ones"
+    ],
+    "labels": ["hackathon", "vertical", "research"]
+  },
+  {
+    "backlogRef": "ARC-HACK-006",
+    "title": "ARC-HACK-006 [P1] Add audit trail, observability, and end-to-end demo evidence for judges",
+    "status": "backlog",
+    "priority": "p1",
+    "phase": "Phase 3 - Evidence and QA",
+    "suggestedSquad": "qa + devops + backend",
+    "objective": "Make the demo credible by showing proof of status transitions, payment verification, review gating, and final delivery.",
+    "approvedScope": [
+      "capture structured events for request, payment, execution, review, and delivery",
+      "add at least one end-to-end test or scripted validation path",
+      "prepare evidence artifacts for local demo and submission material"
+    ],
+    "acceptanceCriteria": [
+      "the team can replay the main demo path reliably",
+      "there is enough logging or evidence to explain what happened at each step",
+      "the system fails clearly when a required step is missing"
+    ],
+    "dependencies": ["ARC-HACK-003", "ARC-HACK-004", "ARC-HACK-005"],
+    "externalAccessGaps": ["none at this stage"],
+    "outOfScope": [
+      "full production observability stack"
+    ],
+    "executionRules": [
+      "judge confidence comes from visible evidence, not hidden claims"
+    ],
+    "labels": ["hackathon", "qa", "evidence"]
+  },
+  {
+    "backlogRef": "ARC-HACK-007",
+    "title": "ARC-HACK-007 [P1] Finalize submission assets, architecture summary, screenshots, and demo script",
+    "status": "backlog",
+    "priority": "p1",
+    "phase": "Phase 4 - Submission and Pitch",
+    "suggestedSquad": "pm + product + qa",
+    "objective": "Convert the working build into a clear submission package that judges can understand quickly.",
+    "approvedScope": [
+      "finalize title, short description, and long description",
+      "prepare architecture summary and screenshot set",
+      "write the live demo script and submission checklist",
+      "prepare Circle product feedback notes"
+    ],
+    "acceptanceCriteria": [
+      "submission copy is ready to paste into the form",
+      "the team has a clear 90-second and 3-minute demo path",
+      "screenshots and architecture narrative match the shipped build"
+    ],
+    "dependencies": ["ARC-HACK-004", "ARC-HACK-005", "ARC-HACK-006"],
+    "externalAccessGaps": ["video recording can happen at the end"],
+    "outOfScope": [
+      "non-essential content marketing"
+    ],
+    "executionRules": [
+      "keep the story tight: paid agent work, validated delivery, safe vertical demo"
+    ],
+    "labels": ["hackathon", "submission", "demo"]
+  }
+]

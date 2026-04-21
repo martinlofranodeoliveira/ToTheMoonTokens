@@ -14,7 +14,7 @@ from .models import (
     WalkForwardResult,
 )
 from .observability import BACKTESTS_RUN_TOTAL, get_logger
-from .strategies import build_signals
+from .strategies import build_signals, execution_policy
 
 log = get_logger(__name__)
 
@@ -135,6 +135,8 @@ def _compute_metrics(
     cash = request.initial_capital
     units = 0.0
     entry_cost = 0.0
+    entry_price = 0.0
+    bars_in_trade = 0
     gross_wins = 0.0
     gross_losses = 0.0
     wins = 0
@@ -146,15 +148,35 @@ def _compute_metrics(
     max_consecutive_wins = 0
     max_consecutive_losses = 0
     regime_pnl = {"bull": 0.0, "bear": 0.0, "chop": 0.0}
+    policy = execution_policy(request.strategy_id)
+    position_limit *= policy.position_size_scale
+    cooldown_bars_remaining = 0
 
     for candle, signal in zip(candles, signals, strict=True):
+        if units == 0 and cooldown_bars_remaining > 0:
+            cooldown_bars_remaining -= 1
+
         marked_equity = cash + units * candle.close
         peak_equity = max(peak_equity, marked_equity)
         if peak_equity > 0:
             drawdown = (peak_equity - marked_equity) / peak_equity
             max_drawdown = max(max_drawdown, drawdown)
 
+        forced_exit = False
+        if units > 0 and entry_price > 0:
+            bars_in_trade += 1
+            change_pct = ((candle.close - entry_price) / entry_price) * 100
+            forced_exit = (
+                change_pct <= -policy.stop_loss_pct
+                or change_pct >= policy.take_profit_pct
+                or bars_in_trade >= policy.max_hold_bars
+            )
+
         if units == 0 and signal == "buy":
+            if cooldown_bars_remaining > 0:
+                continue
+            if candle.regime not in policy.allowed_entry_regimes:
+                continue
             notional = cash * position_limit
             if notional <= 0:
                 continue
@@ -163,10 +185,17 @@ def _compute_metrics(
             units = max((notional - fee) / fill_price, 0.0)
             cash -= notional
             entry_cost = notional
+            entry_price = fill_price
+            bars_in_trade = 0
             trade_count += 1
             continue
 
-        if units > 0 and signal == "sell":
+        signal_exit_allowed = signal == "sell"
+        if units > 0 and signal == "sell" and policy.signal_exit_min_pct > -900:
+            change_pct = ((candle.close - entry_price) / entry_price) * 100 if entry_price > 0 else 0.0
+            signal_exit_allowed = change_pct >= policy.signal_exit_min_pct or candle.regime == "bear"
+
+        if units > 0 and (forced_exit or signal_exit_allowed):
             gross = units * candle.close * (1 - request.slippage_bps / 10_000)
             fee = gross * (request.fee_bps / 10_000)
             proceeds = gross - fee
@@ -183,9 +212,13 @@ def _compute_metrics(
                 current_loss_streak += 1
                 current_win_streak = 0
                 max_consecutive_losses = max(max_consecutive_losses, current_loss_streak)
+                if current_loss_streak >= policy.loss_streak_for_cooldown:
+                    cooldown_bars_remaining = max(cooldown_bars_remaining, policy.cooldown_bars_after_loss)
             cash += proceeds
             units = 0.0
             entry_cost = 0.0
+            entry_price = 0.0
+            bars_in_trade = 0
 
     if units > 0:
         final_price = candles[-1].close
@@ -204,6 +237,8 @@ def _compute_metrics(
             current_loss_streak += 1
             max_consecutive_losses = max(max_consecutive_losses, current_loss_streak)
         cash += proceeds
+        entry_price = 0.0
+        bars_in_trade = 0
 
     ending_equity = round(cash, 4)
     net_profit = round(ending_equity - request.initial_capital, 4)

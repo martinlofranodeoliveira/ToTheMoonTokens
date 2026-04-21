@@ -1,42 +1,50 @@
 # ToTheMoonTokens
 
-ToTheMoonTokens e um workspace inicial para pesquisa, backtesting e paper trading de estrategias de cripto. O foco desta base e validar se uma estrategia tem edge estatistico antes de qualquer tentativa de execucao em exchange ou carteira.
+ToTheMoonTokens agora existe como vertical segura do hackathon para o Nexus Orchestrator. O objetivo nao e operar um bot de trading. O objetivo e empacotar artefatos de pesquisa validada, com journal, metricas, contexto de mercado e guardrails claros para uma demo economica auditavel.
 
-## Principios do projeto
+## Escopo atual
 
-- paper trading por padrao
-- live trading desabilitado por padrao
-- Binance em modo testnet como primeiro conector
-- MetaMask e outras carteiras apenas para assinatura/manual approval no frontend
-- nenhuma promessa de lucro; o sistema mede PnL, drawdown e consistencia
-- o Nexus deve bloquear qualquer tentativa automatica de ligar mainnet ou usar segredos sensiveis em comandos
+- artefatos de research para o MVP do hackathon
+- backtesting reproduzivel
+- snapshots de estrategia e metricas de risco
+- journal estruturado para evidencia
+- contexto de mercado, noticias e validacao de setup
+- bloqueio permanente de envio de ordens
+
+## O que saiu de foco
+
+- backlog legado `TTM-*` de bot de trading
+- fluxos de `live arm` e ativacao manual
+- paper runtime continuo
+- qualquer narrativa de prontidao para execucao
 
 ## Estrutura
 
-- `services/api`: API FastAPI com backtesting, guardrails e status de conectores
-- `apps/web`: dashboard estatico para acompanhar estrategias, risco e conectores
-- `.nexus`: hooks e skill local para os agentes do Nexus
-- `docs`: arquitetura, guardrails e briefing de UI para Stitch
-- `ops/evidence`: artefatos locais de validacao, mirror e review
+- `services/api`: API FastAPI com backtests, journal, noticias, scalp validation e guardrails
+- `apps/web`: sala visual do hackathon para ler o estado do vertical com narrativa segura
+- `.nexus`: perfil local e skill do projeto para manter o foco do Nexus
+- `docs/hackathon`: narrativa, plano e material de submissao
+- `ops/arc_circle_hackathon_backlog.json`: backlog ativo do hackathon
 
-## API de research
+## API principal
 
-- `POST /api/backtests/run`: backtest deterministico com checklist de probabilidade e tiers de risco.
-- `POST /api/backtests/walk-forward`: split treino/validacao para validar robustez fora da amostra.
-- `GET /api/dashboard`: snapshot unico com estrategias, metricas, guardrails, conectores, journal e performance.
-- `POST /api/journal/trades`, `POST /api/paper/journal` e `GET /api/journal/performance`: diario de paper trading com agregados por regime, estrategia e simbolo.
-- `POST /api/news/ingest`, `GET /api/news` e `GET /api/news/risk`: ingestao local de noticias e filtro de risco.
-- `POST /api/scalp/validate`: validacao de setup de scalp por contexto, custo e R:R minimo.
-- `GET /api/market/klines`, `GET /api/market/ticker`, `GET /api/market/depth` e `GET /api/market/stream-preview`: leitura de mercado com degradacao controlada.
+- `POST /api/backtests/run`: backtest deterministico com tiers de risco e checklist
+- `POST /api/backtests/walk-forward`: split treino/validacao para robustez fora da amostra
+- `GET /api/dashboard`: snapshot unico com estrategias, guardrails, conectores, journal e performance
+- `POST /api/journal/trades`, `GET /api/journal/trades`, `GET /api/journal/performance`: journal estruturado e agregados
+- `POST /api/news/ingest`, `GET /api/news`, `GET /api/news/risk`: contexto de noticias e filtro de risco
+- `POST /api/scalp/validate`: validacao objetiva de setup
+- `GET /api/market/health`, `GET /api/market/klines`, `GET /api/market/ticker`, `GET /api/market/depth`, `GET /api/market/stream-preview`: leitura de mercado com degradacao controlada
 
 ## Quickstart
 
-1. Copie `.env.example` para `.env` e mantenha `ENABLE_LIVE_TRADING=false`.
+1. Copie `.env.example` para `.env`.
 2. Rode `make api-install`.
 3. Rode `make api-test`.
 4. Rode `make api-run`.
 5. Em outro terminal, rode `make web-serve`.
-6. Abra `http://127.0.0.1:4173`.
+6. Em outro terminal, rode `make pitch-serve`.
+7. Abra `http://127.0.0.1:4173` (web funcional) e `http://127.0.0.1:4174` (pitch).
 
 Ou use containers:
 
@@ -44,34 +52,28 @@ Ou use containers:
 make docker-build && make docker-up
 # API:  http://127.0.0.1:8010
 # Web:  http://127.0.0.1:4173
-make docker-down   # quando terminar
+# Pitch: http://127.0.0.1:4174
+make docker-down
 ```
 
-## Qualidade e observabilidade
+## Qualidade e operacao
 
-- `make api-cov` — testes com cobertura (alvo 70%+).
-- `make api-lint` / `make api-format` — `ruff`.
-- `make api-typecheck` — `mypy` no pacote `tothemoon_api`.
-- `make mirror-verify` — compara branches esperadas entre GitHub e GitLab.
-- `make validation-evidence` — coleta evidencias locais do runtime e do review gate.
-- Metricas Prometheus expostas em `GET /metrics`.
-- Logs estruturados em JSON via `structlog` (nivel controlado por `LOG_LEVEL`).
-- Guia completo em [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
-- Procedimentos de resposta a incidente em [docs/SECURITY_RUNBOOK.md](docs/SECURITY_RUNBOOK.md).
-- Fluxo de validacao operacional em [docs/DELIVERY_VALIDATION.md](docs/DELIVERY_VALIDATION.md).
+- `make api-cov`: testes com cobertura
+- `make api-lint` / `make api-format`: `ruff`
+- `make api-typecheck`: `mypy`
+- `make mirror-verify`: compara branches esperadas entre GitHub e GitLab
+- `make validation-evidence`: coleta evidencias locais do runtime do projeto e do review gate
+- metricas Prometheus em `GET /metrics`
+- logs estruturados em JSON via `structlog`
 
 ## Nexus local
 
-- Rode `make nexus-start` para subir uma instancia isolada do Nexus em `http://127.0.0.1:4116`.
-- O profile versionado em `.nexus/nexus-launch.env` aponta o Nexus para este repo, para o mirror GitLab e para as issues `TTM-*` no GitHub.
-- Os segredos continuam fora deste repo. O bootstrap le credenciais do `.env` do `NexusOrchestrator` e so versiona a configuracao nao sensivel do projeto.
-- A topologia padrao sobe `role_cells`: 14 salas interligadas, CEO singleton e 7 replicas por sala operacional.
-- `NEXUS_AUTO_DISPATCH=true` fica ativo por default neste profile, mas os hooks locais continuam bloqueando qualquer tentativa de mainnet, live trading ou comandos com segredos.
-- Use `make nexus-status` para validar `instance_id=tothemoontokens-local` e `make nexus-stop` para parar a instancia.
+- rode `make nexus-start` para subir uma instancia isolada do Nexus em `http://127.0.0.1:4116`
+- o profile versionado em `.nexus/nexus-launch.env` aponta o Nexus para este repo, para o mirror GitLab e para o backlog ativo do hackathon no GitHub
+- o foco operacional deve ficar no backlog `ARC-HACK-*` e nas tasks de entrega do MVP
+- `NEXUS_AUTO_DISPATCH=true` continua ativo, mas os guardrails mantem o projeto fora de qualquer fluxo de execucao
+- use `make nexus-status` para validar `instance_id=tothemoontokens-local` e `make nexus-stop` para parar a instancia
 
-## Operacao segura
+## Regra principal
 
-- `ENABLE_LIVE_TRADING=false` mantem o runtime em `paper`.
-- `ALLOW_MAINNET_TRADING=false` e politica permanente desta base.
-- qualquer evolucao para testnet live precisa de validacao humana, backtest positivo e evidencia de paper trading.
-- criterios mais rigidos para qualquer futuro modo real estao em [docs/REAL_MODE_GRADUATION.md](docs/REAL_MODE_GRADUATION.md).
+Se uma mudanca empurra o repo de volta para um "bot de trading", ela esta fora do escopo atual. O vertical do hackathon precisa provar compra, execucao, review e entrega de artefato, nao autonomia de mercado.

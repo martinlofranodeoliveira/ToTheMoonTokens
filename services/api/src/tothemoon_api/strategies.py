@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
-from .models import Candle, StrategyDescriptor, StrategyId
+from .models import Candle, MarketRegime, StrategyDescriptor, StrategyId
 
 STRATEGIES: list[StrategyDescriptor] = [
     StrategyDescriptor(
@@ -29,8 +30,56 @@ STRATEGIES: list[StrategyDescriptor] = [
 ]
 
 
+@dataclass(frozen=True, slots=True)
+class StrategyExecutionPolicy:
+    allowed_entry_regimes: tuple[MarketRegime, ...]
+    stop_loss_pct: float
+    take_profit_pct: float
+    max_hold_bars: int
+    position_size_scale: float
+    cooldown_bars_after_loss: int
+    loss_streak_for_cooldown: int = 1
+    signal_exit_min_pct: float = -999.0
+
+
+EXECUTION_POLICIES: dict[StrategyId, StrategyExecutionPolicy] = {
+    "ema_crossover": StrategyExecutionPolicy(
+        allowed_entry_regimes=("bull",),
+        stop_loss_pct=0.42,
+        take_profit_pct=1.1,
+        max_hold_bars=40,
+        position_size_scale=0.8,
+        cooldown_bars_after_loss=18,
+        loss_streak_for_cooldown=2,
+    ),
+    "breakout": StrategyExecutionPolicy(
+        allowed_entry_regimes=("bull",),
+        stop_loss_pct=0.34,
+        take_profit_pct=0.92,
+        max_hold_bars=20,
+        position_size_scale=0.55,
+        cooldown_bars_after_loss=22,
+        loss_streak_for_cooldown=1,
+    ),
+    "mean_reversion": StrategyExecutionPolicy(
+        allowed_entry_regimes=("chop",),
+        stop_loss_pct=0.2,
+        take_profit_pct=0.48,
+        max_hold_bars=8,
+        position_size_scale=0.35,
+        cooldown_bars_after_loss=26,
+        loss_streak_for_cooldown=1,
+        signal_exit_min_pct=0.34,
+    ),
+}
+
+
 def strategy_catalog() -> list[StrategyDescriptor]:
     return STRATEGIES
+
+
+def execution_policy(strategy_id: StrategyId) -> StrategyExecutionPolicy:
+    return EXECUTION_POLICIES[strategy_id]
 
 
 def _ema(values: list[float], period: int) -> list[float]:
@@ -43,17 +92,28 @@ def _ema(values: list[float], period: int) -> list[float]:
     return result
 
 
+def _rolling_average(values: list[float], start: int, end: int) -> float:
+    window = values[start:end]
+    if not window:
+        return 0.0
+    return sum(window) / len(window)
+
+
 def build_signals(strategy_id: StrategyId, candles: list[Candle]) -> list[str]:
     closes = [candle.close for candle in candles]
+    volumes = [candle.volume for candle in candles]
     signals = ["hold"] * len(candles)
+    policy = execution_policy(strategy_id)
 
     if strategy_id == "ema_crossover":
         fast = _ema(closes, 9)
         slow = _ema(closes, 21)
         for index in range(21, len(candles)):
-            if fast[index] > slow[index] * 1.001:
+            regime_ok = candles[index].regime in policy.allowed_entry_regimes
+            trend_confirmed = closes[index] > slow[index] * 1.0008 and fast[index] > fast[index - 1]
+            if regime_ok and trend_confirmed and fast[index] > slow[index] * 1.001:
                 signals[index] = "buy"
-            elif fast[index] < slow[index] * 0.999:
+            elif fast[index] < slow[index] * 0.999 or candles[index].regime == "bear":
                 signals[index] = "sell"
         return signals
 
@@ -61,21 +121,36 @@ def build_signals(strategy_id: StrategyId, candles: list[Candle]) -> list[str]:
         for index in range(20, len(candles)):
             prior_high = max(candle.high for candle in candles[index - 20 : index])
             prior_low = min(candle.low for candle in candles[index - 10 : index])
-            if candles[index].close > prior_high:
+            avg_volume = _rolling_average(volumes, index - 20, index)
+            regime_ok = candles[index].regime in policy.allowed_entry_regimes
+            volume_confirmed = candles[index].volume >= avg_volume * 1.15
+            trend_support = closes[index] >= _rolling_average(closes, index - 8, index) * 1.001
+            if regime_ok and volume_confirmed and trend_support and candles[index].close > prior_high * 1.0008:
                 signals[index] = "buy"
-            elif candles[index].close < prior_low:
+            elif candles[index].close < prior_low or candles[index].regime == "bear":
                 signals[index] = "sell"
         return signals
 
+    anchor = _ema(closes, 8)
     for index in range(20, len(candles)):
         window = closes[index - 20 : index]
         mean = sum(window) / len(window)
         variance = sum((value - mean) ** 2 for value in window) / len(window)
         stddev = math.sqrt(variance) or 1.0
         zscore = (closes[index] - mean) / stddev
-        if zscore < -1.2:
+        avg_volume = _rolling_average(volumes, index - 20, index)
+        quiet_tape = candles[index].volume <= avg_volume * 1.05
+        reversal_candle = closes[index] > candles[index].open and closes[index] > closes[index - 1]
+        reclaiming_anchor = closes[index] >= anchor[index] * 0.9985
+        if (
+            candles[index].regime in policy.allowed_entry_regimes
+            and quiet_tape
+            and reversal_candle
+            and reclaiming_anchor
+            and zscore < -2.05
+        ):
             signals[index] = "buy"
-        elif zscore > 0.6:
+        elif zscore > 0.85 or closes[index] >= anchor[index] * 1.003 or candles[index].regime == "bull":
             signals[index] = "sell"
 
     return signals

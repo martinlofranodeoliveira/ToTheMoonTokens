@@ -29,12 +29,6 @@ def test_metrics_endpoint_exposes_prometheus_text():
     assert "backtests_run_total" in body
 
 
-def test_live_arm_denial_is_recorded_in_metrics():
-    client.post("/api/live/arm")
-    response = client.get("/metrics")
-    assert "live_arm_attempts_total" in response.text
-
-
 def test_response_carries_security_headers():
     response = client.get("/health")
     assert response.headers["x-content-type-options"] == "nosniff"

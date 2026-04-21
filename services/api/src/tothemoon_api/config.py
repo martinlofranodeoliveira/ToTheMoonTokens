@@ -51,18 +51,6 @@ class Settings:
     host: str = field(default_factory=lambda: os.getenv("API_HOST", "127.0.0.1"))
     port: int = field(default_factory=lambda: _as_int(os.getenv("API_PORT"), 8010, name="API_PORT"))
     log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO").upper())
-    enable_live_trading: bool = field(
-        default_factory=lambda: _as_bool(os.getenv("ENABLE_LIVE_TRADING"), False)
-    )
-    allow_mainnet_trading: bool = field(
-        default_factory=lambda: _as_bool(os.getenv("ALLOW_MAINNET_TRADING"), False)
-    )
-    live_trading_acknowledgement: str = field(
-        default_factory=lambda: os.getenv("LIVE_TRADING_ACKNOWLEDGEMENT", "")
-    )
-    live_trading_approval_token: str = field(
-        default_factory=lambda: os.getenv("LIVE_TRADING_APPROVAL_TOKEN", "")
-    )
     wallet_mode: str = field(default_factory=lambda: os.getenv("WALLET_MODE", "manual_only"))
     default_exchange: str = field(
         default_factory=lambda: os.getenv("DEFAULT_EXCHANGE", "binance_spot_testnet")
@@ -107,13 +95,6 @@ class Settings:
     cors_allowed_origins: list[str] = field(
         default_factory=lambda: _as_list(os.getenv("CORS_ALLOWED_ORIGINS"), _DEFAULT_CORS_ORIGINS)
     )
-    rate_limit_live_arm_per_minute: int = field(
-        default_factory=lambda: _as_int(
-            os.getenv("RATE_LIMIT_LIVE_ARM_PER_MINUTE"),
-            5,
-            name="RATE_LIMIT_LIVE_ARM_PER_MINUTE",
-        )
-    )
     rate_limit_backtest_per_minute: int = field(
         default_factory=lambda: _as_int(
             os.getenv("RATE_LIMIT_BACKTEST_PER_MINUTE"),
@@ -124,10 +105,6 @@ class Settings:
 
     @property
     def runtime_mode(self) -> str:
-        if self.enable_live_trading and not self.allow_mainnet_trading:
-            return "guarded_testnet"
-        if self.enable_live_trading and self.allow_mainnet_trading:
-            return "blocked_mainnet"
         return "paper"
 
     def validate(self) -> None:
@@ -152,16 +129,10 @@ class Settings:
             errors.append(f"MAX_OPEN_POSITIONS must be >= 1, got {self.max_open_positions}")
         if self.default_fee_bps < 0 or self.default_slippage_bps < 0:
             errors.append("DEFAULT_FEE_BPS and DEFAULT_SLIPPAGE_BPS must be >= 0")
-        if self.rate_limit_live_arm_per_minute < 1:
-            errors.append(
-                f"RATE_LIMIT_LIVE_ARM_PER_MINUTE must be >= 1, got {self.rate_limit_live_arm_per_minute}"
-            )
         if self.rate_limit_backtest_per_minute < 1:
             errors.append(
                 f"RATE_LIMIT_BACKTEST_PER_MINUTE must be >= 1, got {self.rate_limit_backtest_per_minute}"
             )
-        if self.app_env == "production" and self.allow_mainnet_trading:
-            errors.append("ALLOW_MAINNET_TRADING=true is forbidden in production by project policy")
         if errors:
             raise SettingsError("\n".join(errors))
 

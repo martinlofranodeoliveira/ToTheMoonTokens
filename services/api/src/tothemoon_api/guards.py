@@ -22,13 +22,15 @@ FORBIDDEN_SECRETS = [
 
 
 def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> GuardrailStatus:
-    reasons: list[str] = []
+    reasons: list[str] = [
+        "Order submission is disabled. Hackathon scope is paid research artifacts, not trading automation."
+    ]
     can_submit_testnet_orders = False
     can_submit_mainnet_orders = False
 
     if risk_tier == "high":
         reasons.append(
-            "RISK_TIER=high: perfis agressivos permanecem elegiveis apenas para pesquisa e paper trading."
+            "RISK_TIER=high: perfis agressivos permanecem elegiveis apenas para pesquisa e evidencia."
         )
 
     for secret in FORBIDDEN_SECRETS:
@@ -39,34 +41,15 @@ def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> Guar
 
     if settings.wallet_mode != "manual_only":
         reasons.append(
-            f"WALLET_MODE={settings.wallet_mode!r}: apenas 'manual_only' e aceito para qualquer fluxo armado."
+            f"WALLET_MODE={settings.wallet_mode!r}: apenas 'manual_only' e aceito para qualquer fluxo de demo seguro."
         )
-
-    if not settings.enable_live_trading:
-        reasons.append("ENABLE_LIVE_TRADING=false: runtime bloqueado em paper mode.")
-    elif settings.allow_mainnet_trading:
-        reasons.append(
-            "ALLOW_MAINNET_TRADING=true foi solicitado, mas a politica do projeto bloqueia mainnet."
-        )
-    elif settings.live_trading_acknowledgement != "I_ACCEPT_TESTNET_ONLY":
-        reasons.append(
-            "LIVE_TRADING_ACKNOWLEDGEMENT ausente ou invalido para testnet guarded mode."
-        )
-    elif not settings.live_trading_approval_token:
-        reasons.append("LIVE_TRADING_APPROVAL_TOKEN ausente: falta aprovacao manual explicita.")
-
-    if not reasons:
-        can_submit_testnet_orders = True
 
     GUARDRAIL_EVALUATIONS_TOTAL.labels(
         mode=settings.runtime_mode,
         can_submit_testnet=str(can_submit_testnet_orders).lower(),
     ).inc()
 
-    if reasons:
-        log.warning("guardrail_blocked", runtime_mode=settings.runtime_mode, reasons=reasons)
-    else:
-        log.info("guardrail_passed", runtime_mode=settings.runtime_mode, risk_tier=risk_tier)
+    log.warning("guardrail_blocked", runtime_mode=settings.runtime_mode, reasons=reasons)
 
     return GuardrailStatus(
         mode=settings.runtime_mode,

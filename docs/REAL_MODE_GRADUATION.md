@@ -130,3 +130,15 @@ The repository should continue to show the following behavior after this documen
 - guarded activation can only refer to testnet and manual approval
 - mainnet submission remains blocked by policy
 - missing approval evidence should fail closed with explicit reasons
+
+## Local governance workflow implementation
+
+To make GH-10 testable without opening any real-money path, the repository may expose a local governance registry and dry-run endpoints.
+
+- registry file defaults to `ACTIVATION_REGISTRY_FILE=.nexus/manual_activation_registry.json`
+- `POST /api/activation/approvals` records a dated manual approval artifact with expiry, evidence refs, and signoffs
+- `POST /api/activation/dry-run` evaluates whether guarded testnet would be eligible under the current runtime and approval artifact
+- `POST /api/activation/kill-switch` and `DELETE /api/activation/kill-switch` manage a global fail-closed stop state
+- `POST /api/activation/approvals/{id}/revoke` invalidates an approval artifact after an incident or scope change
+
+These routes are governance rehearsal only. They do not unlock mainnet, do not authorize real funds, and do not bypass the hard policy in this document.

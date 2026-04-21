@@ -11,9 +11,9 @@ def _run(event_dict: dict[str, object]) -> dict[str, object]:
 
 
 def test_top_level_token_is_redacted():
-    out = _run({"event": "live_arm", "approval_token": "ttm_approval_abc"})
+    out = _run({"event": "artifact_request", "approval_token": "ttm_approval_abc"})
     assert out["approval_token"] == REDACTED_PLACEHOLDER
-    assert out["event"] == "live_arm"
+    assert out["event"] == "artifact_request"
 
 
 def test_nested_secret_is_redacted():
@@ -22,7 +22,7 @@ def test_nested_secret_is_redacted():
     assert out["settings"]["exchange"] == "binance"
 
 
-def test_live_trading_acknowledgement_key_is_redacted():
+def test_acknowledgement_key_is_redacted():
     out = _run({"acknowledgement": "I_ACCEPT_TESTNET_ONLY"})
     assert out["acknowledgement"] == REDACTED_PLACEHOLDER
 

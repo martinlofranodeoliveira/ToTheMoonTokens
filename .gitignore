@@ -17,4 +17,5 @@ node_modules/
 .detect-secrets-report.json
 .claude/
 .nexus/contracts/
+services/api/.nexus/
 ops/evidence/*.json

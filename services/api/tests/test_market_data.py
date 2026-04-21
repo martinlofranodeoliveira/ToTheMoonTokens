@@ -42,6 +42,35 @@ def test_fetch_klines_falls_back_to_sample_candles_on_api_failure():
     assert "network down" in str(market.operational_status["last_error"])
 
 
+def test_fetch_klines_infers_bear_regime_from_live_price_action():
+    market = BinanceMarketData()
+    rows = []
+    base_ts = 1_700_000_000_000
+    price = 100.0
+    for index in range(24):
+        price -= 0.35
+        rows.append(
+            [
+                base_ts + (index * 60_000),
+                f"{price + 0.15:.4f}",
+                f"{price + 0.2:.4f}",
+                f"{price - 0.2:.4f}",
+                f"{price:.4f}",
+                "1200",
+            ]
+        )
+
+    with patch.object(market.client, "get") as mock_get:
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = rows
+        mock_get.return_value = response
+        candles = market.fetch_klines("BTCUSDT", "1m", limit=24)
+
+    assert candles[-1].regime == "bear"
+    assert market.operational_status["status"] == "online"
+
+
 def test_fetch_ticker_raises_market_data_error_on_failure():
     market = BinanceMarketData()
     with patch.object(market.client, "get") as mock_get:

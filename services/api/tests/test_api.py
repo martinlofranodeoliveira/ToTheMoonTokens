@@ -14,7 +14,7 @@ def test_health_endpoint_exposes_paper_mode_by_default():
     payload = response.json()
     assert payload["ok"] is True
     assert payload["mode"] == "paper"
-    assert payload["liveTradingEnabled"] is False
+    assert payload["orderSubmissionEnabled"] is False
     assert "market_connector" in payload
 
 
@@ -23,7 +23,10 @@ def test_dashboard_includes_guardrails_and_metrics():
     assert response.status_code == 200
     payload = response.json()
     assert payload["guardrails"]["can_submit_mainnet_orders"] is False
+    assert payload["guardrails"]["can_submit_testnet_orders"] is False
     assert payload["metrics"]["trade_count"] >= 0
+    assert len(payload["research_snapshots"]) == 3
+    assert payload["runtime_status"] is None
     assert payload["connectors"]["exchange"] == "binance_spot_testnet"
     assert payload["recent_trades"] == []
     assert payload["performance"]["total_trades"] == 0
@@ -46,14 +49,6 @@ def test_backtest_endpoint_returns_consistent_metrics():
     assert payload["initial_capital"] == 10000
     assert payload["ending_equity"] > 0
     assert payload["edge_status"] in {"positive", "flat", "negative"}
-
-
-def test_live_arm_is_blocked_without_manual_acknowledgement():
-    response = client.post("/api/live/arm")
-    assert response.status_code == 423
-    payload = response.json()["detail"]
-    assert payload["can_submit_testnet_orders"] is False
-    assert payload["can_submit_mainnet_orders"] is False
 
 
 def test_market_klines_endpoint_returns_candles():

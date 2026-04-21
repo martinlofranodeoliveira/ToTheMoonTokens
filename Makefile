@@ -1,7 +1,7 @@
 PYTHON ?= python3
 API_DIR := services/api
 
-.PHONY: api-install api-test api-cov api-lint api-format api-typecheck api-run web-serve \
+.PHONY: api-install api-test api-cov api-lint api-format api-typecheck api-run web-serve pitch-serve \
 	docker-build docker-up docker-down nexus-start nexus-stop nexus-status nexus-logs \
 	mirror-verify validation-evidence
 
@@ -28,6 +28,9 @@ api-run:
 
 web-serve:
 	$(PYTHON) -m http.server 4173 --directory apps/web
+
+pitch-serve:
+	$(PYTHON) -m http.server 4174 --directory apps/pitch
 
 docker-build:
 	docker compose build

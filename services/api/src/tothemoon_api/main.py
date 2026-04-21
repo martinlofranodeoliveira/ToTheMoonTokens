@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .backtesting import run_backtest, run_walk_forward
+from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
 from .journal import (
@@ -22,7 +22,6 @@ from .market_data import (
     get_ticker,
 )
 from .models import (
-    ArmRequest,
     BacktestRequest,
     Candle,
     DashboardResponse,
@@ -38,7 +37,6 @@ from .models import (
 )
 from .news import check_news_risk_filter, get_recent_news, ingest_news
 from .observability import (
-    LIVE_ARM_ATTEMPTS_TOTAL,
     PrometheusMiddleware,
     RequestIdMiddleware,
     SecurityHeadersMiddleware,
@@ -58,8 +56,8 @@ app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     description=(
-        "Research and paper-trading API. Mainnet trading is permanently blocked "
-        "by policy. See docs/TRADING_GUARDRAILS.md."
+        "Hackathon artifact API for research evidence, journal data, and safe market context. "
+        "Order submission is permanently blocked by policy."
     ),
 )
 
@@ -70,7 +68,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-Request-ID"],
     expose_headers=["X-Request-ID"],
     max_age=600,
@@ -87,20 +85,49 @@ log.info(
 
 def _default_metrics():
     request = BacktestRequest(
+        strategy_id="mean_reversion",
         symbol=settings.default_symbol,
         timeframe=settings.default_timeframe,
+        lookback_bars=240,
         fee_bps=settings.default_fee_bps,
         slippage_bps=settings.default_slippage_bps,
-        risk_tier="low",
+        dataset_id="binance_testnet",
+        risk_tier="medium",
         checklist=ProbabilityChecklist(
-            trend_alignment=True,
+            trend_alignment=False,
             momentum_confirm=True,
-            volume_expansion=True,
+            volume_expansion=False,
             key_level_rejection=True,
             no_upcoming_news=True,
         ),
     )
     return run_backtest(request, settings.max_position_size_pct)
+
+
+def _dashboard_research_snapshots():
+    snapshots = []
+    for descriptor in strategy_catalog():
+        risk_profile = RISK_PROFILES[descriptor.risk_tier]
+        request = BacktestRequest(
+            strategy_id=descriptor.id,
+            symbol=settings.default_symbol,
+            timeframe=settings.default_timeframe,
+            lookback_bars=240,
+            fee_bps=settings.default_fee_bps,
+            slippage_bps=settings.default_slippage_bps,
+            dataset_id="binance_testnet",
+            risk_tier=descriptor.risk_tier,
+            position_size_pct=risk_profile.max_position_size_pct,
+            checklist=ProbabilityChecklist(
+                trend_alignment=descriptor.id != "mean_reversion",
+                momentum_confirm=True,
+                volume_expansion=descriptor.id != "mean_reversion",
+                key_level_rejection=True,
+                no_upcoming_news=True,
+            ),
+        )
+        snapshots.append(run_backtest(request, settings.max_position_size_pct))
+    return snapshots
 
 
 def _market_connector() -> BinanceMarketData:
@@ -118,7 +145,7 @@ def health() -> dict[str, object]:
         "app": settings.app_name,
         "mode": settings.runtime_mode,
         "exchange": settings.default_exchange,
-        "liveTradingEnabled": settings.enable_live_trading,
+        "orderSubmissionEnabled": False,
         "latency_ms": connector_state.last_latency_ms,
         "reconnect_count": connector_state.reconnect_count,
         "last_error": connector_state.last_error,
@@ -187,8 +214,10 @@ def get_dashboard():
         runtime_mode=settings.runtime_mode,
         strategies=strategy_catalog(),
         metrics=_default_metrics(),
+        research_snapshots=_dashboard_research_snapshots(),
         guardrails=evaluate_guardrails(settings),
         connectors=connector_status(settings),
+        runtime_status=None,
         recent_trades=get_recent_trades(limit=8),
         performance=performance,
         journal_performance=performance,
@@ -230,44 +259,6 @@ def get_market_stream_preview(
         "message_count": len(messages),
         "messages": messages,
         "status": connector.operational_status,
-    }
-
-
-@app.post("/api/live/arm")
-def arm_testnet_live_mode(http_request: Request, request: ArmRequest | None = None):
-    limited = enforce_rate_limit(
-        http_request,
-        limit=settings.rate_limit_live_arm_per_minute,
-        window_seconds=60,
-    )
-    if limited is not None:
-        return limited
-
-    risk_tier = request.risk_tier if request else "low"
-    guardrails = evaluate_guardrails(settings, risk_tier=risk_tier)
-    if not guardrails.can_submit_testnet_orders:
-        LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="false").inc()
-        if risk_tier == "high":
-            raise HTTPException(
-                status_code=403,
-                detail={
-                    "message": "High-risk profiles remain research-only until explicit human approval exists.",
-                    "risk_tier": risk_tier,
-                    "guardrails": guardrails.model_dump(),
-                },
-            )
-        log.warning(
-            "live_arm_denied", runtime_mode=settings.runtime_mode, reasons=guardrails.reasons
-        )
-        raise HTTPException(status_code=423, detail=guardrails.model_dump())
-
-    LIVE_ARM_ATTEMPTS_TOTAL.labels(allowed="true").inc()
-    log.info("live_arm_allowed", runtime_mode=settings.runtime_mode, risk_tier=risk_tier)
-    return {
-        "ok": True,
-        "message": "Runtime elegivel apenas para testnet guarded mode.",
-        "tier": risk_tier,
-        "guardrails": guardrails.model_dump(),
     }
 
 

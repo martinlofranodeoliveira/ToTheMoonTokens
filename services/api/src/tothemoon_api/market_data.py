@@ -67,6 +67,39 @@ def _regime_for_index(index: int, length: int, rng: random.Random) -> MarketRegi
     return "chop"
 
 
+def _classify_live_regime(closes: list[float]) -> MarketRegime:
+    if len(closes) < 12:
+        return "chop"
+    baseline = closes[0]
+    if baseline <= 0:
+        return "chop"
+    latest = closes[-1]
+    rolling_mean = sum(closes[-6:]) / min(len(closes), 6)
+    return_pct = ((latest - baseline) / baseline) * 100
+    deviation_pct = ((latest - rolling_mean) / rolling_mean) * 100 if rolling_mean else 0.0
+    range_pct = ((max(closes) - min(closes)) / baseline) * 100
+
+    if return_pct >= 0.4 and deviation_pct >= 0.12:
+        return "bull"
+    if return_pct <= -0.4 and deviation_pct <= -0.12:
+        return "bear"
+    if range_pct <= 0.45 or abs(return_pct) <= 0.2:
+        return "chop"
+    if abs(return_pct) >= 0.8:
+        return "bull" if return_pct > 0 else "bear"
+    return "chop"
+
+
+def _annotate_live_regimes(candles: list[Candle]) -> list[Candle]:
+    annotated: list[Candle] = []
+    closes: list[float] = []
+    for candle in candles:
+        closes.append(candle.close)
+        regime = _classify_live_regime(closes[-20:])
+        annotated.append(candle.model_copy(update={"regime": regime}))
+    return annotated
+
+
 def generate_sample_candles(
     length: int = 180,
     dataset_id: str = "synthetic",
@@ -192,6 +225,7 @@ class BinanceMarketData:
                 )
             if not candles:
                 raise ExchangeDegradationError("No candles returned by exchange.")
+            candles = _annotate_live_regimes(candles)
             self._mark_recovered(
                 latency_ms=(time.perf_counter() - started) * 1000,
                 sample_count=len(candles),
@@ -272,7 +306,7 @@ def get_historical_candles(symbol: str, interval: str, limit: int) -> list[Candl
             )
         if not candles:
             raise ExchangeDegradationError("No candles returned by exchange.")
-        return candles
+        return _annotate_live_regimes(candles)
     except Exception as exc:
         connector_state.degrade(str(exc))
         connector_state.reconnect_count += 1

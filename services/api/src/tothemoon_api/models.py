@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
@@ -32,10 +32,6 @@ class ProbabilityChecklist(BaseModel):
     volume_expansion: bool = False
     key_level_rejection: bool = False
     no_upcoming_news: bool = False
-
-
-class ArmRequest(BaseModel):
-    risk_tier: RiskTier = "low"
 
 
 class Candle(BaseModel):
@@ -247,8 +243,10 @@ class DashboardResponse(BaseModel):
     runtime_mode: str
     strategies: list[StrategyDescriptor]
     metrics: BacktestMetrics
+    research_snapshots: list[BacktestMetrics] = Field(default_factory=list)
     guardrails: GuardrailStatus
     connectors: ConnectorStatus
+    runtime_status: dict[str, Any] | None = None
     recent_trades: list[PaperTradeRecord] = Field(default_factory=list)
     performance: PerformanceAggregates | None = None
     journal_performance: PerformanceAggregates | None = None

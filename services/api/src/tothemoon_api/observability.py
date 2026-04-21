@@ -129,12 +129,6 @@ GUARDRAIL_EVALUATIONS_TOTAL = Counter(
     ["mode", "can_submit_testnet"],
 )
 
-LIVE_ARM_ATTEMPTS_TOTAL = Counter(
-    "live_arm_attempts_total",
-    "Attempts to arm testnet live mode.",
-    ["allowed"],
-)
-
 RATE_LIMIT_REJECTIONS_TOTAL = Counter(
     "rate_limit_rejections_total",
     "Requests rejected by the in-memory rate limiter.",

@@ -4,93 +4,127 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="ttm-api-base-url" content="http://127.0.0.1:8010" />
-    <title>ToTheMoonTokens</title>
+    <meta name="theme-color" content="#09131f" />
+    <title>ToTheMoonTokens Artifact Room</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="shell">
-      <aside class="rail">
-        <div class="brand">
+    <div class="scene">
+      <div class="scene-orb scene-orb-a"></div>
+      <div class="scene-orb scene-orb-b"></div>
+
+      <header class="topbar">
+        <div class="brand-lockup">
           <div class="brand-mark">TT</div>
           <div>
-            <p class="eyebrow">Research-first trading stack</p>
+            <p class="eyebrow">Hackathon artifact deck</p>
             <h1>ToTheMoonTokens</h1>
           </div>
         </div>
-        <div class="guardrail">
-          <p class="label">Runtime mode</p>
-          <strong id="runtime-mode">loading</strong>
-          <p id="guardrail-copy">Paper trading guardrails are loading.</p>
+
+        <div class="topbar-actions">
+          <div class="runtime-badge" id="top-runtime-badge">Loading runtime</div>
+          <button id="refresh-button" class="button">Refresh board</button>
+          <button id="connect-wallet-button" class="button button-secondary">Connect MetaMask</button>
         </div>
-        <div class="connector-list" id="connector-list"></div>
-      </aside>
+      </header>
 
-      <main class="content">
-        <section class="hero">
-          <p class="eyebrow">Binance testnet + wallet manual approval</p>
-          <h2>Measure edge before touching capital.</h2>
-          <p class="lede">
-            This workspace compares strategies, tracks drawdown, and keeps mainnet execution blocked
-            unless there is explicit human approval.
-          </p>
-          <div class="hero-actions">
-            <button id="refresh-button">Refresh dashboard</button>
-            <button id="connect-wallet-button" class="secondary">Connect MetaMask</button>
+      <main class="dashboard">
+        <section class="card hero-panel">
+          <div class="hero-copy">
+            <p class="eyebrow">Safe vertical for the Nexus MVP</p>
+            <h2>Package validated research artifacts without turning the product into a trading bot.</h2>
+            <p class="lede">
+              The dashboard blends market heartbeat, research snapshots, journal evidence,
+              and hard guardrails so the hackathon demo stays auditable and safe.
+            </p>
+            <div class="chip-row" id="runtime-strip"></div>
+            <p id="status-banner" class="status-banner" role="status" aria-live="polite" hidden></p>
           </div>
-          <p id="status-banner" class="status-banner" role="status" aria-live="polite" hidden></p>
-        </section>
 
-        <section class="grid metrics-grid">
-          <article class="metric-card">
-            <p class="label">Net profit</p>
-            <strong id="net-profit">-</strong>
-          </article>
-          <article class="metric-card">
-            <p class="label">Return</p>
-            <strong id="return-pct">-</strong>
-          </article>
-          <article class="metric-card">
-            <p class="label">Max drawdown</p>
-            <strong id="drawdown-pct">-</strong>
-          </article>
-          <article class="metric-card">
-            <p class="label">Profit factor</p>
-            <strong id="profit-factor">-</strong>
-          </article>
-        </section>
+          <div class="hero-market">
+            <article class="spotlight-card">
+              <p class="eyebrow">BTCUSDT spot</p>
+              <strong id="spot-price">-</strong>
+              <div class="spotlight-meta">
+                <span id="spot-change" class="trend-pill">-</span>
+                <span id="spot-volume" class="mono">Volume -</span>
+              </div>
+            </article>
 
-        <section class="grid lower-grid">
-          <article class="panel">
-            <div class="panel-heading">
-              <p class="eyebrow">Strategies</p>
-              <h3>Catalog</h3>
-            </div>
-            <div id="strategy-list" class="strategy-list"></div>
-          </article>
-
-          <article class="panel">
-            <div class="panel-heading">
-              <p class="eyebrow">Execution controls</p>
-              <h3>Guardrails</h3>
-            </div>
-            <ul id="guardrail-reasons" class="reason-list"></ul>
-          </article>
-
-          <article class="panel">
-            <div class="panel-heading">
-              <p class="eyebrow">Paper learning loop</p>
-              <h3>Performance</h3>
-            </div>
-            <div id="aggregates-list" class="aggregate-list"></div>
-          </article>
-        </section>
-
-        <section class="panel journal-panel">
-          <div class="panel-heading">
-            <p class="eyebrow">Recent paper trades</p>
-            <h3>Journal</h3>
+            <article class="spotlight-card spotlight-card-muted">
+              <p class="eyebrow">Evidence lane</p>
+              <strong id="runtime-state">Waiting for evidence</strong>
+              <p id="runtime-window" class="spotlight-copy">
+                No continuous runner is required for the MVP.
+              </p>
+              <div class="progress-track">
+                <span id="runtime-progress" class="progress-value"></span>
+              </div>
+            </article>
           </div>
-          <div id="journal-list" class="journal-list"></div>
+        </section>
+
+        <section id="kpi-grid" class="kpi-grid"></section>
+
+        <section class="main-grid">
+          <article class="card strategy-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Research snapshots + evidence journal</p>
+                <h3>Strategy board</h3>
+              </div>
+              <p class="section-copy">Backtest pulse and journal evidence side by side.</p>
+            </div>
+            <div id="strategy-grid" class="strategy-grid"></div>
+          </article>
+
+          <div class="side-stack">
+            <article class="card side-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Execution envelope</p>
+                  <h3>Guardrails</h3>
+                </div>
+              </div>
+              <div id="approval-summary" class="approval-summary"></div>
+              <ul id="guardrail-list" class="stack-list"></ul>
+            </article>
+
+            <article class="card side-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Infra heartbeat</p>
+                  <h3>Connectors</h3>
+                </div>
+              </div>
+              <div id="connector-grid" class="connector-grid"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="card journal-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Most recent closed samples</p>
+                <h3>Evidence journal</h3>
+              </div>
+              <p class="section-copy">Outcome, hold time, drawdown and setup context for every sample.</p>
+            </div>
+            <div id="journal-list" class="trade-list"></div>
+          </article>
+
+          <article class="card runtime-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Artifact readiness</p>
+                <h3>Evidence monitor</h3>
+              </div>
+              <p class="section-copy">Safe delivery signals for the hackathon MVP.</p>
+            </div>
+            <div id="runtime-monitor" class="runtime-monitor"></div>
+          </article>
         </section>
       </main>
     </div>

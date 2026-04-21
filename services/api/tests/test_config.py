@@ -41,15 +41,15 @@ def test_negative_fees_rejected():
         settings.validate()
 
 
-def test_mainnet_in_production_rejected():
-    settings = Settings(app_env="production", allow_mainnet_trading=True)
-    with pytest.raises(SettingsError, match="ALLOW_MAINNET_TRADING"):
-        settings.validate()
-
-
 def test_cors_origins_parse_from_default_list():
     settings = Settings()
     assert "http://127.0.0.1:4173" in settings.cors_allowed_origins
+
+
+def test_backtest_rate_limit_must_be_positive():
+    settings = Settings(rate_limit_backtest_per_minute=0)
+    with pytest.raises(SettingsError, match="RATE_LIMIT_BACKTEST_PER_MINUTE"):
+        settings.validate()
 
 
 def test_multiple_errors_are_reported_together():

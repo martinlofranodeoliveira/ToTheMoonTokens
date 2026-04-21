@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "arc-docs": {
+      "command": "http",
+      "args": ["https://docs.arc.network/mcp"]
+    }
+  }
+}

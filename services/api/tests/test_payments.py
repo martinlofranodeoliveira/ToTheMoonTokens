@@ -53,3 +53,25 @@ def test_payment_verification_fails_with_invalid_tx():
     verify_payload = verify_response.json()
     assert verify_payload["status"] == "failed"
     assert verify_payload["unlocked_artifact_id"] is None
+
+
+def test_job_lifecycle_requires_payment():
+    # Attempt to execute without payment
+    response = client.post("/api/payments/execute", json={"artifact_id": "artifact_backtest_report"})
+    assert response.status_code == 402
+    assert "Payment required" in response.json()["detail"]
+
+    # 1. Create intent
+    intent_response = client.post(
+        "/api/payments/intent",
+        json={"artifact_id": "artifact_backtest_report", "buyer_address": "0xBuyerAddress"},
+    )
+    payment_id = intent_response.json()["payment_id"]
+
+    # 2. Verify payment
+    client.post("/api/payments/verify", json={"payment_id": payment_id, "tx_hash": "0xMockTransactionHash"})
+
+    # 3. Execute job after payment
+    response = client.post("/api/payments/execute", json={"artifact_id": "artifact_backtest_report"})
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"

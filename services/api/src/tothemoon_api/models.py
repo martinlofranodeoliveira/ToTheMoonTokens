@@ -331,3 +331,12 @@ class PaymentVerificationResponse(BaseModel):
     payment_id: str
     status: Literal["pending", "verified", "failed"]
     unlocked_artifact_id: str | None = None
+
+class JobExecutionRequest(BaseModel):
+    artifact_id: str
+
+class JobExecutionResponse(BaseModel):
+    artifact_id: str
+    status: Literal["completed", "failed"]
+    message: str
+    download_url: str | None = None

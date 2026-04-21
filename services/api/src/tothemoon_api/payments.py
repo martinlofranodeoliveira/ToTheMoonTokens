@@ -8,6 +8,8 @@ from .models import (
     PaymentIntentResponse,
     PaymentVerificationRequest,
     PaymentVerificationResponse,
+    JobExecutionRequest,
+    JobExecutionResponse,
 )
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
@@ -91,3 +93,19 @@ def verify_payment(request: PaymentVerificationRequest):
         status=intent["status"],
         unlocked_artifact_id=intent["artifact_id"] if intent["status"] == "verified" else None,
     )
+
+@router.post("/execute", response_model=JobExecutionResponse)
+def execute_job(request: JobExecutionRequest):
+    if not _UNLOCKED_JOBS.get(request.artifact_id):
+        raise HTTPException(
+            status_code=402,
+            detail="Payment required to unlock this job."
+        )
+
+    return JobExecutionResponse(
+        artifact_id=request.artifact_id,
+        status="completed",
+        message="Job executed successfully after payment verification.",
+        download_url=f"/api/artifacts/{request.artifact_id}/download"
+    )
+

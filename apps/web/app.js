@@ -176,6 +176,38 @@ function renderRecentTrades(trades) {
     .join("");
 }
 
+function renderArcJobs(jobs) {
+  const list = document.getElementById("arc-jobs-list");
+  if (!list) return;
+
+  if (!jobs || jobs.length === 0) {
+    list.innerHTML = `<div class="journal-item"><strong>No Arc jobs found.</strong><p>When the Nexus agent completes a task, proof will appear here.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = jobs
+    .map(
+      (job) => `
+        <article class="journal-item">
+          <div class="journal-header">
+            <strong>${escapeHtml(job.job_id)}</strong>
+            <span class="status-badge status-${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
+          </div>
+          <p><strong>Task ID:</strong> ${escapeHtml(job.task_id)} | <strong>Agent:</strong> ${escapeHtml(job.agent_id)}</p>
+          <p style="word-break: break-all; font-family: monospace; font-size: 0.85em; background: rgba(0,0,0,0.1); padding: 4px; border-radius: 4px;">
+            Proof Hash: ${escapeHtml(job.proof_hash)}
+          </p>
+          <div class="journal-metrics" style="margin-top: 8px;">
+            <span>Action: ${escapeHtml(job.metadata?.action || "-")}</span>
+            <span>Adapter: v${escapeHtml(job.metadata?.adapter_version || "-")}</span>
+            <span>Chain: ${escapeHtml(job.metadata?.chain || "-")}</span>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function showStatus(message, variant = "info") {
   const banner = document.getElementById("status-banner");
   if (!banner) return;
@@ -196,6 +228,7 @@ async function loadDashboard() {
   renderStrategies(dashboard.strategies);
   renderAggregates(dashboard.performance);
   renderRecentTrades(dashboard.recent_trades);
+  renderArcJobs(dashboard.arc_jobs);
 }
 
 async function connectMetaMask() {

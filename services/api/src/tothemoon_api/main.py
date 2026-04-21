@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
+from .arc import ping_arc_network
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
@@ -45,6 +47,7 @@ from .observability import (
     get_logger,
     metrics_response,
 )
+from .payments import router as payments_router
 from .scalp import validate_scalp_setup
 from .strategies import strategy_catalog
 
@@ -52,9 +55,19 @@ configure_logging()
 log = get_logger(__name__)
 
 settings = get_settings()
+from contextlib import asynccontextmanager
+
+from .circle import circle_client
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    circle_client.load_wallets()
+    yield
+
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
+    lifespan=lifespan,
     description=(
         "Hackathon artifact API for research evidence, journal data, and safe market context. "
         "Order submission is permanently blocked by policy."
@@ -73,6 +86,8 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
     max_age=600,
 )
+
+app.include_router(payments_router)
 
 log.info(
     "api_startup",
@@ -221,12 +236,18 @@ def get_dashboard():
         recent_trades=get_recent_trades(limit=8),
         performance=performance,
         journal_performance=performance,
+        arc_jobs=get_arc_jobs(limit=5),
     )
 
 
 @app.get("/api/market/health")
 def get_market_health() -> dict[str, object]:
     return _market_connector().ping()
+
+
+@app.get("/api/network/arc/health")
+def get_arc_network_health() -> dict[str, object]:
+    return ping_arc_network()
 
 
 @app.get("/api/market/klines", response_model=list[Candle])
@@ -362,3 +383,12 @@ def api_get_depth(symbol: str = "BTCUSDT", limit: int = Query(default=20, ge=5, 
         return get_depth(symbol, limit=limit)
     except ExchangeDegradationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/api/arc/jobs", response_model=ArcJobProof)
+def create_arc_job(event: NexusTaskEvent):
+    return submit_nexus_task_event(event)
+
+@app.get("/api/arc/jobs", response_model=list[ArcJobProof])
+def list_arc_jobs(limit: int = 20):
+    return get_arc_jobs(limit=limit)

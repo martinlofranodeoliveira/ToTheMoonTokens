@@ -55,6 +55,16 @@ pre-commit install                 # instala o hook no .git/hooks
 pre-commit run --all-files         # primeira execucao varre o repo inteiro
 ```
 
+### Configuracao do MCP (Model Context Protocol)
+
+Para agentes e desenvolvedores terem contexto imediato da documentacao do Arc, adicione o servidor MCP ao seu fluxo local:
+
+```bash
+claude mcp add --transport http arc-docs https://docs.arc.network/mcp
+```
+
+Isso atualizara suas configuracoes locais para habilitar as consultas. Para mais detalhes, consulte [HACKATHON_AGENTIC_ARC.md](HACKATHON_AGENTIC_ARC.md).
+
 Os hooks rodam `ruff` (lint + format), `detect-secrets`, verificam YAML/TOML,
 bloqueiam merge conflicts, chaves privadas, arquivos enormes (> 512 KB) e um
 hook local que recusa commit de `.env`.

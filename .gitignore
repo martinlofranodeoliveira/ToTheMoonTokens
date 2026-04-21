@@ -15,7 +15,10 @@ node_modules/
 .mypy_cache/
 .ruff_cache/
 .detect-secrets-report.json
-.claude/
+.claude/*
+!.claude/settings.local.json
 .nexus/contracts/
 services/api/.nexus/
 ops/evidence/*.json
+!ops/evidence/arc-mcp-check.json
+.env.hackathon

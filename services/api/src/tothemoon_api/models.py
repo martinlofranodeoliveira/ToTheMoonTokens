@@ -238,6 +238,8 @@ class PerformanceAggregates(BaseModel):
     by_timeframe: dict[str, AggregateBucket] = Field(default_factory=dict)
 
 
+from .arc_adapter import ArcJobProof
+
 class DashboardResponse(BaseModel):
     app_name: str
     runtime_mode: str
@@ -250,6 +252,7 @@ class DashboardResponse(BaseModel):
     recent_trades: list[PaperTradeRecord] = Field(default_factory=list)
     performance: PerformanceAggregates | None = None
     journal_performance: PerformanceAggregates | None = None
+    arc_jobs: list[ArcJobProof] = Field(default_factory=list)
 
 
 class NewsItem(BaseModel):
@@ -298,3 +301,43 @@ class ValidationResult(BaseModel):
 class ScalpValidationRequest(BaseModel):
     setup: ScalpSetup
     context: MarketContext
+
+
+class BillableArtifact(BaseModel):
+    id: str
+    name: str
+    description: str
+    price_usd: float
+    type: Literal["backtest_report", "walk_forward_report", "live_trade_signal"]
+
+
+class PaymentIntentRequest(BaseModel):
+    artifact_id: str
+    buyer_address: str
+
+
+class PaymentIntentResponse(BaseModel):
+    payment_id: str
+    amount_usd: float
+    deposit_address: str
+    status: Literal["pending", "verified", "failed"]
+
+
+class PaymentVerificationRequest(BaseModel):
+    payment_id: str
+    tx_hash: str
+
+
+class PaymentVerificationResponse(BaseModel):
+    payment_id: str
+    status: Literal["pending", "verified", "failed"]
+    unlocked_artifact_id: str | None = None
+
+class JobExecutionRequest(BaseModel):
+    artifact_id: str
+
+class JobExecutionResponse(BaseModel):
+    artifact_id: str
+    status: Literal["completed", "failed"]
+    message: str
+    download_url: str | None = None

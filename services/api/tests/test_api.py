@@ -72,3 +72,14 @@ def test_market_health_endpoint_returns_probe_status():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "online"
+
+def test_arc_network_health_endpoint():
+    with patch(
+        "tothemoon_api.main.ping_arc_network",
+        return_value={"status": "online", "chain_id": 5042002, "url": "https://rpc.testnet.arc.network"},
+    ):
+        response = client.get("/api/network/arc/health")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "online"
+    assert payload["chain_id"] == 5042002

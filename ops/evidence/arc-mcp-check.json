@@ -1,0 +1,20 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Title: Interact with contracts\nLink: https://docs.arc.network/arc/tutorials/interact-with-contracts#interact-with-contracts\nPage: arc/tutorials/interact-with-contracts\nContent: guides you through interacting with <mark><b>smart contract</b></mark>s deployed on Arc Testnet."
+      },
+      {
+        "type": "text",
+        "text": "Title: Deploy contracts\nLink: https://docs.arc.network/arc/tutorials/deploy-contracts\nPage: arc/tutorials/deploy-contracts\nContent: Deploy pre-audited <mark><b>smart contract</b></mark> templates on Arc with Circle."
+      },
+      {
+        "type": "text",
+        "text": "Title: Account abstraction\nLink: https://docs.arc.network/arc/tools/account-abstraction#account-abstraction\nPage: arc/tools/account-abstraction\nContent: Arc supports the ERC-4337 standard for account abstraction, gas sponsorship, and batched operations."
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 1
+}

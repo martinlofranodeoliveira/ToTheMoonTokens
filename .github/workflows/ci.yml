@@ -94,6 +94,10 @@ jobs:
           test -f apps/web/index.html
           test -f apps/web/styles.css
           test -f apps/web/app.js
+          test -f apps/pitch/index.html
+          test -f apps/pitch/styles.css
+          test -f apps/pitch/src/app.jsx
+          test -f apps/pitch/src/data.js
           test -f docs/ARCHITECTURE.md
           test -f docs/TRADING_GUARDRAILS.md
           test -f docs/REAL_MODE_GRADUATION.md
@@ -102,3 +106,26 @@ jobs:
           test -f docs/CONTRIBUTING.md
           test -f scripts/verify_mirror.sh
           test -f scripts/collect_validation_evidence.py
+      - name: Smoke test pitch static app
+        run: |
+          python3 -m http.server 4174 --directory apps/pitch >/tmp/pitch-server.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            kill "$server_pid"
+            wait "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          sleep 2
+          for path in \
+            / \
+            /styles.css \
+            /src/data.js \
+            /src/components.jsx \
+            /src/marketplace.jsx \
+            /src/payment.jsx \
+            /src/landing.jsx \
+            /src/dashboard.jsx \
+            /src/arch_about.jsx \
+            /src/app.jsx; do
+            curl -fsS "http://127.0.0.1:4174${path}" >/dev/null
+          done

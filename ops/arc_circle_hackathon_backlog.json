@@ -212,5 +212,37 @@
       "keep the story tight: paid agent work, validated delivery, safe vertical demo"
     ],
     "labels": ["hackathon", "submission", "demo"]
+  },
+  {
+    "backlogRef": "ARC-HACK-008",
+    "title": "ARC-HACK-008 [P0] Wire pitch site to live backend with graceful mock fallback",
+    "status": "backlog",
+    "priority": "p0",
+    "phase": "Phase 2 - Product Demo UI",
+    "suggestedSquad": "frontend + backend",
+    "objective": "Wire the pitch site to consolidated hackathon endpoints without breaking the live demo when the backend is offline.",
+    "approvedScope": [
+      "replace static mock data with fetches from /api/market/signals, /api/agents/:id, /api/payments/:intent_id/flow",
+      "keep graceful fallback to local mock data when the backend is unreachable or the endpoints are not merged yet",
+      "surface loading, empty, and degraded states clearly in the pitch flow"
+    ],
+    "acceptanceCriteria": [
+      "pitch site displays live backend data when the consolidated endpoints are available",
+      "pitch site falls back to mock data without breaking the demo when the backend is offline",
+      "the UI makes it clear when the view is using fallback data instead of live backend state"
+    ],
+    "dependencies": ["ARC-HACK-001", "ARC-HACK-003", "ARC-HACK-004"],
+    "externalAccessGaps": [
+      "wait until the consolidated endpoints from feature/hackathon-arc-agent-market are merged into main or equivalent ARC-HACK backend work lands"
+    ],
+    "outOfScope": [
+      "redesigning the pitch site",
+      "removing the mock layer entirely before the backend is stable"
+    ],
+    "executionRules": [
+      "prefer a thin adapter layer over scattering fetch logic across every component",
+      "ensure robust error handling and fast fallback for live demo reliability"
+    ],
+    "labels": ["hackathon", "frontend", "integration", "pitch"]
   }
 ]

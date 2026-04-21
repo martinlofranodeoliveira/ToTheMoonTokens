@@ -10,6 +10,7 @@ backend-tests:
     - . .venv/bin/activate
     - python -m pip install --upgrade pip
     - python -m pip install -e .[dev]
+    - python -m playwright install --with-deps chromium
     - python -m pytest --cov --cov-report=term-missing
 
 lint-and-typecheck:
@@ -21,6 +22,7 @@ lint-and-typecheck:
     - . .venv/bin/activate
     - python -m pip install --upgrade pip
     - python -m pip install -e .[dev]
+    - python -m playwright install --with-deps chromium
     - python -m ruff check .
     - python -m ruff format --check .
     - python -m mypy

@@ -55,3 +55,6 @@ mirror-verify:
 
 validation-evidence:
 	$(PYTHON) ./scripts/collect_validation_evidence.py --task GH-6
+
+track-hackathon:
+	$(PYTHON) ./scripts/track_hackathon_epic.py

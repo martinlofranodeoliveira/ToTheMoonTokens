@@ -33,8 +33,7 @@ def verify_hackathon_state(seed_path: str):
     if errors:
         for err in errors:
             print(err, file=sys.stderr)
-        # return False for now to allow warning vs blocking, but architecture says "bloquear"
-        # sys.exit(1)
+        # Architecture requirement: bloquear avanco de fases quando dependencias nao estao done
         return False
     
     return True

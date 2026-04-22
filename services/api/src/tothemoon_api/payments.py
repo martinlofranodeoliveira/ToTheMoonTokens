@@ -90,6 +90,15 @@ def get_payment_intent(payment_id: str):
         status=str(intent["status"])  # type: ignore
     )
 
+
+@router.get("/intents", response_model=list[dict])
+def list_payment_intents(buyer_address: str):
+    intents = [
+        intent for intent in _PAYMENT_INTENTS.values()
+        if intent.get("buyer_address") == buyer_address
+    ]
+    return intents
+
 @router.post("/verify", response_model=PaymentVerificationResponse)
 def verify_payment(request: PaymentVerificationRequest):
     if request.payment_id not in _PAYMENT_INTENTS:

@@ -105,6 +105,13 @@ def verify_payment(request: PaymentVerificationRequest):
         raise HTTPException(status_code=404, detail="Payment intent not found")
 
     intent = _PAYMENT_INTENTS[request.payment_id]
+    
+    if intent.get("status") == "verified":
+        return PaymentVerificationResponse(
+            payment_id=request.payment_id,
+            status=intent["status"],
+            unlocked_artifact_id=intent["artifact_id"],
+        )
 
     # Mock verification logic: any tx_hash starting with "0x" is valid in testnet
     if request.tx_hash and request.tx_hash.startswith("0x"):

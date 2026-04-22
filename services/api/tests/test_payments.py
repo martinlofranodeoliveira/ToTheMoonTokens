@@ -95,3 +95,23 @@ def test_get_payment_intent():
 def test_get_payment_intent_not_found():
     response = client.get("/api/payments/intent/invalid_id")
     assert response.status_code == 404
+
+def test_payment_verification_is_idempotent():
+    # 1. Create intent
+    intent_response = client.post(
+        "/api/payments/intent",
+        json={"artifact_id": "artifact_walk_forward", "buyer_address": "0xBuyerAddressIdempotent"},
+    )
+    payment_id = intent_response.json()["payment_id"]
+
+    # 2. Verify payment successfully
+    verify_response = client.post(
+        "/api/payments/verify", json={"payment_id": payment_id, "tx_hash": "0xMockTransactionHash"}
+    )
+    assert verify_response.json()["status"] == "verified"
+
+    # 3. Attempt to verify again with invalid hash, should remain verified
+    verify_response2 = client.post(
+        "/api/payments/verify", json={"payment_id": payment_id, "tx_hash": "invalid_tx_hash_now"}
+    )
+    assert verify_response2.json()["status"] == "verified"

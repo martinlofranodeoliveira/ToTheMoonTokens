@@ -124,5 +124,19 @@
       "adapter_version": "1.0",
       "chain": "stubbed-testnet"
     }
+  },
+  {
+    "job_id": "job_arc_10_1776823107",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x63e365bea99d8167db8d5a185ec3f10630a530f62b858d85f505161e3fa14b10",
+    "timestamp": "2026-04-22T01:58:27.726103Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
   }
 ]

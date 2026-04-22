@@ -1,9 +1,38 @@
 /* Agent Dashboard */
-const { useState: useStateD } = React;
+const { useState: useStateD, useEffect: useEffectD } = React;
 
 function Dashboard({ state, navigate }) {
   const [agentId, setAgentId] = useStateD('research_02');
-  const agent = window.TTM.AGENTS.find(a => a.id === agentId) || window.TTM.AGENTS[1];
+  const [agent, setAgent] = useStateD(null);
+  const [isMockData, setIsMockData] = useStateD(false);
+  const [isLoading, setIsLoading] = useStateD(true);
+  const [agentsList, setAgentsList] = useStateD([]);
+
+  // Mock list of agents to pick from
+  useEffectD(() => {
+    setAgentsList(window.TTM.AGENTS);
+  }, []);
+
+  useEffectD(() => {
+    let mounted = true;
+    async function load() {
+      setIsLoading(true);
+      const res = await window.TTM.api.getAgent(agentId);
+      if (!mounted) return;
+      setAgent(res.data);
+      setIsMockData(res.isMock);
+      setIsLoading(false);
+    }
+    load();
+    return () => { mounted = false; };
+  }, [agentId]);
+
+  if (state === 'loading' || isLoading || !agent) {
+    return <div style={{ padding: '40px 32px', maxWidth: 1200, margin: '0 auto' }}>
+      <div className="sk" style={{ height: 80, marginBottom: 20 }}/>
+      <div className="grid-2" style={{ gap: 16 }}>{[0,1,2,3].map(i => <div key={i} className="sk" style={{ height: 260 }}/>)}</div>
+    </div>;
+  }
 
   const isResearch = agent.role === 'research';
   const isConsumer = agent.role === 'consumer';
@@ -14,18 +43,17 @@ function Dashboard({ state, navigate }) {
     return base + Math.sin(i * 0.4) * (isResearch ? 0.05 : 8) + (window.TTM.hashStr(agent.id + i) % 100) / (isResearch ? 1200 : 25);
   });
 
-  if (state === 'loading') {
-    return <div style={{ padding: '40px 32px', maxWidth: 1200, margin: '0 auto' }}>
-      <div className="sk" style={{ height: 80, marginBottom: 20 }}/>
-      <div className="grid-2" style={{ gap: 16 }}>{[0,1,2,3].map(i => <div key={i} className="sk" style={{ height: 260 }}/>)}</div>
-    </div>;
-  }
-
   return (
     <div style={{ padding: '28px 32px 64px', maxWidth: 1240, margin: '0 auto' }}>
+      {isMockData && (
+        <div style={{ background: '#fef3c7', color: '#92400e', padding: '10px 14px', borderRadius: 6, marginBottom: 20, border: '1px solid #fcd34d', fontSize: '0.85rem', lineHeight: 1.4 }}>
+          <strong>Backend Unreachable:</strong> Showing mock data for demo. Ensure API is running at <code>http://127.0.0.1:8000</code>.
+        </div>
+      )}
+      
       {/* Agent picker row */}
       <div className="row g8" style={{ marginBottom: 24, overflowX: 'auto', padding: '4px 0' }}>
-        {window.TTM.AGENTS.map(a => (
+        {agentsList.map(a => (
           <button key={a.id} className={`btn ${a.id === agentId ? 'btn-secondary' : 'btn-ghost'}`}
             style={{ height: 36, borderColor: a.id === agentId ? 'var(--arc-blue)' : undefined, color: a.id === agentId ? 'var(--text)' : 'var(--text-2)' }}
             onClick={() => setAgentId(a.id)}>

@@ -268,6 +268,30 @@ function formatTTL(sec) {
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
+const API_BASE = 'http://127.0.0.1:8000';
+
+async function fetchWithFallback(endpoint, mockData) {
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, { 
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return { data, isMock: false };
+  } catch (err) {
+    console.warn(`Fallback to mock for ${endpoint}`, err.message);
+    return { data: mockData, isMock: true };
+  }
+}
+
+const api = {
+  getSignals: () => fetchWithFallback('/api/market/signals', initialSignals),
+  getAgent: (id) => fetchWithFallback(`/api/agents/${id}`, AGENTS.find(a => a.id === id) || AGENTS[1]),
+  getPaymentFlow: (intentId) => fetchWithFallback(`/api/payments/${intentId}/flow`, PAYMENT_FLOW),
+  getSettlements: () => fetchWithFallback('/api/journal/trades', initialSettlements),
+};
+
 window.TTM = {
   SYMS, HORIZONS, TIERS, PUBS, CONSUMERS, AGENTS, PAYMENT_FLOW,
   initialSignals, initialSettlements,
@@ -275,4 +299,5 @@ window.TTM = {
   nextSettlement, nextSignal,
   tierPill, scoreColor, roleColor,
   fmtUSDC, relTime, formatTTL, hashStr,
+  api,
 };

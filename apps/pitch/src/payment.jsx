@@ -2,12 +2,30 @@
 const { useState: useStateP, useEffect: useEffectP, useRef: useRefP } = React;
 
 function PaymentFlow({ state, navigate }) {
-  const FLOW = window.TTM.PAYMENT_FLOW;
+  const [FLOW, setFLOW] = useStateP([]);
+  const [isMockData, setIsMockData] = useStateP(false);
+  const [isLoading, setIsLoading] = useStateP(true);
+
   const [stepIdx, setStepIdx] = useStateP(5); // 5 = all complete
   const [expanded, setExpanded] = useStateP(new Set([2, 3])); // capture + settle expanded by default
   const [replaying, setReplaying] = useStateP(false);
   const [elapsed, setElapsed] = useStateP(743);
   const [startedAt] = useStateP(Date.now() - 4000);
+
+  useEffectP(() => {
+    let mounted = true;
+    async function load() {
+      setIsLoading(true);
+      const res = await window.TTM.api.getPaymentFlow('demo_intent_123');
+      if (!mounted) return;
+      setFLOW(res.data || []);
+      setIsMockData(res.isMock);
+      setIsLoading(false);
+      setStepIdx(res.data?.length || 5);
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   const toggleExp = (i) => {
     setExpanded(cur => {
@@ -40,7 +58,7 @@ function PaymentFlow({ state, navigate }) {
     return 'pending';
   };
 
-  if (state === 'loading') {
+  if (state === 'loading' || isLoading || !FLOW || FLOW.length === 0) {
     return (
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px' }}>
         <div className="sk" style={{ height: 24, width: '60%', marginBottom: 12 }}/>
@@ -55,7 +73,12 @@ function PaymentFlow({ state, navigate }) {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px 80px' }}>
-      {/* Header */}
+      {isMockData && (
+        <div style={{ background: '#fef3c7', color: '#92400e', padding: '10px 14px', borderRadius: 6, marginBottom: 24, border: '1px solid #fcd34d', fontSize: '0.85rem', lineHeight: 1.4 }}>
+          <strong>Backend Unreachable:</strong> Showing mock data for demo. Ensure API is running at <code>http://127.0.0.1:8000</code>.
+        </div>
+      )}
+
       <div style={{ marginBottom: 20 }}>
         <div className="row g8 mono-s t3" style={{ marginBottom: 10 }}>
           <a onClick={() => navigate('marketplace')} style={{ cursor: 'pointer' }}>Marketplace</a>

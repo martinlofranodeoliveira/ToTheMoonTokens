@@ -2,10 +2,11 @@
 const { useState: useStateM, useEffect: useEffectM, useRef: useRefM, useMemo: useMemoM, useCallback: useCallbackM } = React;
 
 function Marketplace({ state, navigate, tickSpeed }) {
-  const [signals, setSignals] = useStateM(() => [...window.TTM.initialSignals]);
-  const [settlements, setSettlements] = useStateM(() =>
-    window.TTM.initialSettlements.map((s, i) => ({ ...s, isNew: false, agoLabel: s.ago + 's ago' }))
-  );
+  const [signals, setSignals] = useStateM([]);
+  const [settlements, setSettlements] = useStateM([]);
+  const [isMockData, setIsMockData] = useStateM(false);
+  const [isLoadingData, setIsLoadingData] = useStateM(true);
+
   const [newIds, setNewIds] = useStateM(new Set());
   const [soldIds, setSoldIds] = useStateM(new Set());
 
@@ -16,6 +17,25 @@ function Marketplace({ state, navigate, tickSpeed }) {
   const [freshOnly, setFreshOnly] = useStateM(false);
 
   const [buyTarget, setBuyTarget] = useStateM(null);
+
+  // Fetch initial data
+  useEffectM(() => {
+    let mounted = true;
+    async function loadData() {
+      setIsLoadingData(true);
+      const [sigsRes, setsRes] = await Promise.all([
+        window.TTM.api.getSignals(),
+        window.TTM.api.getSettlements()
+      ]);
+      if (!mounted) return;
+      setSignals(sigsRes.data);
+      setSettlements(setsRes.data.map((s, i) => ({ ...s, isNew: false, agoLabel: s.ago ? s.ago + 's ago' : window.TTM.relTime((Date.now() - (s.ts || Date.now()))/1000) })));
+      setIsMockData(sigsRes.isMock || setsRes.isMock);
+      setIsLoadingData(false);
+    }
+    loadData();
+    return () => { mounted = false; };
+  }, []);
 
   // Stream new signals
   useEffectM(() => {
@@ -105,7 +125,7 @@ function Marketplace({ state, navigate, tickSpeed }) {
     setSettlements(cur => [settle, ...cur].slice(0, 15));
   };
 
-  if (state === 'loading') {
+  if (state === 'loading' || isLoadingData) {
     return (
       <div className="layout-3col">
         <div className="col-filter"><div className="sk" style={{ height: 22, width: '60%', marginBottom: 16 }}/><div className="sk" style={{ height: 34, marginBottom: 20 }}/><div className="sk" style={{ height: 18, width: '40%', marginBottom: 10 }}/><div className="sk" style={{ height: 120, marginBottom: 16 }}/></div>
@@ -135,7 +155,7 @@ function Marketplace({ state, navigate, tickSpeed }) {
     );
   }
 
-  if (state === 'empty') {
+  if (state === 'empty' || signals.length === 0) {
     return (
       <div className="layout-3col">
         <div className="col-filter"/>
@@ -151,6 +171,11 @@ function Marketplace({ state, navigate, tickSpeed }) {
     <div className="layout-3col">
       {/* FILTERS */}
       <div className="col-filter">
+        {isMockData && (
+          <div style={{ background: '#fef3c7', color: '#92400e', padding: '10px 14px', borderRadius: 6, marginBottom: 20, border: '1px solid #fcd34d', fontSize: '0.85rem', lineHeight: 1.4 }}>
+            <strong>Backend Unreachable:</strong> Showing mock data for demo. Ensure API is running at <code>http://127.0.0.1:8000</code>.
+          </div>
+        )}
         <div className="col g16">
           <div className="col g8">
             <label className="mono-s t3" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>Search</label>

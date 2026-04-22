@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
@@ -40,7 +41,7 @@ ARTIFACT_CATALOG: dict[str, BillableArtifact] = {
 }
 
 # In-memory storage for testnet/mock
-_PAYMENT_INTENTS: dict[str, dict] = {}
+_PAYMENT_INTENTS: dict[str, dict[str, Any]] = {}
 _UNLOCKED_JOBS: dict[str, bool] = {}
 
 
@@ -71,7 +72,7 @@ def create_payment_intent(request: PaymentIntentRequest):
 
     return PaymentIntentResponse(
         payment_id=str(intent["payment_id"]),
-        amount_usd=float(intent["amount_usd"]),  # type: ignore
+        amount_usd=float(str(intent["amount_usd"])),
         deposit_address=str(intent["deposit_address"]),
         status=str(intent["status"])  # type: ignore
     )
@@ -85,7 +86,7 @@ def get_payment_intent(payment_id: str):
     intent = _PAYMENT_INTENTS[payment_id]
     return PaymentIntentResponse(
         payment_id=str(intent["payment_id"]),
-        amount_usd=float(intent["amount_usd"]),  # type: ignore
+        amount_usd=float(str(intent["amount_usd"])),
         deposit_address=str(intent["deposit_address"]),
         status=str(intent["status"])  # type: ignore
     )

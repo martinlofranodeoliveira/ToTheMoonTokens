@@ -348,5 +348,75 @@
       "adapter_version": "1.0",
       "chain": "stubbed-testnet"
     }
+  },
+  {
+    "job_id": "job_arc_26_1776820589",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xae76ee119acbc44c427d9970d9be4031deb7da11fd645d790487a1a22063fc11",
+    "timestamp": "2026-04-22T01:16:29.639819Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_27_1776820723",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x255e1e595f943632d02a896df75e53a58eaf298d01f2f8c55a5093fed783f266",
+    "timestamp": "2026-04-22T01:18:43.698045Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_28_1776820954",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x5c9b9e61febda03e2de2a7d277af8d6280b60dd154533704660be4919d88b5fd",
+    "timestamp": "2026-04-22T01:22:34.078150Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_29_1776821019",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x08afc287e92c69d7cbc369292b322639ade2a362d11938c31c53d959baf5c9e9",
+    "timestamp": "2026-04-22T01:23:39.324856Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_30_1776821075",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x266f40c3fde08f67c48c30a53ae6fbbb2748c1e4fb9a0259809f1076407ce8a5",
+    "timestamp": "2026-04-22T01:24:35.671427Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
   }
 ]

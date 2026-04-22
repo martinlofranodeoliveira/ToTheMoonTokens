@@ -115,3 +115,19 @@ def test_payment_verification_is_idempotent():
         "/api/payments/verify", json={"payment_id": payment_id, "tx_hash": "invalid_tx_hash_now"}
     )
     assert verify_response2.json()["status"] == "verified"
+
+def test_create_intent_invalid_artifact():
+    response = client.post(
+        "/api/payments/intent",
+        json={"artifact_id": "invalid_artifact", "buyer_address": "0xBuyer"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Artifact not found"
+
+def test_verify_invalid_payment_id():
+    response = client.post(
+        "/api/payments/verify",
+        json={"payment_id": "invalid_payment_id", "tx_hash": "0x123"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Payment intent not found"

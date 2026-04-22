@@ -23,7 +23,7 @@ FORBIDDEN_SECRETS = [
 
 def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> GuardrailStatus:
     reasons: list[str] = [
-        "Order submission is disabled. Hackathon scope is paid research artifacts, not trading automation."
+        "Order submission is disabled. Hackathon scope is paid agent artifacts, not trading automation."
     ]
     can_submit_testnet_orders = False
     can_submit_mainnet_orders = False

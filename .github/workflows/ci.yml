@@ -25,6 +25,10 @@ jobs:
           cd services/api
           . .venv/bin/activate
           python -m pytest --cov --cov-report=term-missing
+      - name: Run guardrail regression
+        run: |
+          . services/api/.venv/bin/activate
+          python scripts/verify_guardrails.py
 
   lint-and-typecheck:
     runs-on: ubuntu-latest
@@ -104,8 +108,14 @@ jobs:
           test -f docs/DELIVERY_VALIDATION.md
           test -f docs/SECURITY_RUNBOOK.md
           test -f docs/CONTRIBUTING.md
+          test -f docs/hackathon/FINAL_HANDOFF.md
           test -f scripts/verify_mirror.sh
+          test -f scripts/run-local-demo.sh
           test -f scripts/collect_validation_evidence.py
+      - name: Shell script syntax check
+        run: |
+          bash -n scripts/verify_mirror.sh
+          bash -n scripts/run-local-demo.sh
       - name: Smoke test pitch static app
         run: |
           python3 -m http.server 4174 --directory apps/pitch >/tmp/pitch-server.log 2>&1 &

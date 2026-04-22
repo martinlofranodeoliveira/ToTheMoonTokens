@@ -1,130 +1,49 @@
-# Trading Research Playbook
+# Legacy Evidence Engine Playbook
 
-Este projeto existe para pesquisa, backtesting e paper trading. O objetivo nao e prometer lucro nem ativar execucao real sem evidencia suficiente.
+Este playbook substitui o antigo guia de trading research. O objetivo agora e
+documentar como os modulos legados podem continuar gerando **evidencia
+auditavel** para o vertical do hackathon sem voltarem a ditar o produto.
 
-## Regras de base
+## Para que essa engine ainda existe
 
-- paper trading por padrao
-- Binance em testnet como primeiro ambiente de execucao controlada
-- modo real somente como fluxo manual, supervisionado e posterior
-- nenhuma automacao deve custodiar segredos de carteira nem assinar ordens em nome do usuario
-- qualquer tese precisa sobreviver a backtest reproduzivel, walk-forward e diario de paper trading antes de ser considerada elegivel para expansao
+- produzir snapshots reproduziveis para o dashboard
+- gerar contexto de mercado para artefatos pagos
+- alimentar journal, review e reputacao com dados explicaveis
+- reforcar guardrails e sinais de anomalia em fluxos de demo
 
-## Estrutura de analise por horizonte
+## O que esses modulos nao devem virar novamente
 
-### Curto prazo: scalp e intraday
+- produto principal
+- strategy lab publico
+- signal marketplace como narrativa central
+- live trading roadmap
+- qualquer fluxo de execucao real ou auto-signing
 
-- timeframes base: 1m, 3m e 5m
-- operar apenas simbolos com boa liquidez, spread curto e volume consistente
-- exigir filtro de tendencia ou regime antes de qualquer entrada
-- confirmar entrada com confluencia de tendencia, suporte/resistencia, volume e risco/retorno minimo
-- bloquear trades em janelas de noticia forte quando o impacto direcional nao estiver claro
+## Modulos retidos por compatibilidade
 
-Checklist minimo para scalp:
+- `services/api/src/tothemoon_api/backtesting.py`
+- `services/api/src/tothemoon_api/journal.py`
+- `services/api/src/tothemoon_api/news.py`
+- `services/api/src/tothemoon_api/scalp.py`
+- `services/api/src/tothemoon_api/market_data.py`
+- `services/api/src/tothemoon_api/strategies.py`
 
-- tendencia do timeframe acima alinhada
-- nivel tecnico claro de suporte, resistencia ou rompimento
-- volume acima do baseline recente
-- slippage e spread dentro do limite da estrategia
-- stop definido antes da entrada
-- risco da operacao compatível com o tier escolhido
+## Regras ao tocar essa camada
 
-### Medio prazo: intraday estendido e swing
+- preserve entradas deterministicas e saidas reproduziveis
+- conecte a mudanca a um artefato, review ou evidencia concreta do hackathon
+- mantenha market data como contexto secundario, nao promessa operacional
+- prefira snapshots e agregados a qualquer loop continuo legado
+- cubra regressao em `services/api/tests/`
 
-- timeframes base: 15m, 1h e 4h
-- usar regime detection para separar tendencia, range e expansao
-- combinar estrutura tecnica com catalisadores de noticia e fluxo macro
-- evitar sobreposicao com trades de scalp no mesmo simbolo quando o risco agregado ultrapassar o limite diario
+## Leitura correta dos dados
 
-### Longo prazo: viés estrutural
+- `strategy_id`, `risk_tier` e agregados de PnL existem como chaves de
+  compatibilidade e evidencia
+- journal e snapshots servem para explicar qualidade do artefato entregue
+- market context serve para enriquecer auditoria, nao para vender execucao
 
-- timeframes base: diario e semanal
-- funciona como filtro direcional e de exposicao, nao como gatilho principal de execucao
-- serve para limitar trades contra tendencia dominante e reduzir overtrading
+## Regra final
 
-## Tiers de risco
-
-### Baixo risco
-
-- operacoes apenas a favor da tendencia dominante
-- exigir maior confluencia e melhor relacao risco/retorno
-- tamanho de posicao menor
-- bloquear setups contra tendencia e setups dependentes de leitura subjetiva
-
-### Medio risco
-
-- permite setups de continuidade e alguns setups de range quando houver confirmacao
-- aceita um nivel moderado de variabilidade
-- continua exigindo checklist tecnico completo e limite diario conservador
-
-### Alto risco
-
-- uso exclusivo para pesquisa e experimento controlado
-- nao elegivel para qualquer fluxo de modo real
-- tamanho de posicao reduzido e tolerancia operacional mais restrita
-
-## Checklist de probabilidade
-
-Todo setup precisa virar uma avaliacao objetiva com pontuacao por criterio:
-
-- alinhamento multi-timeframe
-- contexto de regime
-- proximidade de suporte/resistencia
-- confirmacao de volume
-- spread/slippage estimados
-- catalisador de noticia ou ausencia de evento adverso
-- risco por trade
-- risco diario agregado
-- clareza de invalidacao do setup
-- qualidade do exit plan
-
-Essa pontuacao deve alimentar:
-
-- score de confianca do setup
-- tier de risco permitido
-- bloqueio automatico de trades com contexto insuficiente
-
-## Inteligencia de mercado
-
-O sistema precisa unir 3 camadas de contexto:
-
-1. Market data em tempo real
-2. Noticias e eventos
-3. Metricas proprias de paper trading
-
-### Market data
-
-- usar market data oficial da Binance Spot Testnet para o baseline de integracao
-- separar feed de candles, trades, depth e heartbeat operacional
-- registrar latencia, gaps de stream e retries
-
-### Noticias e eventos
-
-- classificar noticias por impacto de curto, medio e longo prazo
-- separar eventos regulatorios, macro, exchange-specific e asset-specific
-- usar noticias como filtro de risco e de regime, nao como gatilho isolado
-- guardar justificativa textual da classificacao para auditoria
-
-### Aprendizado operacional
-
-- cada trade de paper precisa alimentar um diario estruturado
-- comparar expectativa do setup com resultado real
-- detectar degradacao de edge por simbolo, timeframe, regime e tier de risco
-
-## O que a stack precisa implementar
-
-- conector real de market data testnet
-- motor de backtest com walk-forward e metricas reproduziveis
-- diario de paper trading com fills e motivos de entrada/saida
-- classificador de noticias e eventos por horizonte
-- perfis de risco baixo/medio/alto parametrizaveis
-- score de confianca por checklist
-- guardrails que barrem qualquer evolucao precipitada para modo real
-
-## O que nao pode acontecer
-
-- tratar qualquer estrategia como “caminho garantido” para lucro
-- ativar mainnet automaticamente
-- esconder custo de slippage, taxa ou drawdown
-- declarar edge sem evidencia reproduzivel
-- executar carteira real sem aprovacao manual e kill switch
+Se uma mudanca nessa camada faz o repositorio parecer novamente um produto de
+trading, ela esta fora de escopo.

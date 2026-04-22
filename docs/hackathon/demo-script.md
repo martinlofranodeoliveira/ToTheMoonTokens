@@ -14,11 +14,11 @@ Create a payment intent for a premium artifact. Show the deposit address and the
 
 ## Step 3
 
-Verify settlement with a mock or real Arc testnet hash. Call out that delivery is blocked until the receipt is accepted.
+Verify settlement with the real Arc testnet hash `0x6fc13745bd3b5137034ccfb2ebb177e8cd5cab2895befd7e2eaa426f4d7679a4` when available, or fall back to `0xMockTransactionHash`. Call out that delivery is blocked until the receipt is accepted.
 
 ## Step 4
 
-Open the Nexus job flow. Move the job from `REQUESTED` to `PAYMENT_UNLOCKED`, then to review, then to delivery.
+Open the API docs or job endpoints locally. Move the job from `REQUESTED` to `PAYMENT_UNLOCKED`, then to review, then to delivery. No Nexus boot is required for the judge flow.
 
 ## Step 5
 
@@ -26,7 +26,7 @@ Show the demo agent flow for the same artifact. Use it as the judge-friendly vie
 
 ## Step 6
 
-Show the reputation endpoint for the research agent and explain that pricing can evolve from real outcomes.
+Show the reputation endpoint for the source agent and explain that pricing can evolve from real outcomes.
 
 ## Close
 

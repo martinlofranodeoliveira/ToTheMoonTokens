@@ -1,8 +1,19 @@
 # Hackathon brief — Agentic Economy on Arc (TTM Agent Market)
 
-Documento de escopo para o hackaton "Agentic Economy on Arc" (Arc + Circle + lablab.ai).
-Este arquivo é a fonte de verdade para qualquer agente (humano, Claude ou Nexus) que
-for trabalhar na submissão.
+> Historical note:
+> este arquivo registra a exploracao inicial do hackathon e foi mantido por
+> contexto. Ele nao e mais a fonte primaria para video, submissao ou validacao
+> local.
+>
+> Use como referencia atual:
+> - `README.md`
+> - `docs/ARCHITECTURE.md`
+> - `docs/hackathon/HACKATHON_EXECUTION_PACK.md`
+> - `docs/hackathon/HACKATHON_SUBMISSION_DRAFT.md`
+> - `docs/hackathon/demo-script.md`
+
+Documento de escopo da fase inicial do hackaton "Agentic Economy on Arc"
+(Arc + Circle + lablab.ai).
 
 ## 1. Contexto e deadline
 

@@ -8,7 +8,7 @@
 
 - `Paid Agent Workflows on Arc`
 - `USDC-Priced Agent Teams`
-- `Nexus Paid Research Network`
+- `Nexus Paid Artifact Network`
 
 ## Short Description
 
@@ -18,11 +18,11 @@ Nexus Economy on Arc lets teams pay AI agents per validated action in USDC. Buye
 
 Nexus Economy on Arc is a paid coordination system for autonomous software agents. Instead of treating AI work as a flat subscription or an opaque black box, we price individual machine actions and deliverables in USDC, then unlock the output only after execution and review succeed. The core idea is simple: if agents, APIs, and users are going to transact at high frequency, the system needs sub-cent economics, reliable settlement, and a clean operational model for who did what, when, and under which approval path.
 
-Our project combines three layers. First, we use Arc as the economic settlement layer for agent-native value exchange. Second, we use Circle primitives to support stablecoin-based pricing and payment flows for small, usage-based actions. Third, we use Nexus as the orchestration engine that routes jobs through specialized agent rooms, runs implementation, triggers review, and exposes an audit trail for delivery.
+Our project combines three layers. First, we use Arc as the economic settlement layer for agent-native value exchange. Second, we use Circle primitives to support stablecoin-based pricing and payment flows for small, usage-based actions. Third, we use Nexus as the orchestration engine that helped us build and validate the job flow, review logic, and delivery discipline behind the demo.
 
-The demo vertical for the hackathon is ToTheMoonTokens, now repositioned as a safe artifact marketplace for AI agents. Users do not buy live trading or bot automation. They buy validated machine outputs: a delivery packet, a review bundle, a settlement audit, an evidence pack, or a market intelligence brief. Each artifact becomes a priced machine task. Once payment is confirmed, Nexus opens the internal job, the right agents execute it, reviewers validate the output, and the final artifact is unlocked in the UI with full status visibility.
+The demo vertical for the hackathon is ToTheMoonTokens, now repositioned as a safe artifact marketplace for AI agents. Users do not buy live trading or bot automation. They buy validated machine outputs: a delivery packet, a review bundle, a settlement audit, an evidence pack, or a market intelligence brief. Each artifact becomes a priced machine task. Once payment is confirmed, the local API opens the internal job record, the right job lifecycle executes, reviewers validate the output, and the final artifact is unlocked in the UI with full status visibility. Nexus can mirror that same workflow internally, but judges do not need to boot it to validate the product.
 
-This makes the project a concrete example of the agentic economy: economically viable machine work, paid per action, with explicit review and delivery rather than vague AI usage. We think that model is more durable than one-shot chatbot monetization because it turns agent labor into structured, billable, auditable work units. The long-term vision is broader than trading research. The same pattern can power code review, analytics, document generation, compliance checks, or API-assisted workflows. For the hackathon, however, we keep the scope disciplined and prove one strong path end to end.
+This makes the project a concrete example of the agentic economy: economically viable machine work, paid per action, with explicit review and delivery rather than vague AI usage. We think that model is more durable than one-shot chatbot monetization because it turns agent labor into structured, billable, auditable work units. The long-term vision is broader than this initial evidence-market vertical. The same pattern can power code review, analytics, document generation, compliance checks, or API-assisted workflows. For the hackathon, however, we keep the scope disciplined and prove one strong path end to end.
 
 ## Participation Mode
 

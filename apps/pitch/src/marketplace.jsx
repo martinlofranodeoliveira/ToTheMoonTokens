@@ -3,6 +3,7 @@ const { useState: useStateM, useEffect: useEffectM, useRef: useRefM, useMemo: us
 
 function Marketplace({ state, navigate, tickSpeed }) {
   const [signals, setSignals] = useStateM(() => [...window.TTM.initialSignals]);
+  const [isLive, setIsLive] = useStateM(false);
   const [settlements, setSettlements] = useStateM(() =>
     window.TTM.initialSettlements.map((s, i) => ({ ...s, isNew: false, agoLabel: s.ago + 's ago' }))
   );
@@ -17,17 +18,64 @@ function Marketplace({ state, navigate, tickSpeed }) {
 
   const [buyTarget, setBuyTarget] = useStateM(null);
 
+  useEffectM(() => {
+    let active = true;
+    fetch('/api/market/signals')
+      .then(res => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
+      .then(data => {
+        if (active && Array.isArray(data)) {
+          setSignals(data);
+          setIsLive(true);
+        }
+      })
+      .catch(err => {
+        console.warn('Fallback to mock signals:', err);
+      });
+    return () => { active = false; };
+  }, []);
+
   // Stream new signals
   useEffectM(() => {
     if (state !== 'happy') return;
+    const intervalMs = Math.max(1500, 3200 / tickSpeed);
     const id = setInterval(() => {
-      const s = window.TTM.nextSignal();
-      setSignals(prev => [s, ...prev].slice(0, 40));
-      setNewIds(prev => {
-        const nxt = new Set(prev); nxt.add(s.id);
-        setTimeout(() => setNewIds(cur => { const n = new Set(cur); n.delete(s.id); return n; }), 1200);
-        return nxt;
-      });
+      if (isLive) {
+        fetch('/api/market/signals')
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              setSignals(prev => {
+                const existing = new Set(prev.map(x => x.id));
+                const novel = data.filter(x => !existing.has(x.id));
+                if (novel.length > 0) {
+                  setNewIds(prevIds => {
+                    const nxt = new Set(prevIds);
+                    novel.forEach(n => nxt.add(n.id));
+                    setTimeout(() => setNewIds(cur => { 
+                      const n = new Set(cur); 
+                      novel.forEach(nn => n.delete(nn.id)); 
+                      return n; 
+                    }), 1200);
+                    return nxt;
+                  });
+                }
+                return data;
+              });
+            }
+          })
+          .catch(err => console.warn('Live stream fetch failed:', err));
+      } else {
+        const s = window.TTM.nextSignal();
+        setSignals(prev => [s, ...prev].slice(0, 40));
+        setNewIds(prev => {
+          const nxt = new Set(prev); nxt.add(s.id);
+          setTimeout(() => setNewIds(cur => { const n = new Set(cur); n.delete(s.id); return n; }), 1200);
+          return nxt;
+        });
+      }
       // Randomly sell a few
       if (Math.random() < 0.6) {
         setSignals(prev => {

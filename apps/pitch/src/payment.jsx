@@ -2,7 +2,26 @@
 const { useState: useStateP, useEffect: useEffectP, useRef: useRefP } = React;
 
 function PaymentFlow({ state, navigate }) {
-  const FLOW = window.TTM.PAYMENT_FLOW;
+  const [fetchedFlow, setFetchedFlow] = useStateP(null);
+
+  useEffectP(() => {
+    let active = true;
+    const intentId = '0x8f3a1d22c4ab9c7de8a5f3210cb2a7d9e12b';
+    fetch(`/api/payments/${intentId}/flow`)
+      .then(res => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
+      .then(data => {
+        if (active && Array.isArray(data)) setFetchedFlow(data);
+      })
+      .catch(err => {
+        console.warn('Fallback to mock payment flow:', err);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const FLOW = fetchedFlow || window.TTM.PAYMENT_FLOW;
   const [stepIdx, setStepIdx] = useStateP(5); // 5 = all complete
   const [expanded, setExpanded] = useStateP(new Set([2, 3])); // capture + settle expanded by default
   const [replaying, setReplaying] = useStateP(false);

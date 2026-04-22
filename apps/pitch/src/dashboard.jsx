@@ -1,9 +1,28 @@
 /* Agent Dashboard */
-const { useState: useStateD } = React;
+const { useState: useStateD, useEffect: useEffectD } = React;
 
 function Dashboard({ state, navigate }) {
   const [agentId, setAgentId] = useStateD('research_02');
-  const agent = window.TTM.AGENTS.find(a => a.id === agentId) || window.TTM.AGENTS[1];
+  const [fetchedAgent, setFetchedAgent] = useStateD(null);
+
+  useEffectD(() => {
+    let active = true;
+    fetch(`/api/agents/${agentId}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
+      .then(data => {
+        if (active) setFetchedAgent(data);
+      })
+      .catch(err => {
+        console.warn(`Fallback to mock agent ${agentId}:`, err);
+        if (active) setFetchedAgent(null);
+      });
+    return () => { active = false; };
+  }, [agentId]);
+
+  const agent = fetchedAgent || window.TTM.AGENTS.find(a => a.id === agentId) || window.TTM.AGENTS[1];
 
   const isResearch = agent.role === 'research';
   const isConsumer = agent.role === 'consumer';

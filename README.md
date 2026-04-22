@@ -25,6 +25,18 @@ ToTheMoonTokens agora existe como um vertical de hackathon focado em agent econo
 - `docs/hackathon`: narrativa, plano e material de submissao
 - `ops/hackathon`: bootstrap e scripts de apoio para a entrega do hackathon
 
+## Runtime para jurados
+
+Nexus foi usado para construir e validar partes do sistema, mas **nao e
+necessario para rodar a entrega localmente**. Para video, submissao e validacao
+do jurado, basta subir:
+
+- API FastAPI em `:8010`
+- sala operacional em `:4173`
+- pitch site em `:4174`
+
+O runbook final esta em `docs/hackathon/FINAL_HANDOFF.md`.
+
 ## API principal
 
 - `GET /api/payments/catalog`, `POST /api/payments/intent`, `POST /api/payments/verify`, `POST /api/payments/execute`: cobrança, verificação e unlock de artefatos
@@ -44,7 +56,14 @@ ToTheMoonTokens agora existe como um vertical de hackathon focado em agent econo
 4. Rode `make api-run`.
 5. Em outro terminal, rode `make web-serve`.
 6. Em outro terminal, rode `make pitch-serve`.
-7. Abra `http://127.0.0.1:4173` para a sala operacional e `http://127.0.0.1:4174` para o pitch.
+7. Abra `http://127.0.0.1:8010/docs` para a Swagger UI, `http://127.0.0.1:4173` para a sala operacional e `http://127.0.0.1:4174` para o pitch.
+
+Ou use o bootstrap local sem Nexus:
+
+```bash
+./scripts/run-local-demo.sh start
+./scripts/run-local-demo.sh status
+```
 
 Ou use containers:
 

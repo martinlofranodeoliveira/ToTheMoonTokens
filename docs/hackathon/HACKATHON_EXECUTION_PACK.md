@@ -4,6 +4,16 @@
 
 Build a paid agent economy where autonomous software agents can request, deliver, validate, and unlock work using USDC micropayments, with Nexus orchestrating the teams and ToTheMoonTokens serving as the first vertical demo.
 
+## Judge runtime note
+
+Nexus was used during build, backlog execution, and validation, but the shipped
+demo that jurors run locally does **not** require booting Nexus. The runtime
+path for judging is:
+
+- FastAPI on `:8010`
+- `apps/web` on `:4173`
+- `apps/pitch` on `:4174`
+
 ## Why this is the right hackathon project
 
 This hackathon is about the **agentic economy**, **sub-cent transactions**, **USDC settlement**, and economically viable machine-to-machine usage pricing.
@@ -46,7 +56,7 @@ Pitch it as:
    - settlement memo
 2. The system presents the action cost in USDC.
 3. Payment is authorized through the Circle-powered flow.
-4. Nexus opens or reserves the job.
+4. The API opens or reserves the job record.
 5. The correct room of agents executes the work.
 6. Review agents validate the result.
 7. The final artifact is unlocked only after payment + review.
@@ -72,7 +82,7 @@ The buyer is purchasing **agent outputs** such as:
 All outputs remain:
 
 - paper-only
-- research-first
+- evidence-backed
 - non-custodial
 - non-mainnet-executing
 
@@ -82,8 +92,8 @@ All outputs remain:
 
 - a clear buyer flow for paid agent work
 - a payment intent / payment verification layer
-- a Nexus-to-job lifecycle bridge
-- one real vertical demo using the existing ToTheMoonTokens research engine
+- a job lifecycle bridge that also runs without Nexus in local judging
+- one real vertical demo using the existing ToTheMoonTokens evidence engine
 - a dashboard that shows request, payment, execution, review, and delivery
 - enough evidence to demo end-to-end in a short live walkthrough
 
@@ -125,7 +135,7 @@ Responsible for:
 - verifying payment completion
 - unlocking the job after valid payment
 
-### 3. Nexus job orchestration layer
+### 3. Job orchestration and review layer
 
 Responsible for:
 
@@ -133,6 +143,9 @@ Responsible for:
 - routing work to the right room
 - running implementation + review
 - exposing status and evidence
+
+For the shipped local demo, these state transitions are exposed directly by the
+API and do not require the Nexus runtime to be online.
 
 ### 4. Vertical execution layer
 
@@ -162,7 +175,7 @@ Use this framing consistently:
 - "micropayment-gated AI work"
 - "USDC-priced machine work"
 - "reviewed agent output before delivery"
-- "safe paid research artifacts"
+- "safe paid agent artifacts"
 
 Avoid:
 
@@ -176,7 +189,7 @@ Avoid:
 2. A user selects `Review Bundle + Delivery Packet`.
 3. The UI shows a USDC price.
 4. Payment is initiated/verified.
-5. The job appears in Nexus.
+5. The job appears in the local lifecycle/API state.
 6. Agents work in parallel.
 7. Review completes.
 8. Delivery becomes available.
@@ -217,7 +230,7 @@ Avoid:
 
 - a working local demo
 - code in repo
-- seeded backlog / task evidence in Nexus
+- seeded backlog / task evidence in Nexus for internal build traceability
 - architecture summary
 - submission copy
 - screenshot set

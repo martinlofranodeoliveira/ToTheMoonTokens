@@ -1,28 +1,32 @@
-# Trading Guardrails
+# Legacy Evidence-Engine Guardrails
+
+Este documento descreve os limites obrigatorios da engine legada de research
+que ainda alimenta contexto de mercado, snapshots e journal do hackathon.
+Ele nao representa mais o posicionamento principal do produto.
 
 ## Regras obrigatorias
 
-- nunca assumir lucro garantido
-- nunca ligar mainnet por default
-- nunca armazenar seed phrase, private key ou mnemonics no repositorio
-- nunca aceitar merge de estrategia sem backtest e paper trading
-- usar Binance testnet antes de qualquer integracao executora
-- tratar MetaMask e outras carteiras como assinatura/manual approval, nao como bot custodial
+- nunca prometer lucro, alpha garantido ou capacidade de live trading
+- nunca ligar mainnet ou execucao com dinheiro real
+- nunca armazenar seed phrase, private key ou mnemonic no repositorio
+- nunca transformar MetaMask ou wallets similares em fluxo custodial
+- qualquer integracao de mercado continua em testnet e modo manual
+- qualquer ajuste na engine legada deve servir a evidencia, review ou delivery
 
-## Critérios minimos para considerar uma estrategia promissora
+## Uso permitido da engine legada
 
-- retorno liquido positivo apos fees e slippage
-- max drawdown abaixo do limite da carteira
-- profit factor acima de 1.0
-- numero minimo de trades para evitar overfitting obvio
-- comportamento repetivel em janelas diferentes
+- gerar contexto de mercado para artefatos pagos
+- produzir snapshots reproduziveis para journal e review
+- reforcar guardrails e sinais de anomalia no demo
 
-## Status atual
+## Uso proibido
 
-- projeto inicial apenas em `research/paper`
-- live trading real bloqueado por politica
-- qualquer teste em exchange deve começar por testnet
+- reabrir roadmap de bot de trading
+- recolocar strategy lab ou signal marketplace como mensagem principal
+- criar fluxo de ordem automatica, live arm ou auto-signing
 
-## Graduacao para modo real
+## Registro de bloqueio
 
-Qualquer possibilidade futura de execucao em mainnet deve seguir rigorosamente as regras descritas em [docs/REAL_MODE_GRADUATION.md](./REAL_MODE_GRADUATION.md). O projeto proibe bots totalmente autonomos para dinheiro real e exige aprovacao manual em todos os cenarios reais.
+Qualquer hipotese futura de execucao real permanece arquivada em
+[docs/REAL_MODE_GRADUATION.md](./REAL_MODE_GRADUATION.md) apenas como registro
+de bloqueio e governanca, nao como plano ativo.

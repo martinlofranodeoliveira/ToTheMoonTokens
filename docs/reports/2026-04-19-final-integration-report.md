@@ -1,12 +1,19 @@
-# ToTheMoonTokens: Final Integration Report
+# Historical Integration Report: Pre-Hackathon Baseline
 
 Date: 2026-04-19
 Repository: `martinlofranodeoliveira/ToTheMoonTokens`
-Scope: final consolidation of `main` with the hardened Claude branch plus the useful Nexus-agent features that were manually integrated and revalidated in a clean worktree.
+Scope: final consolidation of the pre-hackathon baseline before the repository was repositioned around paid agent artifacts.
 
-## Final verdict
+> Historical note:
+> This report is preserved as evidence of the older research-first baseline.
+> The current product surface is the hackathon artifact workflow described in
+> `README.md`, `docs/ARCHITECTURE.md`, and `docs/hackathon/`.
 
-The system is in a good state for research, deterministic backtesting, paper trading, guarded testnet preparation, and local Nexus-assisted orchestration.
+## Historical verdict
+
+At that time, the system was in a good state for research, deterministic
+backtesting, paper trading, guarded testnet preparation, and local
+Nexus-assisted orchestration.
 
 It is not a mainnet trading system and it must not be treated as one.
 

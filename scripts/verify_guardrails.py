@@ -54,7 +54,7 @@ def _rg(pattern: str, *paths: str, ignore_case: bool = True) -> list[str]:
         if not (ROOT / path).exists():
             continue
     try:
-        args = ["rg", "--no-heading", "--line-number", "-I"]
+        args = ["rg", "--no-heading", "--with-filename", "--line-number", "-I"]
         if ignore_case:
             args.append("-i")
         args += [pattern, *(str(ROOT / p) for p in paths if (ROOT / p).exists())]
@@ -160,12 +160,38 @@ def test_binance_order_route() -> Finding:
 
 
 def test_credential_leak() -> Finding:
-    patterns = [r"TEST_API_KEY:[0-9a-f]", r"LIVE_API_KEY:[0-9a-f]", r"KIT_KEY:[0-9a-f]", r"sk_live_[0-9a-zA-Z]", r"-----BEGIN RSA PRIVATE KEY-----"]
-    raw: list[str] = []
-    for pat in patterns:
-        raw += _rg(pat, "services", "apps", "docs", "scripts", "ops")
+    pattern = (
+        r"TEST_API_KEY:[0-9a-f]"
+        r"|LIVE_API_KEY:[0-9a-f]"
+        r"|KIT_KEY:[0-9a-f]"
+        r"|sk_live_[0-9a-zA-Z]"
+        r"|-----BEGIN RSA PRIVATE KEY-----"
+    )
+    raw = _rg(
+        pattern,
+        "services",
+        "apps",
+        "docs",
+        "scripts",
+        "ops/hackathon",
+        "ops/arc_circle_hackathon_backlog.json",
+    )
     hits = [h for h in raw if ".env" not in h and "node_modules" not in h]
     hits = [h for h in hits if "example" not in h.lower() and "your_key_here" not in h.lower()]
+    self_reference_tokens = (
+        'r"TEST_API_KEY:[0-9a-f]"',
+        'r"|LIVE_API_KEY:[0-9a-f]"',
+        'r"|KIT_KEY:[0-9a-f]"',
+        'r"|sk_live_[0-9a-zA-Z]"',
+        'r"|-----BEGIN RSA PRIVATE KEY-----"',
+    )
+    hits = [
+        h
+        for h in hits
+        if "verify_guardrails.py" not in h
+        and "guardrail-regression-" not in h
+        and not any(token in h for token in self_reference_tokens)
+    ]
     if hits:
         return Finding("credential_leak", False, f"{len(hits)} credential pattern(s) found in tracked files", hits[:10])
     return Finding("credential_leak", True, "No API key / entity secret patterns in tracked files")

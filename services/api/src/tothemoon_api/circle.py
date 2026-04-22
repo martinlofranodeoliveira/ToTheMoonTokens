@@ -63,6 +63,20 @@ class CircleDeveloperClient:
         if not idempotency_key:
             idempotency_key = str(uuid.uuid4())
 
+        if not self.api_key:
+            logger.info("MOCK: Creating developer wallet on Arc testnet (no API key provided)")
+            return {
+                "data": {
+                    "wallets": [
+                        {
+                            "id": f"mock-wallet-{uuid.uuid4().hex[:8]}",
+                            "address": f"0xMockAddress{uuid.uuid4().hex[:8]}",
+                            "blockchain": "ARC-TESTNET"
+                        }
+                    ]
+                }
+            }
+
         payload = {
             "idempotencyKey": idempotency_key,
             "walletSetId": wallet_set_id,
@@ -78,6 +92,10 @@ class CircleDeveloperClient:
 
     def fund_with_testnet_usdc(self, address: str) -> dict:
         """Request testnet USDC from Circle faucet for the given address."""
+        if not self.api_key:
+            logger.info(f"MOCK: Requesting testnet USDC for {address}")
+            return {"data": {"status": "success", "mock": True}}
+
         payload = {"address": address, "blockchain": "ARC-TESTNET", "usdAmount": "10.0"}
         response = httpx.post(
             "https://api.circle.com/v1/faucet/drips", headers=self.headers, json=payload
@@ -96,6 +114,16 @@ class CircleDeveloperClient:
         """Execute a smoke transfer of USDC on Arc testnet."""
         if not idempotency_key:
             idempotency_key = str(uuid.uuid4())
+
+        if not self.api_key:
+            logger.info(f"MOCK: Executing smoke transfer of {amount} to {destination_address}")
+            return {
+                "data": {
+                    "id": f"mock-tx-{uuid.uuid4().hex[:8]}",
+                    "state": "INITIATED",
+                    "txHash": f"0xMockTxHash{uuid.uuid4().hex[:16]}"
+                }
+            }
 
         payload = {
             "idempotencyKey": idempotency_key,

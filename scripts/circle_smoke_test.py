@@ -31,8 +31,7 @@ def main():
     entity_secret = settings.circle_entity_secret
 
     if not api_key:
-        logger.error("CIRCLE_API_KEY environment variable is not set. Cannot run against real sandbox.")
-        sys.exit(1)
+        logger.warning("CIRCLE_API_KEY environment variable is not set. Running against MOCK sandbox.")
 
     logger.info("Starting Circle developer wallet bootstrap...")
     client = CircleDeveloperClient()

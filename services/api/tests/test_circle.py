@@ -108,3 +108,26 @@ def test_execute_smoke_transfer_no_idempotency_key():
         assert "idempotencyKey" in kwargs["json"]
         assert kwargs["json"]["idempotencyKey"] is not None
         assert "entitySecretCiphertext" not in kwargs["json"]
+
+
+def test_mock_create_wallet():
+    client = CircleDeveloperClient(api_key="")
+    result = client.create_wallet(wallet_set_id="ws-123")
+    assert result["data"]["wallets"][0]["id"].startswith("mock-wallet-")
+
+def test_mock_fund_with_testnet_usdc():
+    client = CircleDeveloperClient(api_key="")
+    result = client.fund_with_testnet_usdc(address="0x123")
+    assert result["data"]["status"] == "success"
+    assert result["data"]["mock"] is True
+
+def test_mock_execute_smoke_transfer():
+    client = CircleDeveloperClient(api_key="")
+    result = client.execute_smoke_transfer(
+        wallet_id="wallet-123",
+        destination_address="0x456",
+        amount="10.0",
+        token_id="usdc-token-id"
+    )
+    assert result["data"]["id"].startswith("mock-tx-")
+    assert result["data"]["state"] == "INITIATED"

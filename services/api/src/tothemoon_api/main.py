@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
 from .arc import ping_arc_network
+from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
+from .circle import circle_client
 from .config import get_settings
 from .guards import connector_status, evaluate_guardrails
 from .journal import (
@@ -55,9 +58,10 @@ configure_logging()
 log = get_logger(__name__)
 
 settings = get_settings()
-from contextlib import asynccontextmanager
 
-from .circle import circle_client
+
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

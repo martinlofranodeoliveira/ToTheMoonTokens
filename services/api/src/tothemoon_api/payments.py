@@ -2,17 +2,16 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
+from .circle import circle_client
 from .models import (
     BillableArtifact,
+    JobExecutionRequest,
+    JobExecutionResponse,
     PaymentIntentRequest,
     PaymentIntentResponse,
     PaymentVerificationRequest,
     PaymentVerificationResponse,
-    JobExecutionRequest,
-    JobExecutionResponse,
 )
-
-from .circle import circle_client
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -77,6 +76,19 @@ def create_payment_intent(request: PaymentIntentRequest):
         status=str(intent["status"])  # type: ignore
     )
 
+
+@router.get("/intent/{payment_id}", response_model=PaymentIntentResponse)
+def get_payment_intent(payment_id: str):
+    if payment_id not in _PAYMENT_INTENTS:
+        raise HTTPException(status_code=404, detail="Payment intent not found")
+        
+    intent = _PAYMENT_INTENTS[payment_id]
+    return PaymentIntentResponse(
+        payment_id=str(intent["payment_id"]),
+        amount_usd=float(intent["amount_usd"]),  # type: ignore
+        deposit_address=str(intent["deposit_address"]),
+        status=str(intent["status"])  # type: ignore
+    )
 
 @router.post("/verify", response_model=PaymentVerificationResponse)
 def verify_payment(request: PaymentVerificationRequest):

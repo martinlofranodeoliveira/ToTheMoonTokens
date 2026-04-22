@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -66,7 +66,7 @@ def submit_nexus_task_event(event: NexusTaskEvent) -> ArcJobProof:
         agent_id=event.agent_id,
         status="completed" if event.action == "complete" else "pending",
         proof_hash=proof_hash,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         metadata={
             "action": event.action,
             "evidence_keys": ",".join(event.evidence.keys()),

@@ -1,4 +1,5 @@
-from tothemoon_api.arc_adapter import NexusTaskEvent, submit_nexus_task_event, get_arc_jobs
+from tothemoon_api.arc_adapter import NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
+
 
 def test_submit_nexus_task_event():
     event = NexusTaskEvent(

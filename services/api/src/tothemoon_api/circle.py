@@ -1,6 +1,8 @@
 import logging
 import uuid
+
 import httpx
+
 from .config import get_settings
 
 logger = logging.getLogger(__name__)

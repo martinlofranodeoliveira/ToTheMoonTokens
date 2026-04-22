@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
+from .arc_adapter import ArcJobProof
+
 StrategyId = Literal["ema_crossover", "breakout", "mean_reversion"]
 RiskTier = Literal["low", "medium", "high"]
 Horizon = Literal["short", "medium", "long"]
@@ -238,7 +240,8 @@ class PerformanceAggregates(BaseModel):
     by_timeframe: dict[str, AggregateBucket] = Field(default_factory=dict)
 
 
-from .arc_adapter import ArcJobProof
+
+
 
 class DashboardResponse(BaseModel):
     app_name: str

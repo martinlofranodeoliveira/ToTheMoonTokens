@@ -75,3 +75,23 @@ def test_job_lifecycle_requires_payment():
     response = client.post("/api/payments/execute", json={"artifact_id": "artifact_backtest_report"})
     assert response.status_code == 200
     assert response.json()["status"] == "completed"
+
+
+def test_get_payment_intent():
+    intent_response = client.post(
+        "/api/payments/intent",
+        json={"artifact_id": "artifact_backtest_report", "buyer_address": "0xBuyerAddress"},
+    )
+    assert intent_response.status_code == 200
+    payment_id = intent_response.json()["payment_id"]
+
+    get_response = client.get(f"/api/payments/intent/{payment_id}")
+    assert get_response.status_code == 200
+    get_payload = get_response.json()
+    assert get_payload["payment_id"] == payment_id
+    assert get_payload["status"] == "pending"
+    assert get_payload["amount_usd"] == 5.0
+
+def test_get_payment_intent_not_found():
+    response = client.get("/api/payments/intent/invalid_id")
+    assert response.status_code == 404

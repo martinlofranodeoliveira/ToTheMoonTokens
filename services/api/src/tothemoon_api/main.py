@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
 from .arc import ping_arc_network
+from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
+from .circle import circle_client
 from .config import get_settings
+from .demo_agent import router as demo_router
 from .guards import connector_status, evaluate_guardrails
 from .journal import (
     clear_journal,
@@ -38,6 +42,7 @@ from .models import (
     WalkForwardRequest,
 )
 from .news import check_news_risk_filter, get_recent_news, ingest_news
+from .nexus_jobs import router as jobs_router
 from .observability import (
     PrometheusMiddleware,
     RequestIdMiddleware,
@@ -48,29 +53,32 @@ from .observability import (
     metrics_response,
 )
 from .payments import router as payments_router
+from .reputation import router as reputation_router
 from .scalp import validate_scalp_setup
+from .settlement import router as settlements_router
 from .strategies import strategy_catalog
 
 configure_logging()
 log = get_logger(__name__)
 
 settings = get_settings()
-from contextlib import asynccontextmanager
 
-from .circle import circle_client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    circle_client.load_wallets()
+    if settings.circle_bootstrap_on_startup:
+        circle_client.load_wallets()
     yield
+
 
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     lifespan=lifespan,
     description=(
-        "Hackathon artifact API for research evidence, journal data, and safe market context. "
-        "Order submission is permanently blocked by policy."
+        "Hackathon artifact API for paid agent work, settlement verification, "
+        "delivery evidence, and safe market context. Direct order submission "
+        "is permanently blocked by policy."
     ),
 )
 
@@ -88,6 +96,10 @@ app.add_middleware(
 )
 
 app.include_router(payments_router)
+app.include_router(jobs_router)
+app.include_router(demo_router)
+app.include_router(reputation_router)
+app.include_router(settlements_router)
 
 log.info(
     "api_startup",
@@ -388,6 +400,7 @@ def api_get_depth(symbol: str = "BTCUSDT", limit: int = Query(default=20, ge=5, 
 @app.post("/api/arc/jobs", response_model=ArcJobProof)
 def create_arc_job(event: NexusTaskEvent):
     return submit_nexus_task_event(event)
+
 
 @app.get("/api/arc/jobs", response_model=list[ArcJobProof])
 def list_arc_jobs(limit: int = 20):

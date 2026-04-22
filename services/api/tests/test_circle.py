@@ -88,7 +88,7 @@ def test_create_wallet_no_idempotency_key(circle_client):
 
 
 def test_execute_smoke_transfer_no_idempotency_key():
-    client = CircleDeveloperClient(api_key="TEST_API_KEY")
+    client = CircleDeveloperClient(api_key="TEST_API_KEY", entity_secret="")
     with patch("httpx.post") as mock_post:
         mock_response = MagicMock()
         mock_response.json.return_value = {"data": {"id": "tx-124", "state": "INITIATED"}}

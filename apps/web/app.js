@@ -245,7 +245,7 @@ function renderHero(dashboard, marketHealth, ticker) {
   if (runtimeWindow) {
     runtimeWindow.textContent = runtimeStatus
       ? `${formatDateTime(runtimeStatus.started_at)} -> ${formatDateTime(runtimeStatus.ends_at)} · ${runtimeStatus.lookback_bars} bars · ${runtimeStatus.poll_interval_seconds}s cadence`
-      : "The MVP now uses snapshots, journal evidence, and connector health instead of a paper-trading loop.";
+      : "The MVP now uses snapshots, journal evidence, and connector health instead of a legacy continuous bot loop.";
   }
 
   if (runtimeProgress) {
@@ -289,13 +289,13 @@ function renderKpis(performance, researchSnapshots, marketHealth) {
       copy: "Lower is better while packaging a safe artifact",
     },
     {
-      label: "Best evidence lane",
+      label: "Best artifact lane",
       value: bestPaper ? bestPaper[0] : "No leader yet",
       tone: bestPaper ? toneFromSigned(bestPaper[1].total_pnl) : "neutral",
       copy: bestPaper ? formatSignedCurrency(bestPaper[1].total_pnl) : "Need more trades",
     },
     {
-      label: "Best research snapshot",
+      label: "Best generator snapshot",
       value: strongestResearch ? strongestResearch.strategy_id : "No snapshot",
       tone: strongestResearch ? toneFromSigned(strongestResearch.net_profit) : "neutral",
       copy: strongestResearch ? formatSignedCurrency(strongestResearch.net_profit) : "Snapshot unavailable",
@@ -357,31 +357,31 @@ function renderStrategies(strategies, researchSnapshots, performance) {
           <p class="strategy-copy">${escapeHtml(strategy.description)}</p>
           <div class="metric-stack">
             <div class="metric-tile">
-              <p class="eyebrow">Research net</p>
+              <p class="eyebrow">Generator net</p>
               <strong>${formatSignedCurrency(snapshot?.net_profit)}</strong>
             </div>
             <div class="metric-tile">
-              <p class="eyebrow">Research drawdown</p>
+              <p class="eyebrow">Generator drawdown</p>
               <strong>${formatPct(snapshot?.max_drawdown_pct)}</strong>
             </div>
             <div class="metric-tile">
-              <p class="eyebrow">Paper net</p>
+              <p class="eyebrow">Journal net</p>
               <strong>${formatSignedCurrency(aggregate.total_pnl)}</strong>
             </div>
             <div class="metric-tile">
-              <p class="eyebrow">Paper win rate</p>
+              <p class="eyebrow">Journal win rate</p>
               <strong>${formatPct(aggregate.win_rate_pct)}</strong>
             </div>
           </div>
           <div>
             <div class="metric-inline">
-              <p class="eyebrow">Paper conversion</p>
-              <span class="mono">${aggregate.total_trades} trades</span>
+              <p class="eyebrow">Evidence volume</p>
+              <span class="mono">${aggregate.total_trades} samples</span>
             </div>
             <div class="bar-meter"><span style="width:${winRateWidth}%"></span></div>
           </div>
           <p class="helper-text">
-            Research PF ${formatNumber(snapshot?.profit_factor)} · Journal drawdown ${formatPct(aggregate.average_drawdown)}
+            Generator PF ${formatNumber(snapshot?.profit_factor)} · Journal drawdown ${formatPct(aggregate.average_drawdown)}
           </p>
         </article>
       `;
@@ -398,7 +398,7 @@ function renderGuardrails(guardrails) {
 
   summary.innerHTML = `
     <div class="approval-tile">
-      <p class="eyebrow">Order submission</p>
+      <p class="eyebrow">Exchange orders</p>
       <strong>${guardrails.can_submit_testnet_orders ? "Enabled" : "Disabled"}</strong>
     </div>
     <div class="approval-tile">
@@ -436,7 +436,7 @@ function renderConnectors(connectors, marketHealth, ticker) {
 
   container.innerHTML = `
     <article class="connector-card">
-      <p class="eyebrow">Exchange</p>
+      <p class="eyebrow">Market feed</p>
       <strong>${escapeHtml(connectors.exchange)}</strong>
       <p>${escapeHtml(connectors.binance_base_url)}</p>
     </article>
@@ -463,7 +463,7 @@ function renderTrades(trades) {
     container.innerHTML = `
       <article class="trade-card">
         <p class="eyebrow">No journal samples yet</p>
-        <p>Use the artifact flow to generate validated research evidence here.</p>
+        <p>Use the artifact flow to generate validated delivery evidence here.</p>
       </article>
     `;
     return;
@@ -517,7 +517,7 @@ function renderRuntimeMonitor(runtimeStatus) {
     container.innerHTML = `
       <article class="runtime-card">
         <p class="eyebrow">No continuous runner</p>
-        <p>The hackathon MVP relies on snapshots, journal evidence, and connector health instead of a paper-trading bot loop.</p>
+        <p>The hackathon MVP relies on snapshots, journal evidence, and connector health instead of a legacy bot loop.</p>
       </article>
     `;
     return;

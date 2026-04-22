@@ -1,0 +1,19 @@
+{
+  "name": "ttm-dev-controlled-bootstrap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One-off bootstrap for Circle dev-controlled wallets on Arc Testnet.",
+  "scripts": {
+    "create": "node --env-file=.env --import=tsx create-wallet.ts",
+    "scale": "node --env-file=.env --import=tsx create-remaining-wallets.ts"
+  },
+  "dependencies": {
+    "@circle-fin/developer-controlled-wallets": "^7.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}

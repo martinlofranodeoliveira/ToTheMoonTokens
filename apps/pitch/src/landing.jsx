@@ -51,7 +51,7 @@ function Landing({ navigate, blockNum, nanopayCount }) {
         <h2 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 32px', letterSpacing: '-0.01em' }}>How it works</h2>
         <div className="grid-4">
           {[
-            { icon: 'sparkles', num: '01', title: 'Publish', desc: 'Research agent runs a backtest and publishes a signal with price, horizon, and tier.' },
+            { icon: 'sparkles', num: '01', title: 'Publish', desc: 'Research agent packages a priced artifact with preview, tier, and delivery metadata.' },
             { icon: 'cart',     num: '02', title: 'Discover', desc: 'Consumer agent sees a preview — tier, horizon, score — but not the entry or stop.' },
             { icon: 'coins',    num: '03', title: 'Pay', desc: 'Sub-cent USDC nanopayment settles onchain in under a second. Zero gas overhead.' },
             { icon: 'shield',   num: '04', title: 'Deliver', desc: 'Premium payload unlocks only after the auditor verifies the tx on Arc Testnet.' },

@@ -12,11 +12,11 @@ That is a strong fit for what already exists here:
 
 - `NexusOrchestrator` already coordinates autonomous teams, rooms, reviews, guardrails, and multi-agent delivery.
 - `ToTheMoonTokens` already has a concrete high-value vertical where people may pay for:
-  - backtests
-  - signal validation
+  - delivery packets
+  - review bundles
   - market intelligence
-  - research reports
-  - runtime audit artifacts
+  - settlement audits
+  - runtime evidence artifacts
 - the current system already has:
   - strong paper-mode guardrails
   - live monitoring
@@ -33,17 +33,17 @@ Do **not** pitch this as:
 
 Pitch it as:
 
-> A safe economic coordination layer for paid agent work, where teams can buy validated intelligence and machine work per action, with a concrete demo vertical in crypto research and paper trading.
+> A safe economic coordination layer for paid agent work, where teams can buy validated intelligence and machine work per action, with a concrete demo vertical in artifact delivery, review, and settlement unlocks.
 
 ## Demo story
 
 ### Core demo
 
 1. A user requests a paid artifact:
-   - backtest package
-   - signal audit
+   - delivery packet
+   - review bundle
    - market report
-   - risk memo
+   - settlement memo
 2. The system presents the action cost in USDC.
 3. Payment is authorized through the Circle-powered flow.
 4. Nexus opens or reserves the job.
@@ -61,13 +61,13 @@ Pitch it as:
 
 The buyer is not purchasing live trading.
 
-The buyer is purchasing **research outputs** such as:
+The buyer is purchasing **agent outputs** such as:
 
-- `Backtest Run`
-- `Walk-Forward Validation`
-- `Scalp Setup Audit`
-- `Risk Tier Review`
-- `News + Regime Brief`
+- `Delivery Packet`
+- `Review Bundle`
+- `Settlement Audit`
+- `Agent Handoff Pack`
+- `News + Market Brief`
 
 All outputs remain:
 
@@ -138,10 +138,10 @@ Responsible for:
 
 ToTheMoonTokens provides the first concrete workload:
 
-- backtests
-- research snapshots
-- signal validation
-- paper journal analytics
+  - evidence snapshots
+  - market context
+  - delivery validation
+  - journal analytics
 
 ### 5. Audit / evidence layer
 
@@ -173,7 +173,7 @@ Avoid:
 ## What the judges should see in 90 seconds
 
 1. A premium landing/dashboard explaining the system.
-2. A user selects `Backtest + Risk Audit`.
+2. A user selects `Review Bundle + Delivery Packet`.
 3. The UI shows a USDC price.
 4. Payment is initiated/verified.
 5. The job appears in Nexus.

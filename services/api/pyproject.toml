@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tothemoontokens-api"
 version = "0.1.0"
-description = "Hackathon artifact API for ToTheMoonTokens and Nexus."
+description = "Hackathon artifact API for paid agent work, settlement, and delivery evidence."
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1.0",

@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
+from .arc_adapter import ArcJobProof
+
 StrategyId = Literal["ema_crossover", "breakout", "mean_reversion"]
 RiskTier = Literal["low", "medium", "high"]
 Horizon = Literal["short", "medium", "long"]
@@ -238,8 +240,6 @@ class PerformanceAggregates(BaseModel):
     by_timeframe: dict[str, AggregateBucket] = Field(default_factory=dict)
 
 
-from .arc_adapter import ArcJobProof
-
 class DashboardResponse(BaseModel):
     app_name: str
     runtime_mode: str
@@ -308,12 +308,13 @@ class BillableArtifact(BaseModel):
     name: str
     description: str
     price_usd: float
-    type: Literal["backtest_report", "walk_forward_report", "live_trade_signal"]
+    type: Literal["delivery_packet", "review_bundle", "market_intel_brief"]
 
 
 class PaymentIntentRequest(BaseModel):
     artifact_id: str
     buyer_address: str
+    job_id: str | None = None
 
 
 class PaymentIntentResponse(BaseModel):
@@ -321,6 +322,7 @@ class PaymentIntentResponse(BaseModel):
     amount_usd: float
     deposit_address: str
     status: Literal["pending", "verified", "failed"]
+    job_id: str | None = None
 
 
 class PaymentVerificationRequest(BaseModel):
@@ -332,9 +334,13 @@ class PaymentVerificationResponse(BaseModel):
     payment_id: str
     status: Literal["pending", "verified", "failed"]
     unlocked_artifact_id: str | None = None
+    settlement_status: str | None = None
+    reason: str | None = None
+
 
 class JobExecutionRequest(BaseModel):
     artifact_id: str
+
 
 class JobExecutionResponse(BaseModel):
     artifact_id: str

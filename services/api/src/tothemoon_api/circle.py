@@ -1,17 +1,22 @@
 import logging
 import uuid
+
 import httpx
+
 from .config import get_settings
 
 logger = logging.getLogger(__name__)
+
 
 class CircleDeveloperClient:
     """Client for Circle Developer-Controlled Wallets on Arc Testnet."""
 
     def __init__(self, api_key: str | None = None, entity_secret: str | None = None):
         settings = get_settings()
-        self.api_key = api_key or settings.circle_api_key
-        self.entity_secret = entity_secret or settings.circle_entity_secret
+        self.api_key = settings.circle_api_key if api_key is None else api_key
+        self.entity_secret = (
+            settings.circle_entity_secret if entity_secret is None else entity_secret
+        )
         self.wallet_set_id = settings.circle_wallet_set_id
         self.base_url = "https://api.circle.com/v1/w3s"
         self.headers = {
@@ -19,10 +24,16 @@ class CircleDeveloperClient:
             "Content-Type": "application/json",
         }
         self.wallets_by_role: dict[str, dict] = {}
+        self.wallets_loaded = False
         self.roles = [
-            "RESEARCH_00", "RESEARCH_01", "RESEARCH_02", "RESEARCH_03",
-            "CONSUMER_01", "CONSUMER_02",
-            "AUDITOR", "TREASURY"
+            "RESEARCH_00",
+            "RESEARCH_01",
+            "RESEARCH_02",
+            "RESEARCH_03",
+            "CONSUMER_01",
+            "CONSUMER_02",
+            "AUDITOR",
+            "TREASURY",
         ]
 
     def load_wallets(self) -> None:
@@ -34,22 +45,28 @@ class CircleDeveloperClient:
         try:
             response = httpx.get(
                 f"{self.base_url}/wallets?walletSetId={self.wallet_set_id}",
-                headers=self.headers
+                headers=self.headers,
+                timeout=5.0,
             )
             response.raise_for_status()
             data = response.json()
             wallets = data.get("data", {}).get("wallets", [])
-            
+
             # Sort wallets to ensure deterministic mapping
             wallets.sort(key=lambda w: w.get("id", ""))
-            
+            self.wallets_by_role = {}
+
             for i, role in enumerate(self.roles):
                 if i < len(wallets):
                     self.wallets_by_role[role] = wallets[i]
+            self.wallets_loaded = True
 
-            logger.info(f"Circle client ready, wallet set={self.wallet_set_id}, {len(self.wallets_by_role)} wallets loaded")
+            logger.info(
+                f"Circle client ready, wallet set={self.wallet_set_id}, {len(self.wallets_by_role)} wallets loaded"
+            )
         except Exception as exc:
             logger.error(f"Failed to load Circle wallets: {exc}")
+            self.wallets_loaded = False
 
     def get_wallet_address(self, role: str) -> str | None:
         """Get the wallet address assigned to a specific role."""
@@ -114,5 +131,6 @@ class CircleDeveloperClient:
         )
         response.raise_for_status()
         return response.json()
+
 
 circle_client = CircleDeveloperClient()

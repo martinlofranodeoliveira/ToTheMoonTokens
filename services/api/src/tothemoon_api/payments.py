@@ -2,41 +2,42 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
+from .circle import circle_client
+from .config import get_settings
 from .models import (
     BillableArtifact,
+    JobExecutionRequest,
+    JobExecutionResponse,
     PaymentIntentRequest,
     PaymentIntentResponse,
     PaymentVerificationRequest,
     PaymentVerificationResponse,
-    JobExecutionRequest,
-    JobExecutionResponse,
 )
-
-from .circle import circle_client
+from .settlement import SettlementRequest, verify_settlement
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 ARTIFACT_CATALOG: dict[str, BillableArtifact] = {
-    "artifact_backtest_report": BillableArtifact(
-        id="artifact_backtest_report",
-        name="Backtest Report",
-        description="Comprehensive backtest report with performance metrics.",
+    "artifact_delivery_packet": BillableArtifact(
+        id="artifact_delivery_packet",
+        name="Delivery Packet",
+        description="Reviewed delivery packet with execution summary and unlock metadata.",
         price_usd=5.00,
-        type="backtest_report",
+        type="delivery_packet",
     ),
-    "artifact_walk_forward": BillableArtifact(
-        id="artifact_walk_forward",
-        name="Walk Forward Analysis",
-        description="Detailed walk-forward analysis for strategy validation.",
+    "artifact_review_bundle": BillableArtifact(
+        id="artifact_review_bundle",
+        name="Review Bundle",
+        description="Reviewer-approved evidence bundle with settlement and quality checkpoints.",
         price_usd=10.00,
-        type="walk_forward_report",
+        type="review_bundle",
     ),
-    "artifact_live_signal": BillableArtifact(
-        id="artifact_live_signal",
-        name="Live Trade Signal",
-        description="Real-time trade signal generation.",
+    "artifact_market_intel_brief": BillableArtifact(
+        id="artifact_market_intel_brief",
+        name="Market Intelligence Brief",
+        description="Premium market context brief packaged for the live hackathon flow.",
         price_usd=15.00,
-        type="live_trade_signal",
+        type="market_intel_brief",
     ),
 }
 
@@ -58,7 +59,9 @@ def create_payment_intent(request: PaymentIntentRequest):
     artifact = ARTIFACT_CATALOG[request.artifact_id]
     payment_id = str(uuid.uuid4())
 
-    deposit_address = circle_client.get_wallet_address("TREASURY") or "0xMockDepositAddressForTestnetOnly"
+    deposit_address = (
+        circle_client.get_wallet_address("TREASURY") or "0xMockDepositAddressForTestnetOnly"
+    )
 
     intent = {
         "payment_id": payment_id,
@@ -67,6 +70,8 @@ def create_payment_intent(request: PaymentIntentRequest):
         "buyer_address": request.buyer_address,
         "deposit_address": deposit_address,
         "status": "pending",
+        "job_id": request.job_id,
+        "tx_hash": None,
     }
     _PAYMENT_INTENTS[payment_id] = intent
 
@@ -74,7 +79,8 @@ def create_payment_intent(request: PaymentIntentRequest):
         payment_id=str(intent["payment_id"]),
         amount_usd=float(intent["amount_usd"]),  # type: ignore
         deposit_address=str(intent["deposit_address"]),
-        status=str(intent["status"])  # type: ignore
+        status=str(intent["status"]),  # type: ignore
+        job_id=request.job_id,
     )
 
 
@@ -84,32 +90,65 @@ def verify_payment(request: PaymentVerificationRequest):
         raise HTTPException(status_code=404, detail="Payment intent not found")
 
     intent = _PAYMENT_INTENTS[request.payment_id]
+    if intent["status"] == "verified" and intent["tx_hash"] == request.tx_hash:
+        return PaymentVerificationResponse(
+            payment_id=request.payment_id,
+            status="verified",
+            unlocked_artifact_id=intent["artifact_id"],
+            settlement_status="SETTLED",
+        )
 
-    # Mock verification logic: any tx_hash starting with "0x" is valid in testnet
-    if request.tx_hash and request.tx_hash.startswith("0x"):
+    settings = get_settings()
+    artifact_id = str(intent["artifact_id"])
+    work_proof = f"payment-intent:{request.payment_id}:{artifact_id}"
+
+    def _mock_receipt(tx_hash: str) -> dict[str, object]:
+        return {
+            "status": "0x1",
+            "to": str(intent["deposit_address"]),
+            "transactionHash": tx_hash,
+        }
+
+    receipt_fetcher = _mock_receipt if "mock" in request.tx_hash.lower() else None
+    settlement_result = verify_settlement(
+        SettlementRequest(
+            payment_intent_id=request.payment_id,
+            job_id=str(intent["job_id"] or artifact_id),
+            agent_id="consumer_01",
+            amount=float(intent["amount_usd"]),
+            tx_hash=request.tx_hash,
+            expected_receiver=str(intent["deposit_address"]),
+            work_proof=work_proof,
+            timeout_s=settings.marketplace_settlement_timeout_s,
+        ),
+        receipt_fetcher=receipt_fetcher,
+    )
+
+    if settlement_result.status == "SETTLED":
         intent["status"] = "verified"
+        intent["tx_hash"] = request.tx_hash
         _UNLOCKED_JOBS[intent["artifact_id"]] = True
     else:
         intent["status"] = "failed"
+        intent["tx_hash"] = request.tx_hash
 
     return PaymentVerificationResponse(
         payment_id=request.payment_id,
         status=intent["status"],
         unlocked_artifact_id=intent["artifact_id"] if intent["status"] == "verified" else None,
+        settlement_status=settlement_result.status,
+        reason=settlement_result.reason,
     )
+
 
 @router.post("/execute", response_model=JobExecutionResponse)
 def execute_job(request: JobExecutionRequest):
     if not _UNLOCKED_JOBS.get(request.artifact_id):
-        raise HTTPException(
-            status_code=402,
-            detail="Payment required to unlock this job."
-        )
+        raise HTTPException(status_code=402, detail="Payment required to unlock this job.")
 
     return JobExecutionResponse(
         artifact_id=request.artifact_id,
         status="completed",
         message="Job executed successfully after payment verification.",
-        download_url=f"/api/artifacts/{request.artifact_id}/download"
+        download_url=f"/api/artifacts/{request.artifact_id}/download",
     )
-

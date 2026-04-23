@@ -1,0 +1,22 @@
+{$PUBLIC_HOST} {
+    encode zstd gzip
+
+    @api path /api/* /docs* /redoc* /openapi.json /metrics /health /ready
+    handle @api {
+        reverse_proxy api:8010
+    }
+
+    @web_config path /config.js
+    handle @web_config {
+        header Content-Type application/javascript
+        respond "window.TTM_API_BASE_URL = window.location.origin;"
+    }
+
+    handle_path /pitch/* {
+        reverse_proxy pitch:4174
+    }
+
+    handle {
+        reverse_proxy web:4173
+    }
+}

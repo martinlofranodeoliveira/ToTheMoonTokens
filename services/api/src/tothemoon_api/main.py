@@ -12,6 +12,7 @@ from .circle import circle_client
 from .config import get_settings
 from .demo_agent import router as demo_router
 from .guards import connector_status, evaluate_guardrails
+from .hackathon_summary import router as hackathon_router
 from .journal import (
     clear_journal,
     get_journal,
@@ -100,6 +101,7 @@ app.include_router(jobs_router)
 app.include_router(demo_router)
 app.include_router(reputation_router)
 app.include_router(settlements_router)
+app.include_router(hackathon_router)
 
 log.info(
     "api_startup",
@@ -166,13 +168,17 @@ def _market_connector() -> BinanceMarketData:
 
 @app.get("/health")
 def health() -> dict[str, object]:
-    status = "online" if connector_state.is_healthy else "degraded"
+    status = "internal-only" if connector_state.last_error is None else "degraded"
     return {
         "ok": True,
         "app": settings.app_name,
         "mode": settings.runtime_mode,
-        "exchange": settings.default_exchange,
+        "artifact_scope": "paid_agent_artifacts",
+        "settlement_network": "arc_testnet",
+        "wallet_provider": "circle_developer_controlled_wallets",
+        "wallet_set_id": settings.circle_wallet_set_id or None,
         "orderSubmissionEnabled": False,
+        "wallets_loaded": circle_client.wallets_loaded,
         "latency_ms": connector_state.last_latency_ms,
         "reconnect_count": connector_state.reconnect_count,
         "last_error": connector_state.last_error,
@@ -181,6 +187,7 @@ def health() -> dict[str, object]:
             "latency_ms": connector_state.last_latency_ms,
             "last_error": connector_state.last_error,
             "sample_count": 0,
+            "public_exposure": False,
         },
     }
 

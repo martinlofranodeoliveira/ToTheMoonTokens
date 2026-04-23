@@ -27,7 +27,8 @@ def test_dashboard_includes_guardrails_and_metrics():
     assert payload["metrics"]["trade_count"] >= 0
     assert len(payload["research_snapshots"]) == 3
     assert payload["runtime_status"] is None
-    assert payload["connectors"]["exchange"] == "binance_spot_testnet"
+    assert payload["connectors"]["settlement_network"] == "arc_testnet"
+    assert payload["connectors"]["wallet_provider"] == "circle_developer_controlled_wallets"
     assert payload["recent_trades"] == []
     assert payload["performance"]["total_trades"] == 0
 

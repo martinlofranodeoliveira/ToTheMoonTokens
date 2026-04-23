@@ -14,35 +14,35 @@ function Landing({ navigate, blockNum, nanopayCount }) {
           <span style={{ background: 'linear-gradient(90deg, var(--arc-blue), var(--circle-green))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Onchain.</span>
         </h1>
         <p style={{ fontSize: 18, color: 'var(--text-2)', lineHeight: 1.5, maxWidth: 680, margin: '0 0 32px' }}>
-          Quant signal marketplace where AI agents settle in USDC on Arc L1. No gas. No batching. Real-time economic coordination.
+          Paid artifact marketplace where AI agents buy reviewed machine work in USDC on Arc. Real settlement, real receipts, and economics that still work below one cent.
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', gap: 40, alignItems: 'stretch', marginBottom: 40, padding: '28px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
           <div className="kpi">
-            <span className="label">Nanopayments · last 5 min</span>
+            <span className="label">Real transfers logged</span>
             <div className="row g8" style={{ alignItems: 'baseline' }}>
               <span className="value blue"><Ticker value={nanopayCount}/></span>
               <LivePulse/>
             </div>
-            <span className="sub">streaming on Arc Testnet</span>
+            <span className="sub">63 settled Arc Testnet transactions</span>
           </div>
           <div style={{ background: 'var(--border)' }}/>
           <div className="kpi">
-            <span className="label">Avg price · per signal</span>
-            <span className="value">$0.0008</span>
-            <span className="sub">USDC, dollar-denominated</span>
+            <span className="label">Price ceiling · per action</span>
+            <span className="value">$0.0100</span>
+            <span className="sub">USDC, stable and dollar-denominated</span>
           </div>
           <div style={{ background: 'var(--border)' }}/>
           <div className="kpi">
-            <span className="label">Settlement finality · p50</span>
-            <span className="value green">0.4s</span>
-            <span className="sub">Arc L1 block confirmed</span>
+            <span className="label">Observed throughput</span>
+            <span className="value green">17.7</span>
+            <span className="sub">transactions per minute in the demo batch</span>
           </div>
         </div>
 
         <div className="row g12">
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('marketplace')}>See the marketplace live <Icon name="arrow-r" size={14}/></button>
-          <button className="btn btn-secondary btn-lg"><Icon name="video" size={14}/> Watch 2-min demo</button>
+          <a className="btn btn-primary btn-lg" href="/ops/">Open operational room <Icon name="arrow-r" size={14}/></a>
+          <a className="btn btn-secondary btn-lg" href="./pitch-video.html"><Icon name="video" size={14}/> Watch 90s deck</a>
         </div>
       </div>
 
@@ -51,10 +51,10 @@ function Landing({ navigate, blockNum, nanopayCount }) {
         <h2 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 32px', letterSpacing: '-0.01em' }}>How it works</h2>
         <div className="grid-4">
           {[
-            { icon: 'sparkles', num: '01', title: 'Publish', desc: 'Research agent packages a priced artifact with preview, tier, and delivery metadata.' },
-            { icon: 'cart',     num: '02', title: 'Discover', desc: 'Consumer agent sees a preview — tier, horizon, score — but not the entry or stop.' },
-            { icon: 'coins',    num: '03', title: 'Pay', desc: 'Sub-cent USDC nanopayment settles onchain in under a second. Zero gas overhead.' },
-            { icon: 'shield',   num: '04', title: 'Deliver', desc: 'Premium payload unlocks only after the auditor verifies the tx on Arc Testnet.' },
+            { icon: 'sparkles', num: '01', title: 'Request', desc: 'A buyer requests a delivery packet, review bundle, or premium brief as a priced machine task.' },
+            { icon: 'cart',     num: '02', title: 'Quote', desc: 'The API returns a sub-cent USDC payment intent and the deposit address for the action.' },
+            { icon: 'coins',    num: '03', title: 'Settle', desc: 'Circle-controlled wallets move USDC on Arc and produce a hash the judge can verify.' },
+            { icon: 'shield',   num: '04', title: 'Unlock', desc: 'Output is released only after settlement verification and review gates pass.' },
           ].map(c => (
             <div key={c.num} className="card card-pad">
               <div className="row g10" style={{ marginBottom: 14 }}>
@@ -73,7 +73,7 @@ function Landing({ navigate, blockNum, nanopayCount }) {
       {/* Why Arc table */}
       <div style={{ padding: '48px 0' }}>
         <h2 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 8px', letterSpacing: '-0.01em' }}>Why Arc?</h2>
-        <p className="t2" style={{ margin: '0 0 24px', fontSize: 14 }}>Sub-cent nanopayments only work if gas costs less than the payment itself.</p>
+        <p className="t2" style={{ margin: '0 0 24px', fontSize: 14 }}>Sub-cent machine work only works if gas costs less than the action itself.</p>
 
         <div className="card" style={{ overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -123,7 +123,8 @@ function Landing({ navigate, blockNum, nanopayCount }) {
             <div className="col g6">
               <div className="mono-s t3" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>Links</div>
               <div className="col g4 mono-s">
-                <a href="https://github.com" target="_blank" rel="noreferrer">GitHub repo</a>
+                <a href="/ops/">Operational room</a>
+                <a href="https://github.com/martinlofranodeoliveira/ToTheMoonTokens" target="_blank" rel="noreferrer">GitHub repo</a>
                 <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Arc Explorer</a>
               </div>
             </div>

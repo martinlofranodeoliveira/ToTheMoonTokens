@@ -22,3 +22,5 @@ services/api/.nexus/
 ops/evidence/*.json
 !ops/evidence/arc-mcp-check.json
 .env.hackathon
+~$*
+*.tmp

@@ -11,7 +11,7 @@ def test_payment_catalog_returns_items():
     payload = response.json()
     assert len(payload) >= 3
     assert any(item["id"] == "artifact_delivery_packet" for item in payload)
-    assert any(item["price_usd"] > 0 for item in payload)
+    assert all(0 < item["price_usd"] <= 0.01 for item in payload)
 
 
 def test_payment_intent_creation_and_verification_flow():
@@ -23,7 +23,7 @@ def test_payment_intent_creation_and_verification_flow():
     assert intent_response.status_code == 200
     intent_payload = intent_response.json()
     assert intent_payload["status"] == "pending"
-    assert intent_payload["amount_usd"] == 10.0
+    assert intent_payload["amount_usd"] == 0.005
     payment_id = intent_payload["payment_id"]
 
     # 2. Verify payment

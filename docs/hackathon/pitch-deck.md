@@ -30,7 +30,17 @@ Why It Matters
 - Settlement is deterministic and auditable.
 - Reputation compounds from delivered outcomes, not marketing claims.
 - The stack stays in paper mode and Arc testnet while validation hardens.
-Proof line: tx `0x6fc13745…d7679a4` shows the economics work on Arc testnet today.
+Proof line: 63 settled transactions on 2026-04-23, 100% success, 17.7 tx/min, all hashes in TRANSACTION_LOG.md.
+
+## Slide 4b
+Margin Reality Check
+
+- Ticket per call: 0.001 USDC (sub-cent, meets hackathon ≤ $0.01).
+- Same 63 tx on Ethereum L1 would cost ~$31.50 in gas to move $0.063 of value: 500x loss per action.
+- Generic L2 gas is denominated in volatile ETH — sub-cent viability evaporates at any congestion.
+- Off-chain ledgers are free but kill onchain verifiability.
+- Only Arc keeps zero gas, sub-second finality, USDC-denominated fees, and onchain proof all at once.
+Proof line: full argument with numbers in docs/hackathon/MARGIN_ANALYSIS.md.
 
 ## Slide 5
 Architecture
@@ -52,6 +62,16 @@ Demo
 5. The job record advances to delivery via the API lifecycle.
 6. Reputation updates from the resulting outcome history.
 Proof line: keep the Arc tx tab open while calling `/api/payments/verify`.
+
+## Slide 6b
+Batch Evidence
+
+- 63 Arc Testnet transfers in a single run (exceeds 50+ brief requirement).
+- 0.001 USDC per transfer, 100% success, zero failures.
+- Throughput: 17.7 tx/min, p50 latency 2.5 s (poll-dominated), p95 under 5 s.
+- Source wallet: research_00 (0xbcdb...f8aa); rotates through 7 agent destinations.
+- Full hash table in docs/hackathon/TRANSACTION_LOG.md; raw JSON in ops/evidence/nanopayments-batch-2026-04-23.json.
+Proof line: spot-check any hash on testnet.arcscan.app during the pitch — they are all live.
 
 ## Slide 7
 Differentiator

@@ -9,22 +9,14 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 function App() {
-  const [route, setRoute] = useStateApp(() => {
-    const saved = localStorage.getItem('ttm_route');
-    return saved || 'landing';
-  });
+  const [route, setRoute] = useStateApp('landing');
   const [state, setState] = useStateApp('happy'); // happy | loading | empty | error
   const [tweaksOpen, setTweaksOpen] = useStateApp(false);
   const [editMode, setEditMode] = useStateApp(false);
   const [tweaks, setTweaks] = useStateApp(TWEAK_DEFAULTS);
 
   const [blockNum, setBlockNum] = useStateApp(1_234_567);
-  const [nanopayCount, setNanopayCount] = useStateApp(142);
-
-  useEffectApp(() => {
-    localStorage.setItem('ttm_route', route);
-    // reset to happy whenever route changes so transitions feel clean
-  }, [route]);
+  const [nanopayCount] = useStateApp(63);
 
   useEffectApp(() => {
     document.documentElement.dataset.accent = tweaks.accent === 'violet' ? 'violet' : 'blue';
@@ -55,7 +47,6 @@ function App() {
   useEffectApp(() => {
     const id = setInterval(() => {
       setBlockNum(n => n + 1);
-      setNanopayCount(n => n + Math.floor(1 + Math.random() * 3));
     }, Math.max(800, 2200 / tweaks.tickSpeed));
     return () => clearInterval(id);
   }, [tweaks.tickSpeed]);

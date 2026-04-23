@@ -12,11 +12,19 @@
         respond "window.TTM_API_BASE_URL = window.location.origin;"
     }
 
+    handle /ops {
+        redir /ops/ 308
+    }
+
+    handle_path /ops/* {
+        reverse_proxy web:4173
+    }
+
     handle_path /pitch/* {
         reverse_proxy pitch:4174
     }
 
     handle {
-        reverse_proxy web:4173
+        reverse_proxy pitch:4174
     }
 }

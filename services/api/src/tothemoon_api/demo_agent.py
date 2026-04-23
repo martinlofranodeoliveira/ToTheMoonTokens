@@ -26,9 +26,9 @@ class DemoJob(BaseModel):
 
 
 _PRICE_BY_ARTIFACT = {
-    "delivery_packet": 5.0,
-    "review_bundle": 10.0,
-    "market_intel_brief": 15.0,
+    "delivery_packet": 0.001,
+    "review_bundle": 0.005,
+    "market_intel_brief": 0.01,
 }
 
 _jobs: dict[str, DemoJob] = {}

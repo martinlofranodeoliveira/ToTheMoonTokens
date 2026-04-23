@@ -28,6 +28,11 @@ All observed on Arc Testnet, Circle sandbox, Brazilian residential uplink.
 | Create 6 dev-controlled wallets (batch) | 2.1 s | single `createWallets(count=5)` + `createWallets(count=1)` |
 | Faucet USDC delivery (p50) | ~15 s | Console faucet → observable balance |
 | Transfer 0.01 USDC source→destination (e2e) | 743 ms | includes polling to `COMPLETE` |
+| **63-transaction batch on Arc Testnet** | **214 s total** | **100% success rate, zero failures** |
+| Batch latency p50 | 2485 ms | includes 2-second client polling interval |
+| Batch latency p95 | 4733 ms | outliers under 5 s |
+| Sustained throughput | 17.7 tx/min | single source wallet, sequential fire + poll |
+| Sub-cent ticket value | 0.001 USDC per tx | meets ≤ $0.01 hackathon requirement |
 | `createTransaction` → `txHash` returned | 310 ms | polling interval 3 s in our script |
 | TTFT for a new developer to first tx | ~18 min | account signup → registered secret → first tx |
 

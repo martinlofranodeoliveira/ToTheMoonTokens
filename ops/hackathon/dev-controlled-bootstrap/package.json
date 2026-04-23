@@ -6,7 +6,8 @@
   "description": "One-off bootstrap for Circle dev-controlled wallets on Arc Testnet.",
   "scripts": {
     "create": "node --env-file=.env --import=tsx create-wallet.ts",
-    "scale": "node --env-file=.env --import=tsx create-remaining-wallets.ts"
+    "scale": "node --env-file=.env --import=tsx create-remaining-wallets.ts",
+    "batch": "node --env-file=.env --import=tsx run-60-nanopayments.ts"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^7.0.0",

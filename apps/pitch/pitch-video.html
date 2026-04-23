@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TTM Agent Market — 90s Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0D10;
+    --surface: #12151B;
+    --surface-2: #1A1F27;
+    --border: #232830;
+    --arc: #2E6BFF;
+    --circle: #11D98B;
+    --warn: #F5A623;
+    --accent: #FFD166;
+    --text: #F5F7FA;
+    --muted: #A0A7B3;
+    --dim: #5C636E;
+    --sans: 'Geist', 'Inter', system-ui, sans-serif;
+    --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+  body { width: 100vw; height: 100vh; }
+
+  /* stage */
+  .stage { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 6vw 8vw;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 600ms cubic-bezier(.2,.8,.2,1), transform 600ms cubic-bezier(.2,.8,.2,1);
+    pointer-events: none;
+  }
+  .slide.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .slide.prev   { opacity: 0; transform: translateY(-12px); }
+
+  /* chrome */
+  .top-strip {
+    position: fixed; top: 0; left: 0; right: 0; height: 32px;
+    display: flex; align-items: center; gap: 16px; padding: 0 24px;
+    background: rgba(17,21,29,0.9); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12px; color: var(--muted); z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+  .top-strip .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--circle); animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(17,217,139,0.6); }
+    50%     { box-shadow: 0 0 0 8px rgba(17,217,139,0); }
+  }
+  .top-strip .sep { color: var(--dim); }
+  .top-strip .chain { color: var(--arc); font-weight: 600; }
+
+  .progress {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 3px;
+    background: rgba(255,255,255,0.05); z-index: 10;
+  }
+  .progress .bar {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--arc), var(--circle));
+    transition: width 90000ms linear;
+  }
+
+  .caption {
+    position: fixed; bottom: 48px; left: 0; right: 0;
+    text-align: center; padding: 0 10vw;
+    font-size: 20px; line-height: 1.45; font-weight: 500;
+    color: var(--text);
+    text-shadow: 0 2px 16px rgba(0,0,0,0.9);
+    z-index: 9;
+    opacity: 0; transition: opacity 400ms ease;
+  }
+  .caption.show { opacity: 1; }
+  .caption .hilite { color: var(--accent); }
+
+  /* typography */
+  h1 { font-size: 72px; line-height: 1.04; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+  h1 .accent { color: var(--arc); }
+  h1 .green  { color: var(--circle); }
+  h2 { font-size: 40px; line-height: 1.15; margin: 0 0 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--muted); }
+  h3 { font-size: 24px; margin: 0; font-weight: 600; color: var(--text); }
+  p  { font-size: 20px; color: var(--muted); margin: 0; max-width: 780px; line-height: 1.45; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--arc); margin-bottom: 20px;
+  }
+  .mono { font-family: var(--mono); }
+
+  /* slide 1: problem */
+  .problem-list { display: flex; flex-direction: column; gap: 18px; margin-top: 32px; }
+  .problem-list .row {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 22px; color: var(--muted);
+  }
+  .problem-list .row .x {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,77,79,0.15); color: #FF4D4F;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .problem-list .row b { color: var(--text); }
+
+  /* slide 2: solution */
+  .solution {
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
+  }
+  .kpi-row { display: flex; gap: 40px; margin-top: 24px; flex-wrap: wrap; justify-content: center; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 24px 32px; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; min-width: 200px;
+  }
+  .kpi .num { font-family: var(--mono); font-size: 40px; font-weight: 600; color: var(--circle); font-variant-numeric: tabular-nums; }
+  .kpi .lbl { font-size: 13px; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .kpi .sub { font-size: 11px; color: var(--dim); margin-top: 3px; }
+
+  /* slide 3: Arc comparison */
+  .cmp {
+    width: 100%; max-width: 1100px;
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    background: var(--surface);
+  }
+  .cmp-row {
+    display: grid; grid-template-columns: 1.4fr repeat(4, 1fr);
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    font-size: 17px; align-items: center;
+  }
+  .cmp-row:last-child { border-bottom: none; }
+  .cmp-row.head { background: var(--surface-2); color: var(--text); font-weight: 600; }
+  .cmp-row .col { text-align: center; color: var(--muted); }
+  .cmp-row .col.arc { color: var(--arc); font-weight: 600; }
+  .cmp-row .col.off { color: var(--dim); }
+  .cmp-row .col .chk { color: var(--circle); font-weight: 700; }
+  .cmp-row .col .x   { color: #FF4D4F; font-weight: 700; }
+  .cmp-row .label { color: var(--text); font-weight: 500; }
+
+  /* slide 4: proof receipt */
+  .receipt {
+    width: 100%; max-width: 860px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px 32px;
+  }
+  .receipt-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .receipt-head .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--circle); font-family: var(--mono); font-size: 13px; font-weight: 600;
+  }
+  .receipt-head .status::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--circle);
+    box-shadow: 0 0 0 4px rgba(17,217,139,0.2);
+  }
+  .receipt-row {
+    display: grid; grid-template-columns: 200px 1fr;
+    padding: 10px 0; font-size: 16px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .receipt-row:last-child { border-bottom: none; }
+  .receipt-row .k { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .receipt-row .v { color: var(--text); font-family: var(--mono); word-break: break-all; }
+  .receipt-row .v.big { font-size: 22px; font-weight: 600; color: var(--circle); }
+
+  /* slide 5: advantages */
+  .adv-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    width: 100%; max-width: 1200px; margin-top: 32px;
+  }
+  .adv-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 28px 24px;
+  }
+  .adv-card .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 6px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    background: rgba(46,107,255,0.15); color: var(--arc);
+    margin-bottom: 14px;
+  }
+  .adv-card h3 { margin-bottom: 10px; font-size: 20px; }
+  .adv-card p  { font-size: 15px; line-height: 1.5; }
+
+  /* slide 6: CTA */
+  .cta {
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
+  }
+  .code-block {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 28px; font-family: var(--mono); font-size: 18px;
+    display: flex; flex-direction: column; gap: 8px; min-width: 720px;
+  }
+  .code-block .line { color: var(--text); }
+  .code-block .line .prompt { color: var(--arc); margin-right: 12px; }
+  .code-block .line .comment { color: var(--dim); }
+  .urls { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+  .url-pill {
+    font-family: var(--mono); font-size: 15px;
+    padding: 10px 18px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--surface); color: var(--text);
+  }
+  .url-pill .label { color: var(--muted); margin-right: 8px; }
+  .close-line {
+    font-size: 28px; font-weight: 600; text-align: center; margin-top: 16px;
+  }
+  .close-line .accent { color: var(--arc); }
+  .close-line .green  { color: var(--circle); }
+
+  /* entrance animations per slide */
+  .slide.active .fadein-1 { animation: fadein 700ms ease 100ms both; }
+  .slide.active .fadein-2 { animation: fadein 700ms ease 400ms both; }
+  .slide.active .fadein-3 { animation: fadein 700ms ease 700ms both; }
+  .slide.active .fadein-4 { animation: fadein 700ms ease 1000ms both; }
+  .slide.active .fadein-5 { animation: fadein 700ms ease 1300ms both; }
+  .slide.active .fadein-6 { animation: fadein 700ms ease 1600ms both; }
+  @keyframes fadein {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .footer-brand {
+    position: fixed; bottom: 14px; left: 24px; z-index: 10;
+    font-family: var(--mono); font-size: 11px; color: var(--dim);
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top chrome -->
+<div class="top-strip">
+  <span class="pulse"></span>
+  <span>LIVE</span>
+  <span class="sep">·</span>
+  <span>Arc Testnet</span>
+  <span class="sep">·</span>
+  <span>Block <span id="block">#1,234,567</span></span>
+  <span class="sep">·</span>
+  <span>Chain ID 28882</span>
+  <span class="sep" style="margin-left:auto;">·</span>
+  <span class="chain">TTM Agent Market</span>
+</div>
+
+<div class="footer-brand">TTM Agent Market · Arc × Circle · Apr 2026</div>
+
+<div class="stage">
+
+  <!-- SLIDE 1: Problem (0:00 – 0:15) -->
+  <div class="slide" data-idx="0">
+    <div class="eyebrow fadein-1">The problem nobody solves</div>
+    <h1 class="fadein-2">AI agents <span class="accent">can&rsquo;t pay</span><br/>each other.</h1>
+    <div class="problem-list">
+      <div class="row fadein-3"><span class="x">×</span><b>Subscriptions</b>&nbsp;break when the unit of value is one API call.</div>
+      <div class="row fadein-4"><span class="x">×</span><b>Onchain gas</b>&nbsp;destroys sub-cent economics.</div>
+      <div class="row fadein-5"><span class="x">×</span><b>Off-chain ledgers</b>&nbsp;kill verifiability.</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Solution (0:15 – 0:30) -->
+  <div class="slide" data-idx="1">
+    <div class="eyebrow fadein-1">The answer</div>
+    <h1 class="fadein-2">Agents <span class="accent">pay agents</span>.<br/>Per call. Sub-cent. <span class="green">Onchain.</span></h1>
+    <p class="fadein-3" style="text-align:center; margin-top: 20px;">
+      TTM Agent Market settles every action on Arc L1 in USDC via Circle Nanopayments. Sub-second finality. Zero gas overhead. Every transaction auditable.
+    </p>
+    <div class="kpi-row">
+      <div class="kpi fadein-4">
+        <div class="num" data-tick="63">63</div>
+        <div class="lbl">Nanopayments</div>
+        <div class="sub">real batch, Arc Testnet</div>
+      </div>
+      <div class="kpi fadein-5">
+        <div class="num">$0.001</div>
+        <div class="lbl">Avg price</div>
+        <div class="sub">per action</div>
+      </div>
+      <div class="kpi fadein-6">
+        <div class="num">100%</div>
+        <div class="lbl">Success</div>
+        <div class="sub">63 of 63 · zero failed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Arc comparison (0:30 – 0:45) -->
+  <div class="slide" data-idx="2">
+    <div class="eyebrow fadein-1">Why Arc + Circle</div>
+    <h1 class="fadein-2" style="font-size: 56px; margin-bottom: 28px;">Only one stack keeps <span class="accent">every constraint</span>.</h1>
+    <div class="cmp fadein-3">
+      <div class="cmp-row head">
+        <div>Constraint</div>
+        <div class="col" style="color: var(--arc);">Arc L1</div>
+        <div class="col">ETH L1</div>
+        <div class="col">Generic L2</div>
+        <div class="col">Off-chain</div>
+      </div>
+      <div class="cmp-row">
+        <div class="label">Gas per tx</div>
+        <div class="col arc">~$0</div>
+        <div class="col">$0.50–5</div>
+        <div class="col">$0.001–0.01</div>
+        <div class="col off">$0</div>
+      </div>
+      <div class="cmp-row">
+        <div class="label">Finality</div>
+        <div class="col arc">&lt;1s</div>
+        <div class="col">12–60s</div>
+        <div class="col">1–30s</div>
+        <div class="col off">instant</div>
+      </div>
+      <div class="cmp-row">
+        <div class="label">Fee denomination</div>
+        <div class="col arc">USDC</div>
+        <div class="col">ETH</div>
+        <div class="col">ETH</div>
+        <div class="col off">—</div>
+      </div>
+      <div class="cmp-row">
+        <div class="label">Sub-cent viable</div>
+        <div class="col arc"><span class="chk">✓</span></div>
+        <div class="col"><span class="x">✕</span></div>
+        <div class="col">marginal</div>
+        <div class="col"><span class="chk">✓</span></div>
+      </div>
+      <div class="cmp-row">
+        <div class="label">Onchain verifiable</div>
+        <div class="col arc"><span class="chk">✓</span></div>
+        <div class="col"><span class="chk">✓</span></div>
+        <div class="col"><span class="chk">✓</span></div>
+        <div class="col"><span class="x">✕</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Proof (0:45 – 1:00) -->
+  <div class="slide" data-idx="3">
+    <div class="eyebrow fadein-1">Proof at scale</div>
+    <h1 class="fadein-2" style="font-size: 48px; margin-bottom: 24px;">63 real settlements. <span class="green">Zero failures.</span></h1>
+    <div class="receipt fadein-3">
+      <div class="receipt-head">
+        <div>
+          <div style="font-size: 12px; color: var(--muted); font-family: var(--mono); letter-spacing: 0.1em;">ARC TESTNET · BATCH EVIDENCE · 2026-04-23</div>
+        </div>
+        <div class="status">63 / 63 COMPLETE</div>
+      </div>
+      <div class="receipt-row">
+        <div class="k">Per tx</div>
+        <div class="v big">0.001 USDC</div>
+      </div>
+      <div class="receipt-row">
+        <div class="k">Total moved</div>
+        <div class="v">0.063 USDC · 214s batch · 17.7 tx/min</div>
+      </div>
+      <div class="receipt-row">
+        <div class="k">Latency p50 / p95</div>
+        <div class="v">2485 ms / 4733 ms <span style="color: var(--muted);">· onchain finality ~743 ms</span></div>
+      </div>
+      <div class="receipt-row">
+        <div class="k">Wallet Set</div>
+        <div class="v">e980936d-182e-50f6-bc6f-e54037777598 · "ttm-agent-market"</div>
+      </div>
+      <div class="receipt-row">
+        <div class="k">Agent fleet</div>
+        <div class="v" style="font-family: var(--sans); color: var(--text);">8 wallets · research_00..03 · consumer_01..02 · auditor · treasury</div>
+      </div>
+      <div class="receipt-row">
+        <div class="k">Sample hashes</div>
+        <div class="v" style="font-size: 12px; line-height: 1.8;">
+          0x447f070b…186ec9 · 0x3f398040…b33432<br/>
+          0x85005b2b…1cfe5ff · 0xaa9d3f1b…8444f5c<br/>
+          0xb092d52c…c889b44b · 0x01092dbf…88b13c9d
+        </div>
+      </div>
+      <div class="receipt-row">
+        <div class="k">Verify</div>
+        <div class="v" style="color: var(--arc);">testnet.arcscan.app · all 63 hashes in TRANSACTION_LOG.md</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Advantages (1:00 – 1:15) -->
+  <div class="slide" data-idx="4">
+    <div class="eyebrow fadein-1">Three unfair advantages</div>
+    <h1 class="fadein-2" style="font-size: 52px; margin-bottom: 24px;">Not another <span class="accent">automation demo</span>.</h1>
+    <div class="adv-grid">
+      <div class="adv-card fadein-3">
+        <div class="badge">01 · REPUTATION</div>
+        <h3>Verified outcomes, not marketing.</h3>
+        <p>Score is a deterministic function of the journal. Same history yields the same score. Judges can rerun and reproduce every number.</p>
+      </div>
+      <div class="adv-card fadein-4">
+        <div class="badge" style="background: rgba(17,217,139,0.15); color: var(--circle);">02 · SETTLEMENT</div>
+        <h3>Anti-replay verification.</h3>
+        <p>Every intent checked onchain via eth_getTransactionReceipt before delivery unlocks. Replay fails with 409. Timeouts trigger automatic refunds.</p>
+      </div>
+      <div class="adv-card fadein-5">
+        <div class="badge" style="background: rgba(255,209,102,0.15); color: var(--accent);">03 · JOURNAL</div>
+        <h3>Auditable economic ledger.</h3>
+        <p>Every event — published, captured, delivered, updated — is structured JSON. No hidden state. No privileged view. No opaque scoring.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Judge-ready + close (1:15 – 1:30) -->
+  <div class="slide" data-idx="5">
+    <div class="eyebrow fadein-1">Judge-ready deployment</div>
+    <h1 class="fadein-2" style="font-size: 52px; margin-bottom: 24px;">Three commands. <span class="accent">Five minutes.</span></h1>
+    <div class="cta">
+      <div class="code-block fadein-3">
+        <div class="line"><span class="prompt">$</span>git clone github.com/martinlofranodeoliveira/ToTheMoonTokens</div>
+        <div class="line"><span class="prompt">$</span>cd ToTheMoonTokens &amp;&amp; make api-install</div>
+        <div class="line"><span class="prompt">$</span>make demo-start <span class="comment"># api:8010 · web:4173 · pitch:4174</span></div>
+      </div>
+      <div class="urls fadein-4">
+        <div class="url-pill"><span class="label">Pitch</span>http://127.0.0.1:4174</div>
+        <div class="url-pill"><span class="label">Web</span>http://127.0.0.1:4173</div>
+        <div class="url-pill"><span class="label">API</span>http://127.0.0.1:8010/docs</div>
+      </div>
+      <div class="close-line fadein-5">
+        This is the <span class="accent">agent economy</span>.<br/>
+        Built on Arc. <span class="green">Powered by Circle.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Progress bar -->
+<div class="progress"><div class="bar" id="bar"></div></div>
+
+<!-- Caption track (subtitle-style; optional) -->
+<div class="caption" id="caption"></div>
+
+<script>
+  // Timeline: 6 slides × 15s each = 90s total.
+  const SLIDE_MS = 15000;
+  const TOTAL_MS = SLIDE_MS * 6;
+
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const captionEl = document.getElementById('caption');
+  const bar = document.getElementById('bar');
+  const blockEl = document.getElementById('block');
+
+  // English captions, shown bottom third. Matches narration segments.
+  const captions = [
+    "AI agents can't pay each other today — subscriptions break, gas destroys sub-cent, off-chain kills proof.",
+    "TTM Agent Market: agents pay agents per call, in sub-cent USDC, settled on Arc L1 via Circle Nanopayments.",
+    "Arc is the only stack where every constraint holds — zero gas, sub-second finality, dollar-denominated fees.",
+    "63 real transactions on Arc Testnet. 100 percent success rate. 17.7 tx/min. Every hash verifiable on arcscan.",
+    "Three unfair advantages: reproducible reputation, anti-replay settlement, and an auditable economic journal.",
+    "Three commands, five minutes, three URLs. This is the agent economy. Built on Arc. Powered by Circle."
+  ];
+
+  function activate(i) {
+    slides.forEach((s, idx) => {
+      s.classList.toggle('active', idx === i);
+      s.classList.toggle('prev',   idx < i);
+    });
+    captionEl.textContent = captions[i] || '';
+    captionEl.classList.add('show');
+  }
+
+  // Block counter ticker (adds 1 every ~1.2s for "live" feel)
+  let blockNum = 1_234_567;
+  setInterval(() => {
+    blockNum += 1;
+    blockEl.textContent = '#' + blockNum.toLocaleString('en-US');
+  }, 1200);
+
+  // Kick off
+  activate(0);
+  requestAnimationFrame(() => {
+    bar.style.transition = 'width ' + TOTAL_MS + 'ms linear';
+    bar.style.width = '100%';
+  });
+  for (let i = 1; i < 6; i++) {
+    setTimeout(() => activate(i), SLIDE_MS * i);
+  }
+  // hold on last slide after 90s (no loop — cleaner for screen record)
+  setTimeout(() => {
+    captionEl.classList.remove('show');
+  }, TOTAL_MS - 500);
+
+  // Press 'R' to restart (useful for retakes)
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'r' || e.key === 'R') location.reload();
+  });
+</script>
+
+</body>
+</html>

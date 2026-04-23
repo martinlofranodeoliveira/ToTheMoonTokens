@@ -1,0 +1,22 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: tothemoontokens-caddy
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ops/hackathon/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+      - pitch
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

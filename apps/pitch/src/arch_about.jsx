@@ -7,7 +7,7 @@ function Architecture({ navigate }) {
         <span className="mono-s t3" style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>Architecture</span>
         <h1 style={{ margin: 0, fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em' }}>Why Arc + Circle is the only viable stack</h1>
         <p className="t2" style={{ margin: 0, fontSize: 15, maxWidth: 680 }}>
-          Sub-cent agent-to-agent payments require gas denominated in USDC, sub-second finality, and deterministic verifiability. Only one combination clears all three.
+          Sub-cent machine work requires stable pricing, fast settlement, and public verifiability. Arc plus Circle is the only stack in our testing that preserves all three at once.
         </p>
       </div>
 
@@ -66,17 +66,17 @@ function Architecture({ navigate }) {
           {[
             {
               color: 'var(--danger)', title: 'With ETH L1',
-              body: 'Ticket is 0.001 USDC. Gas is $0.50. Publisher loses $499 per 1,000 signals before anyone profits. Marketplace unviable.',
+              body: 'Ticket is 0.001 USDC. Gas is $0.50. The system burns more in gas than the work is worth. Per-action monetization fails immediately.',
               math: '0.001 − 0.50 = −499.99×'
             },
             {
               color: 'var(--warn)', title: 'With a generic L2',
-              body: 'Gas drops, but stays ETH-denominated. A 20% ETH swing changes the effective price of a 0.001 USDC signal by ±2 bps. Pricing is noise, not product.',
-              math: 'gas_volatility ≫ signal_value'
+              body: 'Gas drops, but the fee is still volatile and external to the unit being sold. Margins get noisy exactly where they need to stay crisp.',
+              math: 'fee volatility > action margin'
             },
             {
               color: 'var(--text-2)', title: 'Off-chain',
-              body: 'No hash, no proof. Auditor is a promise. Reputation becomes gossip. Consumer has no way to verify the publisher ever delivered what was paid for.',
+              body: 'No hash, no proof. The auditor becomes a promise instead of a verifier. Buyers cannot independently confirm that paid work really settled.',
               math: 'trust ≠ verification'
             },
           ].map((c, i) => (
@@ -100,10 +100,10 @@ function Architecture({ navigate }) {
         </div>
         <div className="grid-4" style={{ gap: 20 }}>
           {[
-            { label: 'Nanopayments processed', value: '14,822', sub: '+3,091 in last hour', color: 'var(--text)' },
+            { label: 'Transfers processed', value: '63', sub: '100% successful in the recorded batch', color: 'var(--text)' },
             { label: 'Avg cost per tx', value: '$0.000', sub: 'gas = 0 on Arc', color: 'var(--circle-green)' },
-            { label: 'Avg finality', value: '0.41s', sub: 'p95 = 0.72s', color: 'var(--arc-blue)' },
-            { label: 'USDC settled', value: '11.84', sub: 'across 4 publishers', color: 'var(--text)' },
+            { label: 'Latency p50', value: '2.49s', sub: 'p95 = 4.73s end-to-end', color: 'var(--arc-blue)' },
+            { label: 'USDC settled', value: '0.063', sub: '0.001 USDC per action', color: 'var(--text)' },
           ].map((k, i) => (
             <div key={i} className="kpi">
               <span className="label">{k.label}</span>
@@ -126,7 +126,7 @@ function StackDiagram() {
       { icon: 'bank',     label: 'treasury',    sub: 'rebalancer' },
     ]},
     { name: 'Service layer',  color: 'var(--arc-blue)', nodes: [
-      { icon: 'activity',  label: 'FastAPI',         sub: '/market /payments' },
+      { icon: 'activity',  label: 'FastAPI',         sub: '/hackathon /payments' },
       { icon: 'layers',    label: 'Nexus',           sub: 'orchestration' },
       { icon: 'folder',    label: 'Journal',         sub: 'event store' },
       { icon: 'pulse',     label: 'Reputation',      sub: 'scoring engine' },
@@ -180,16 +180,16 @@ const archTd = { padding: '11px 16px' };
 /* ============ ABOUT ============ */
 
 function About({ navigate }) {
-  const team = [
-    { name: 'A. Fasul', role: 'Engineering', avatarId: 'engineer-fasul' },
-    { name: 'R. Costa', role: 'Product', avatarId: 'product-costa' },
-    { name: 'M. Hsu',   role: 'Design', avatarId: 'design-hsu' },
+  const deliveryStack = [
+    { title: 'FastAPI backend', sub: 'payments, settlement verification, demo jobs, and hard guardrails' },
+    { title: 'Public pitch', sub: 'landing plus a 90-second autoplay deck for recording and review' },
+    { title: 'Operational room', sub: 'judge-facing proof panel exposed at /ops/' },
   ];
   const proofs = [
-    { hash: '0x6fc1a092be43d7b8e1240912ab75ae9c83f27d04e5b1c6e2c7a9d4810f2e79a4', desc: 'Initial smoke tx · bootstrap script', when: 'Apr 20, 14:12 UTC' },
-    { hash: '0x3b4d1e812f95a7c3b9e2a0d4817c6b5e9032af44d2e1c8b7a9c5d3e2f1820a92', desc: 'First signal sold in live demo (ETHUSDT)', when: 'Apr 21, 09:04 UTC' },
-    { hash: '0x9c82a5f1e70d4b3a8c9f6e512d4b7a3c8e9f0d1b2c3a4e5f6a7b8c9d0e1f2a3b', desc: 'Treasury rebalance (research_04 top-up)', when: 'Apr 21, 11:47 UTC' },
-    { hash: '0xa714f98e2c5d3b1a6e7f0d9c8b4a2e1f3c5d7b9a0e2f4c6d8b0a2e4f6c8d0a1b', desc: 'Refund by settlement timeout (consumer_02)', when: 'Apr 21, 13:22 UTC' },
+    { hash: '0x6fc1a092be43d7b8e1240912ab75ae9c83f27d04e5b1c6e2c7a9d4810f2e79a4', desc: 'Initial smoke transfer cited across the submission', when: 'Apr 22, 2026' },
+    { hash: '0x01092dbfccb591728a41e14a7716c2ac7aec4d93f478d725590a3a3988b13c9d', desc: 'Batch transfer #63 -> treasury from the 63-tx proof run', when: 'Apr 23, 2026' },
+    { hash: '0xef9dcf454ce5e2763eaff4c49e57f0492defb7b206d646c5579e57ede9e0fb38', desc: 'Batch transfer #62 -> auditor from the proof run', when: 'Apr 23, 2026' },
+    { hash: '0x1ece4fd34bf75d7dbe4feab863846851e61ff3b64fedf4881a0051e14c50d7ec', desc: 'Batch transfer #60 -> research_03 from the proof run', when: 'Apr 23, 2026' },
   ];
 
   return (
@@ -202,22 +202,15 @@ function About({ navigate }) {
         </p>
       </div>
 
-      {/* Team */}
+      {/* Delivery stack */}
       <div style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 14px' }}>Team</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 14px' }}>Delivery stack</h2>
         <div className="grid-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-          {team.map(m => (
-            <div key={m.name} className="card card-pad">
-              <div className="row g12">
-                <Avatar id={m.avatarId} size="lg" letters={m.name.split(' ').map(x=>x[0]).join('')}/>
-                <div className="col g4">
-                  <span style={{ fontWeight: 600 }}>{m.name}</span>
-                  <span className="mono-s t2">{m.role}</span>
-                  <div className="row g8" style={{ marginTop: 4 }}>
-                    <a className="mono-s" style={{ color: 'var(--text-3)' }} href="#"><Icon name="github" size={11}/> github</a>
-                    <a className="mono-s" style={{ color: 'var(--text-3)' }} href="#">linkedin</a>
-                  </div>
-                </div>
+          {deliveryStack.map(item => (
+            <div key={item.title} className="card card-pad">
+              <div className="col g8">
+                <span style={{ fontWeight: 600 }}>{item.title}</span>
+                <span className="mono-s t2">{item.sub}</span>
               </div>
             </div>
           ))}
@@ -229,12 +222,12 @@ function About({ navigate }) {
         <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 14px' }}>Submission artifacts</h2>
         <div className="col g8">
           {[
-            { icon: 'video',  title: '2-min demo video', sub: 'Walkthrough: marketplace → payment flow → explorer', link: 'Open →' },
-            { icon: 'github', title: 'GitHub repo',     sub: 'Infra, contracts, backend, apps/web, apps/pitch', link: 'github.com/ttm/agent-market' },
-            { icon: 'folder', title: 'Hackathon docs',  sub: 'HACKATHON_AGENTIC_ARC.md + paper-mode bootstrap', link: 'View markdown' },
-            { icon: 'sparkles', title: 'X announcement', sub: 'Tagged @buildoncircle @arc @lablabai', link: 'x.com/ttm/status' },
+            { icon: 'video',  title: '90-second deck', sub: 'Autoplay slideshow built for screen capture', href: './pitch-video.html', link: 'Open' },
+            { icon: 'github', title: 'GitHub repo', sub: 'Backend, UI, docs, scripts, and CI', href: 'https://github.com/martinlofranodeoliveira/ToTheMoonTokens', link: 'View repo' },
+            { icon: 'folder', title: 'Operational room', sub: 'Judge-facing proof screen at /ops/', href: '/ops/', link: 'Open room' },
+            { icon: 'sparkles', title: 'Transaction log', sub: '63 settled Arc Testnet transfers with explorer links', href: 'https://github.com/martinlofranodeoliveira/ToTheMoonTokens/blob/main/docs/hackathon/TRANSACTION_LOG.md', link: 'Open log' },
           ].map(a => (
-            <div key={a.title} className="card card-pad row between" style={{ padding: '14px 18px' }}>
+            <a key={a.title} className="card card-pad row between" style={{ padding: '14px 18px', color: 'inherit', textDecoration: 'none' }} href={a.href} target={a.href.startsWith('http') ? '_blank' : undefined} rel={a.href.startsWith('http') ? 'noreferrer' : undefined}>
               <div className="row g12">
                 <div style={{ width: 34, height: 34, borderRadius: 7, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-2)' }}><Icon name={a.icon} size={14}/></div>
                 <div className="col g4">
@@ -242,8 +235,8 @@ function About({ navigate }) {
                   <span className="mono-s t3">{a.sub}</span>
                 </div>
               </div>
-              <a className="btn btn-ghost">{a.link} <Icon name="arrow-r" size={12}/></a>
-            </div>
+              <span className="btn btn-ghost">{a.link} <Icon name="arrow-r" size={12}/></span>
+            </a>
           ))}
         </div>
       </div>

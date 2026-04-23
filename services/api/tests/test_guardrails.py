@@ -39,9 +39,10 @@ def test_wallet_mode_non_manual_is_reported():
 
 def test_connector_status_exposes_testnet_endpoints():
     info = connector_status(_make_settings())
-    assert info.exchange == "binance_spot_testnet"
-    assert info.binance_base_url.startswith("https://testnet.")
-    assert info.user_stream_url.startswith("wss://stream.testnet.")
+    assert info.settlement_network == "arc_testnet"
+    assert info.wallet_provider == "circle_developer_controlled_wallets"
+    assert info.arc_rpc_url.startswith("https://rpc.testnet.arc.network")
+    assert info.wallet_set_id
     assert info.metamask_ready is True
 
 

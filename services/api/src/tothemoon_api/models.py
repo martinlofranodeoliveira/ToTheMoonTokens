@@ -110,10 +110,14 @@ class GuardrailStatus(BaseModel):
 
 
 class ConnectorStatus(BaseModel):
-    exchange: str
+    settlement_network: str
+    wallet_provider: str
     wallet_mode: str
-    binance_base_url: str
-    user_stream_url: str
+    wallet_set_id: str | None = None
+    wallets_configured: int = 0
+    wallets_loaded: bool = False
+    treasury_address: str | None = None
+    arc_rpc_url: str
     metamask_ready: bool
     latency_ms: float | None = None
     reconnect_count: int = 0

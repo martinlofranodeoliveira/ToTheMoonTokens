@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 
+from .circle import circle_client
 from .config import Settings
 from .market_data import connector_state
 from .models import ConnectorStatus, GuardrailStatus, RiskTier
@@ -62,10 +63,14 @@ def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> Guar
 
 def connector_status(settings: Settings) -> ConnectorStatus:
     return ConnectorStatus(
-        exchange=settings.default_exchange,
+        settlement_network="arc_testnet",
+        wallet_provider="circle_developer_controlled_wallets",
         wallet_mode=settings.wallet_mode,
-        binance_base_url=settings.binance_testnet_base_url,
-        user_stream_url=settings.binance_user_data_stream_url,
+        wallet_set_id=settings.circle_wallet_set_id or None,
+        wallets_configured=len(circle_client.roles) if settings.circle_wallet_set_id else 0,
+        wallets_loaded=circle_client.wallets_loaded,
+        treasury_address=circle_client.get_wallet_address("TREASURY"),
+        arc_rpc_url=settings.arc_testnet_rpc_url,
         metamask_ready=settings.wallet_mode == "manual_only",
         latency_ms=connector_state.last_latency_ms or None,
         reconnect_count=connector_state.reconnect_count,

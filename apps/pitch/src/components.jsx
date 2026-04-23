@@ -169,14 +169,14 @@ const ChainStrip = ({ blockNum, nanopayCount, showPaper = true }) => (
   <div className="chain-strip">
     <span className="row g6"><span className="dot"/><strong>Arc Testnet</strong></span>
     <span className="sep">·</span>
-    <span>Chain ID <strong>28882</strong></span>
+    <span>Chain ID <strong>5042002</strong></span>
     <span className="sep">·</span>
     <span>Block <strong className="live-block">#<Ticker value={blockNum}/></strong></span>
     <span className="sep">·</span>
-    <span>RPC <strong>arcscan.app</strong></span>
+    <span>Explorer <strong>testnet.arcscan.app</strong></span>
     <div className="right">
-      {showPaper && <span style={{ color: 'var(--warn)' }}>⬩ paper signals — no mainnet</span>}
-      <span><Ticker value={nanopayCount}/> nanopayments total</span>
+      {showPaper && <span style={{ color: 'var(--warn)' }}>artifact-only demo — no mainnet</span>}
+      <span><Ticker value={nanopayCount}/> real transfers logged</span>
     </div>
   </div>
 );
@@ -189,11 +189,11 @@ const TopNav = ({ active, onNav, connectedAgent = 'consumer_01' }) => (
       <span>TTM Agent Market</span>
     </div>
     <nav>
-      <a className={active==='marketplace' ? 'active' : ''} onClick={() => onNav('marketplace')}>Marketplace</a>
-      <a className={active==='dashboard' ? 'active' : ''} onClick={() => onNav('dashboard')}>Agents</a>
+      <a href="/ops/">Operational Room</a>
       <a className={active==='architecture' ? 'active' : ''} onClick={() => onNav('architecture')}>Architecture</a>
       <a className={active==='about' ? 'active' : ''} onClick={() => onNav('about')}>About</a>
-      <a href="https://github.com" target="_blank" rel="noreferrer"><Icon name="github" size={12}/> GitHub</a>
+      <a href="./pitch-video.html">90s Deck</a>
+      <a href="https://github.com/martinlofranodeoliveira/ToTheMoonTokens" target="_blank" rel="noreferrer"><Icon name="github" size={12}/> GitHub</a>
     </nav>
     <div className="right">
       <LivePulse label="Connected"/>

@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 API_SRC = ROOT / "services" / "api" / "src"
 EVIDENCE_DIR = ROOT / "ops" / "evidence"
 EVIDENCE_FILE = EVIDENCE_DIR / f"guardrail-regression-{datetime.now(timezone.utc).date().isoformat()}.json"
+PRIVATE_KEY_SENTINEL = "-----BEGIN " + "RSA PRIVATE " + "KEY-----"
 
 sys.path.insert(0, str(API_SRC))
 
@@ -84,6 +85,28 @@ def _python_grep(pattern: str, paths: Iterable[str], ignore_case: bool = True) -
                 continue
             for idx, line in enumerate(text.splitlines(), start=1):
                 if regex.search(line):
+                    hits.append(f"{p.relative_to(ROOT)}:{idx}:{line.strip()[:160]}")
+    return hits
+
+
+def _scan_literal(literal: str, paths: Iterable[str], ignore_case: bool = True) -> list[str]:
+    needle = literal.lower() if ignore_case else literal
+    hits: list[str] = []
+    for rel in paths:
+        base = ROOT / rel
+        if not base.exists():
+            continue
+        targets = base.rglob("*") if base.is_dir() else [base]
+        for p in targets:
+            if not p.is_file() or p.stat().st_size > 2_000_000:
+                continue
+            try:
+                text = p.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for idx, line in enumerate(text.splitlines(), start=1):
+                haystack = line.lower() if ignore_case else line
+                if needle in haystack:
                     hits.append(f"{p.relative_to(ROOT)}:{idx}:{line.strip()[:160]}")
     return hits
 
@@ -160,21 +183,24 @@ def test_binance_order_route() -> Finding:
 
 
 def test_credential_leak() -> Finding:
-    pattern = (
-        r"TEST_API_KEY:[0-9a-f]"
-        r"|LIVE_API_KEY:[0-9a-f]"
-        r"|KIT_KEY:[0-9a-f]"
-        r"|sk_live_[0-9a-zA-Z]"
-        r"|-----BEGIN RSA PRIVATE KEY-----"
-    )
+    pattern_parts = [
+        r"TEST_API_KEY:[0-9a-f]",
+        r"LIVE_API_KEY:[0-9a-f]",
+        r"KIT_KEY:[0-9a-f]",
+        r"sk_" + r"live_[0-9a-zA-Z]",
+    ]
     raw = _rg(
-        pattern,
+        "|".join(pattern_parts),
         "services",
         "apps",
         "docs",
         "scripts",
         "ops/hackathon",
         "ops/arc_circle_hackathon_backlog.json",
+    )
+    raw += _scan_literal(
+        PRIVATE_KEY_SENTINEL,
+        ("services", "apps", "docs", "scripts", "ops/hackathon", "ops/arc_circle_hackathon_backlog.json"),
     )
     hits = [h for h in raw if ".env" not in h and "node_modules" not in h]
     hits = [h for h in hits if "example" not in h.lower() and "your_key_here" not in h.lower()]
@@ -183,7 +209,7 @@ def test_credential_leak() -> Finding:
         'r"|LIVE_API_KEY:[0-9a-f]"',
         'r"|KIT_KEY:[0-9a-f]"',
         'r"|sk_live_[0-9a-zA-Z]"',
-        'r"|-----BEGIN RSA PRIVATE KEY-----"',
+        'PRIVATE_KEY_SENTINEL',
     )
     hits = [
         h

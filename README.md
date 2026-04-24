@@ -1,89 +1,153 @@
-# ToTheMoonTokens
+# TTM Agent Market
 
-ToTheMoonTokens agora existe como um vertical de hackathon focado em agent economy sobre Arc e Circle. O objetivo do repositório é demonstrar request, pagamento, settlement, review e delivery de artefatos pagos com trilha auditável.
+TTM Agent Market is a hackathon project for the **Agentic Economy on Arc**: a judge-facing marketplace where software agents can request, pay for, verify, and unlock machine work in **USDC on Arc Testnet**.
 
-## Escopo atual
+The shipped demo is centered on a simple public flow:
 
-- marketplace de artefatos e entregas do hackathon
-- fluxo pago de request -> settlement -> review -> delivery
-- journal estruturado para evidencia auditavel
-- reputacao, status de job e verificação de settlement
-- contexto de mercado apenas como insumo do vertical
-- demo pronta para submissao, pitch e avaliacao
+1. a buyer selects a priced artifact
+2. the API creates a checkout and treasury route
+3. USDC is sent on Arc Testnet
+4. settlement is verified from the transaction proof
+5. delivery is unlocked only after the payment gate passes
 
-## O que este repo nao e
+This repository is intentionally scoped to that flow. It packages a public demo, a public proof endpoint, and the evidence used in the submission.
 
-- nao e um bot de trading
-- nao e um produto de live execution
-- nao e uma camada de orchestration genérica
-- nao vende prompt usage; vende machine work com settlement e delivery
+## What Judges Can Verify
 
-## Estrutura
+Public surfaces:
 
-- `services/api`: API FastAPI com pagamentos, settlement, jobs, demo flow, reputacao e artefatos do vertical
-- `apps/web`: sala visual do hackathon para ler request, review, delivery e evidencia
-- `docs/hackathon`: narrativa, plano e material de submissao
-- `ops/hackathon`: bootstrap e scripts de apoio para a entrega do hackathon
+- Pitch site: `http://34.56.193.221/`
+- Live marketplace / operations room: `http://34.56.193.221/ops/`
+- Public proof JSON: `http://34.56.193.221/api/hackathon/summary`
+- Health check: `http://34.56.193.221/health`
 
-## Runtime para jurados
+Current proof surface exposes:
 
-Nexus foi usado para construir e validar partes do sistema, mas **nao e
-necessario para rodar a entrega localmente**. Para video, submissao e validacao
-do jurado, basta subir:
+- **63 settled Arc Testnet transfers**
+- **USDC-denominated artifact pricing**
+- **Circle developer-controlled wallet routing**
+- **public transaction hashes and delivery state**
 
-- API FastAPI em `:8010`
-- sala operacional em `:4173`
-- pitch site em `:4174`
+## What The Project Demonstrates
 
-O runbook final esta em `docs/hackathon/FINAL_HANDOFF.md`.
+- priced machine-work artifacts instead of vague AI access
+- explicit checkout, settlement, review, and delivery gates
+- public proof that can be inspected by judges
+- deterministic hackathon evidence captured in the repository
 
-## API principal
+Artifact examples in the marketplace:
 
-- `GET /api/payments/catalog`, `POST /api/payments/intent`, `POST /api/payments/verify`, `POST /api/payments/execute`: cobrança, verificação e unlock de artefatos
-- `GET /api/jobs`, `POST /api/jobs`, `POST /api/jobs/{id}/unlock_payment`, `.../reserve_work`, `.../request_review`, `.../deliver`: ciclo do job pago
-- `POST /api/demo/jobs/request`, `.../pay`, `.../execute`, `.../review`, `.../deliver`: fluxo demo de request -> delivery
-- `POST /api/settlements/verify`: gate de settlement com proteção contra replay e timeout
-- `GET /api/agents/{id}/reputation`: reputação reprodutível do agente
-- `GET /api/dashboard`: snapshot único do vertical com guardrails, conectores, journal e performance
-- `POST /api/journal/trades`, `GET /api/journal/trades`, `GET /api/journal/performance`: journal estruturado e agregados
-- `GET /api/market/health`, `GET /api/market/ticker`, `GET /api/market/depth`: leitura de mercado usada como contexto do vertical
+- `Delivery Packet`
+- `Review Bundle`
+- `Market Intelligence Brief`
 
-## Quickstart
+## What Ships In This Repo
 
-1. Copie `.env.example` para `.env`.
-2. Rode `make api-install`.
-3. Rode `make api-test`.
-4. Rode `make api-run`.
-5. Em outro terminal, rode `make web-serve`.
-6. Em outro terminal, rode `make pitch-serve`.
-7. Abra `http://127.0.0.1:8010/docs` para a Swagger UI, `http://127.0.0.1:4173` para a sala operacional e `http://127.0.0.1:4174` para o pitch.
+- `services/api`
+  FastAPI backend for catalog, checkout intents, payment verification, settlement verification, reputation, demo jobs, and hackathon summary endpoints.
 
-Ou use o bootstrap local sem Nexus:
+- `apps/web`
+  Public marketplace / operations surface used in the judge flow.
+
+- `apps/pitch`
+  Public pitch site and the 90-second autoplay deck used for recording.
+
+- `docs/hackathon`
+  Submission narrative, shooting script, proof references, and handoff material.
+
+- `ops/evidence`
+  Versioned evidence used by the public summary endpoint.
+
+## Local Quickstart
+
+### Option 1: Run the three public surfaces directly
+
+```bash
+make api-install
+make api-test
+make api-run
+```
+
+In separate terminals:
+
+```bash
+make web-serve
+make pitch-serve
+```
+
+Open:
+
+- API docs: `http://127.0.0.1:8010/docs`
+- Marketplace: `http://127.0.0.1:4173`
+- Pitch: `http://127.0.0.1:4174`
+
+### Option 2: Local demo bootstrap
 
 ```bash
 ./scripts/run-local-demo.sh start
 ./scripts/run-local-demo.sh status
 ```
 
-Ou use containers:
+### Option 3: Docker Compose
 
 ```bash
-make docker-build && make docker-up
-# API:  http://127.0.0.1:8010
-# Web:  http://127.0.0.1:4173
-# Pitch: http://127.0.0.1:4174
+make docker-build
+make docker-up
 make docker-down
 ```
 
-## Qualidade e operacao
+## API Surfaces Used In The Demo
 
-- `make api-cov`: testes com cobertura
-- `make api-lint` / `make api-format`: `ruff`
-- `make api-typecheck`: `mypy`
-- `make validation-evidence`: coleta evidencias locais do runtime do projeto e do review gate
-- metricas Prometheus em `GET /metrics`
-- logs estruturados em JSON via `structlog`
+- `GET /api/payments/catalog`
+- `POST /api/payments/intent`
+- `POST /api/payments/verify`
+- `POST /api/payments/execute`
+- `POST /api/settlements/verify`
+- `GET /api/hackathon/summary`
+- `GET /api/dashboard`
+- `POST /api/demo/jobs/request`
+- `POST /api/demo/jobs/{payment_id}/pay`
+- `POST /api/demo/jobs/{payment_id}/execute`
+- `POST /api/demo/jobs/{payment_id}/review`
+- `POST /api/demo/jobs/{payment_id}/deliver`
 
-## Regra principal
+## Quality Gate
 
-Se uma mudança empurra o repo para fora do fluxo request -> pagamento -> settlement -> review -> delivery, ela está fora do escopo do hackathon.
+Core checks used for release validation:
+
+```bash
+cd services/api
+./.venv/bin/python -m pytest --cov --cov-report=term-missing
+./.venv/bin/python -m ruff check .
+./.venv/bin/python -m ruff format --check .
+./.venv/bin/python -m mypy
+```
+
+Guardrail regression:
+
+```bash
+python scripts/verify_guardrails.py
+```
+
+VM performance smoke:
+
+```bash
+python scripts/bench_api.py --base-url http://34.56.193.221 --label VM-post-deploy --n 200 --concurrency 8
+```
+
+## Submission Notes
+
+- The public demo is designed to be reviewed from the browser without local secrets.
+- The proof endpoint is backed by repository evidence and live connector status.
+- The video flow is documented in:
+  - `docs/hackathon/VIDEO_SHOOTING_SCRIPT.md`
+  - `docs/hackathon/narration-script.md`
+  - `docs/hackathon/FINAL_HANDOFF.md`
+
+## Scope Boundary
+
+This repository is for a hackathon-grade, judge-facing **paid machine work marketplace on Arc Testnet**.
+
+Any change that weakens the core flow below is out of scope:
+
+**request -> checkout -> settlement verification -> review -> delivery**

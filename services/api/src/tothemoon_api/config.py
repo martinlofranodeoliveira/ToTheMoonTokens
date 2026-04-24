@@ -44,6 +44,10 @@ class Settings(BaseSettings):
         "wss://stream.testnet.binance.vision/ws", alias="BINANCE_USER_DATA_STREAM_URL"
     )
     arc_testnet_rpc_url: str = Field("https://rpc.testnet.arc.network", alias="ARC_TESTNET_RPC_URL")
+    arc_native_usdc_token_address: str = Field(
+        "0x3600000000000000000000000000000000000000",
+        alias="ARC_NATIVE_USDC_TOKEN_ADDRESS",
+    )
     cors_allowed_origins: str | list[str] = Field(
         _DEFAULT_CORS_ORIGINS, alias="CORS_ALLOWED_ORIGINS"
     )

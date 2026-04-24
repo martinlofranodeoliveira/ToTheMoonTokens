@@ -43,7 +43,7 @@ Eight wallets were created under wallet set `e980936d-182e-50f6-bc6f-e5403777759
 1. **Console → SDK parity.** Registering the Entity Secret ciphertext via the Console, then initializing the SDK with the matching hex, was a painless handoff.
 2. **Dev-Controlled Wallets API shape.** The `initiateDeveloperControlledWalletsClient` / `createWalletSet` / `createWallets(count=N)` triad maps exactly onto a "provision agents in code" mental model. Zero friction to go from 2 wallets to 8.
 3. **Transaction state machine.** `state in {COMPLETE, FAILED, CANCELLED, DENIED}` as a terminal set is the right abstraction; it makes polling trivial and deterministic.
-4. **Arc Testnet finality.** Sub-second onchain settlement is the core of our pitch. No other stack we evaluated (ETH L1, Polygon, Optimism) made a $0.0001 per-call economy viable; on Arc it just works.
+4. **Arc Testnet finality.** Sub-second onchain settlement is the core of our pitch. No other stack we evaluated (ETH L1, Polygon, Optimism) made a $0.001 per-call economy viable at demo scale; on Arc it just works.
 5. **USDC-denominated fees.** Removed the need to manage a second asset for gas. Our pricing model is `amount + Arc fee`, both in USDC, both predictable.
 6. **Arc explorer quality.** `testnet.arcscan.app` is judge-friendly — clean URLs, linkable tx pages, no ad clutter. We embed explorer links everywhere in the UI.
 
@@ -69,4 +69,4 @@ Eight wallets were created under wallet set `e980936d-182e-50f6-bc6f-e5403777759
 
 ## Conclusion
 
-The Circle + Arc combination is, unironically, the only stack we evaluated where a $0.0001-per-call agent marketplace is economically viable. Finality is sub-second, fees are dollar-denominated, and the SDK shape maps cleanly onto multi-agent topologies. The friction points above are tooling polish, not architectural — and most of them can be closed with a Python SDK and a `waitForTransaction` helper. We built 8 agent wallets, 21 backlog tasks, and a 6-screen pitch site against this platform in under 5 days. That's the DX sign-off we can give.
+The Circle + Arc combination is, unironically, the only stack we evaluated where a $0.001-per-call agent marketplace is economically viable. Finality is sub-second, fees are dollar-denominated, and the SDK shape maps cleanly onto multi-agent topologies. The friction points above are tooling polish, not architectural — and most of them can be closed with a Python SDK and a `waitForTransaction` helper. We built 8 agent wallets, 21 backlog tasks, and a 6-screen pitch site against this platform in under 5 days. That's the DX sign-off we can give.

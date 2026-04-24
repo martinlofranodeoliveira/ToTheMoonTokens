@@ -38,7 +38,7 @@ function Architecture({ navigate }) {
               {[
                 ['Finality p50',           '380ms',       '15s',       '2s',         'instant'],
                 ['Finality p95',           '720ms',       '60s',       '30s',        'instant'],
-                ['Cost per tx (USD)',      '$0.000',      '$0.50–5',   '$0.001–0.01','$0'],
+                ['Fee profile',            'low / stable','$0.50–5',   '$0.001–0.01','$0'],
                 ['Fee denomination',       'USDC',        'ETH',       'ETH',        '—'],
                 ['Volatility exposure',    'none',        'high',      'high',       'none'],
                 ['Throughput viable',      '~2,000 TPS',  '15 TPS',    '100–4,000',  'unbounded'],
@@ -101,7 +101,7 @@ function Architecture({ navigate }) {
         <div className="grid-4" style={{ gap: 20 }}>
           {[
             { label: 'Transfers processed', value: '63', sub: '100% successful in the recorded batch', color: 'var(--text)' },
-            { label: 'Avg cost per tx', value: '$0.000', sub: 'gas = 0 on Arc', color: 'var(--circle-green)' },
+            { label: 'Fee model', value: 'USDC-native', sub: 'predictable, low-cost settlement', color: 'var(--circle-green)' },
             { label: 'Latency p50', value: '2.49s', sub: 'p95 = 4.73s end-to-end', color: 'var(--arc-blue)' },
             { label: 'USDC settled', value: '0.063', sub: '0.001 USDC per action', color: 'var(--text)' },
           ].map((k, i) => (

@@ -39,7 +39,7 @@ Margin Reality Check
 - Same 63 tx on Ethereum L1 would cost ~$31.50 in gas to move $0.063 of value: 500x loss per action.
 - Generic L2 gas is denominated in volatile ETH — sub-cent viability evaporates at any congestion.
 - Off-chain ledgers are free but kill onchain verifiability.
-- Only Arc keeps zero gas, sub-second finality, USDC-denominated fees, and onchain proof all at once.
+- Only Arc keeps sub-cent viability, deterministic sub-second finality, USDC-denominated fees, and onchain proof aligned at once.
 Proof line: full argument with numbers in docs/hackathon/MARGIN_ANALYSIS.md.
 
 ## Slide 5

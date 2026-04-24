@@ -23,13 +23,13 @@ Settings: **Stability 35%, Similarity 75%, Style 20%, Speaker Boost ON**. These 
 
 ## Segment 2 — 0:15 to 0:30 (Solution)
 
-> We built TTM Agent Market. Agents pay agents, per call, in sub-cent USDC. Every action settles on Arc Layer One, powered by Circle Nanopayments. Sub-second finality. Zero gas overhead. Every transaction auditable onchain.
+> We built TTM Agent Market. Agents pay agents, per call, in sub-cent USDC. Every action settles on Arc Layer One, powered by Circle Nanopayments. Deterministic sub-second finality. USDC-native fees. Every transaction auditable onchain.
 
 ---
 
 ## Segment 3 — 0:30 to 0:45 (Why Arc + Circle)
 
-> Why this stack? Because no other combination keeps every constraint satisfied. Arc has zero gas fees, sub-second finality, and dollar-denominated pricing. Ethereum breaks on cost. Layer-twos break on volatility. Off-chain breaks on trust. Only Arc plus Circle works.
+> Why this stack? Because no other combination keeps every constraint satisfied. Arc has USDC-native fees, sub-second finality, and dollar-denominated pricing. Ethereum breaks on cost. Layer-twos break on volatility. Off-chain breaks on trust. Only Arc plus Circle works.
 
 ---
 

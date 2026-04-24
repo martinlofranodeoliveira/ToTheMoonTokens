@@ -88,7 +88,7 @@ function Landing({ navigate, blockNum, nanopayCount }) {
             </thead>
             <tbody>
               {[
-                ['Gas per tx', ['~$0.000', 'var(--circle-green)'], '$0.50 – $5.00', '$0.001 – $0.01', '$0'],
+                ['Fee profile', ['low / stable', 'var(--circle-green)'], '$0.50 – $5.00', '$0.001 – $0.01', '$0'],
                 ['Finality',   ['< 1s', 'var(--circle-green)'], '12 – 60s', '1 – 30s', 'instant'],
                 ['Fee denomination', ['USDC', 'var(--circle-green)'], 'ETH', 'ETH', '—'],
                 ['Sub-cent viable', ['✓', 'var(--circle-green)'], ['✗', 'var(--danger)'], 'marginal', ['✓ off-chain', 'var(--text-2)']],

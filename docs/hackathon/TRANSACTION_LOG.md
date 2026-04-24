@@ -96,4 +96,4 @@ Raw JSON evidence: [`ops/evidence/nanopayments-batch-2026-04-23.json`](../../ops
 | 62 | auditor | `0xef9dcf454ce5e2763eaff4c49e57f0492defb7b206d646c5579e57ede9e0fb38` | 2471 | [view](https://testnet.arcscan.app/tx/0xef9dcf454ce5e2763eaff4c49e57f0492defb7b206d646c5579e57ede9e0fb38) |
 | 63 | treasury | `0x01092dbfccb591728a41e14a7716c2ac7aec4d93f478d725590a3a3988b13c9d` | 2455 | [view](https://testnet.arcscan.app/tx/0x01092dbfccb591728a41e14a7716c2ac7aec4d93f478d725590a3a3988b13c9d) |
 
-Every hash above is a real ERC-20 USDC transfer of 0.001 USDC on Arc Testnet. Any of them can be independently verified at [testnet.arcscan.app](https://testnet.arcscan.app).
+Every hash above is a real USDC transfer of 0.001 USDC on Arc Testnet. Any of them can be independently verified at [testnet.arcscan.app](https://testnet.arcscan.app).

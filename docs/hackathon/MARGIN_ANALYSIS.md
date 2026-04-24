@@ -23,18 +23,18 @@ Every transaction hash is verifiable on [testnet.arcscan.app](https://testnet.ar
 
 ## 2. The four stacks we compared
 
-For a single ERC-20 transfer of 0.001 USDC (our unit of economic action), we looked at the cost structure on four stacks.
+For a single USDC transfer of 0.001 USDC (our unit of economic action), we looked at the cost structure on four stacks.
 
 | Stack | Gas per tx | Finality | Fee denomination | Cost vs. our ticket |
 |---|---|---|---|---|
-| **Arc L1 (testnet / mainnet)** | **~$0** | **<1s** | **USDC** | **0× — break-even on gas** |
+| **Arc L1 (testnet / mainnet)** | **low / predictable** | **<1s** | **USDC** | **sub-cent viable** |
 | Ethereum L1 | $0.50 – $5.00 | 12–60s | ETH (volatile) | 500× – 5,000× over-cost |
 | Generic L2 (Arbitrum, OP) | $0.001 – $0.01 | 1–30s | ETH (volatile) | 1× – 10× over-cost |
 | Off-chain ledger | $0 | instant | USD (database) | 0× but **zero verifiability** |
 
 ### 2.1 Why Ethereum L1 is instantly disqualified
 
-At a ticket of $0.001 per call and a gas floor of ~$0.50 per ERC-20 transfer:
+At a ticket of $0.001 per call and a gas floor of ~$0.50 per transfer:
 
 - **Cost / revenue ratio per tx:** $0.50 / $0.001 = **500×**
 - **Break-even ticket:** ≥ $0.50 per call — **500× our target**
@@ -44,7 +44,7 @@ Ethereum L1 gas does not make agent commerce "expensive" — it makes it **arith
 
 ### 2.2 Why generic L2s are fragile
 
-L2s (Arbitrum, Optimism, Base) bring gas down to the $0.001–$0.01 range per ERC-20 transfer. That is *almost* our ticket. Two remaining killers:
+L2s (Arbitrum, Optimism, Base) bring gas down to the $0.001–$0.01 range per transfer. That is *almost* our ticket. Two remaining killers:
 
 - **Volatility:** L2 gas is denominated in ETH. A 2× move in ETH price doubles our gas cost overnight. Pricing an agent product at $0.001 USDC when the variable cost is $0.0015 ± 50% is gambling, not a business.
 - **No guarantee on sub-cent:** During peak L2 congestion (seen multiple times in 2024–2025), gas rose above $0.05, which is **50× our ticket**.
@@ -66,7 +66,7 @@ The moment the economic unit depends on trust in a single operator, agent-to-age
 Arc L1 gives us:
 
 - **Dollar-denominated fees** (USDC-native, not ETH) — pricing is stable
-- **Near-zero gas per transaction** — 0.001 USDC ticket survives
+- **USDC-native, predictable fees** — 0.001 USDC ticket survives
 - **Sub-second finality** — the "live" experience of agent interaction
 - **Onchain verifiability** — every tx hash is on [testnet.arcscan.app](https://testnet.arcscan.app)
 - **Circle Nanopayments + Dev-Controlled Wallets on top** — production-grade wallet identity and payment orchestration without building custodial logic
@@ -80,7 +80,7 @@ We did not pick Arc + Circle because it was easy or because we had contacts ther
 Full tx-by-tx log: [`docs/hackathon/TRANSACTION_LOG.md`](TRANSACTION_LOG.md)
 Raw evidence JSON: [`ops/evidence/nanopayments-batch-2026-04-23.json`](../../ops/evidence/nanopayments-batch-2026-04-23.json)
 
-Spot-check any of the 63 hashes on [testnet.arcscan.app](https://testnet.arcscan.app) — each is a real, settled ERC-20 USDC transfer between dev-controlled wallets provisioned by our bootstrap.
+Spot-check any of the 63 hashes on [testnet.arcscan.app](https://testnet.arcscan.app) — each is a real, settled USDC transfer between dev-controlled wallets provisioned by our bootstrap.
 
 **Observed batch metrics (2026-04-23 run):**
 

@@ -152,7 +152,7 @@ function buildComparisonTable() {
   const widths = [2160, 1800, 1800, 1800, 1800]; // sums to 9360
   const rows = [
     ["", "Arc L1", "ETH L1", "Generic L2", "Off-chain"],
-    ["Gas per tx", "~$0", "$0.50–5", "$0.001–0.01 in ETH", "$0"],
+    ["Fee profile", "low / stable", "$0.50–5", "$0.001–0.01 in ETH", "$0"],
     ["Finality", "<1s", "12–60s", "1–30s", "instant"],
     ["Fee denomination", "USDC", "ETH", "ETH", "—"],
     ["Sub-cent viable", "YES", "NO", "marginal", "YES"],
@@ -337,7 +337,7 @@ children.push(
 );
 children.push(
   p(
-    "We chose Arc + Circle deliberately because it is the only combination where $0.0001-per-call economics is viable today. Gas is zero. Finality is sub-second. Fees are dollar-denominated. Settlement is verifiable in arcscan.app. Everything else — off-chain ledgers, Ethereum L1, generic L2s — breaks at least one of those four constraints and makes sub-cent machine-to-machine commerce theater."
+    "We chose Arc + Circle deliberately because it is the only combination where sub-cent economics is viable today. Fees are USDC-native and predictable. Finality is sub-second. Settlement is verifiable in arcscan.app. Everything else — off-chain ledgers, Ethereum L1, generic L2s — breaks at least one of those constraints and makes sub-cent machine-to-machine commerce theater."
   )
 );
 
@@ -366,7 +366,7 @@ children.push(numbered("Delivery unlocks only after verification passes."));
 children.push(numbered("Reputation updates from the verified outcome, deterministic and auditable."));
 children.push(
   p(
-    "The whole loop is reproducible, verifiable, and cheap enough that a single call at $0.0001 is economically real, not a demo artifact. Nothing in the flow requires trusting us."
+    "The whole loop is reproducible, verifiable, and cheap enough that a single 0.001 USDC call is economically real, not a demo artifact. Nothing in the flow requires trusting us."
   )
 );
 
@@ -374,7 +374,7 @@ children.push(
 children.push(h1("4. Why Arc + Circle is the only stack that works"));
 children.push(
   p(
-    "We evaluated four alternatives before committing. Only one combination keeps all four constraints simultaneously satisfied: near-zero gas, sub-second finality, dollar-denominated fees, and onchain verifiability."
+    "We evaluated four alternatives before committing. Only one combination keeps all four constraints simultaneously satisfied: sub-cent viability, sub-second finality, USDC-native fees, and onchain verifiability."
   )
 );
 children.push(buildComparisonTable());

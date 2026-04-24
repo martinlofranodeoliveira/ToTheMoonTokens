@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal, ROUND_HALF_UP
 
 from fastapi import APIRouter, HTTPException
 
@@ -16,6 +17,21 @@ from .models import (
 from .settlement import SettlementRequest, verify_settlement
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
+
+
+def _looks_like_evm_address(value: str | None) -> bool:
+    if not value or not value.startswith("0x") or len(value) != 42:
+        return False
+    try:
+        int(value[2:], 16)
+        return True
+    except ValueError:
+        return False
+
+
+def _to_native_usdc_units(amount: float) -> int:
+    scaled = Decimal(str(amount)) * (Decimal(10) ** 18)
+    return int(scaled.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 ARTIFACT_CATALOG: dict[str, BillableArtifact] = {
     "artifact_delivery_packet": BillableArtifact(
@@ -101,15 +117,45 @@ def verify_payment(request: PaymentVerificationRequest):
     settings = get_settings()
     artifact_id = str(intent["artifact_id"])
     work_proof = f"payment-intent:{request.payment_id}:{artifact_id}"
+    buyer_address = str(intent["buyer_address"])
+    deposit_address = str(intent["deposit_address"])
+    native_amount = _to_native_usdc_units(float(intent["amount_usd"]))
+    mock_sender = (
+        buyer_address
+        if _looks_like_evm_address(buyer_address)
+        else "0x00000000000000000000000000000000000000bb"
+    )
 
     def _mock_receipt(tx_hash: str) -> dict[str, object]:
         return {
             "status": "0x1",
-            "to": str(intent["deposit_address"]),
+            "from": mock_sender,
+            "to": deposit_address,
             "transactionHash": tx_hash,
+            "value": hex(native_amount),
+            "logs": [
+                {
+                    "address": "0x1800000000000000000000000000000000000000",
+                    "topics": [
+                        "0x62f084c00a442dcf51cdbb51beed2839bf42a268da8474b0e98f38edb7db5a22",
+                        f"0x{'0' * 24}{mock_sender[2:]}",
+                        f"0x{'0' * 24}{deposit_address[2:]}",
+                    ],
+                    "data": hex(native_amount),
+                }
+            ],
+        }
+
+    def _mock_transaction(tx_hash: str) -> dict[str, object]:
+        return {
+            "hash": tx_hash,
+            "from": mock_sender,
+            "to": deposit_address,
+            "value": hex(native_amount),
         }
 
     receipt_fetcher = _mock_receipt if "mock" in request.tx_hash.lower() else None
+    transaction_fetcher = _mock_transaction if "mock" in request.tx_hash.lower() else None
     settlement_result = verify_settlement(
         SettlementRequest(
             payment_intent_id=request.payment_id,
@@ -117,11 +163,14 @@ def verify_payment(request: PaymentVerificationRequest):
             agent_id="consumer_01",
             amount=float(intent["amount_usd"]),
             tx_hash=request.tx_hash,
-            expected_receiver=str(intent["deposit_address"]),
+            expected_sender=buyer_address if _looks_like_evm_address(buyer_address) else None,
+            expected_receiver=deposit_address,
+            expected_token_address=settings.arc_native_usdc_token_address,
             work_proof=work_proof,
             timeout_s=settings.marketplace_settlement_timeout_s,
         ),
         receipt_fetcher=receipt_fetcher,
+        transaction_fetcher=transaction_fetcher,
     )
 
     if settlement_result.status == "SETTLED":

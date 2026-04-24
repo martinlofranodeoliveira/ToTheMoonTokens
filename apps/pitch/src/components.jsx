@@ -184,15 +184,48 @@ const ChainStrip = ({ blockNum, nanopayCount, showPaper = true }) => (
 // ---------- Top nav ----------
 const TopNav = ({ active, onNav, connectedAgent = 'consumer_01' }) => (
   <div className="topnav">
-    <div className="brand" onClick={() => onNav('landing')} style={{ cursor: 'pointer' }}>
+    <a className="brand" href="/">
       <span className="brand-mark"/>
       <span>TTM Agent Market</span>
-    </div>
-    <nav>
-      <a href="/ops/">Operational Room</a>
-      <a className={active==='architecture' ? 'active' : ''} onClick={() => onNav('architecture')}>Architecture</a>
-      <a className={active==='about' ? 'active' : ''} onClick={() => onNav('about')}>About</a>
-      <a href="./pitch-video.html">90s Deck</a>
+    </a>
+    <nav aria-label="Primary">
+      <a
+        className={active==='landing' ? 'active' : ''}
+        href="/"
+        onClick={(event) => {
+          if (active === 'landing') {
+            event.preventDefault();
+            onNav('landing');
+          }
+        }}
+      >
+        Pitch
+      </a>
+      <a href="/ops/">Marketplace</a>
+      <a href="/ops/#agents">Agents</a>
+      <a
+        className={active==='architecture' ? 'active' : ''}
+        href="#architecture"
+        onClick={(event) => {
+          event.preventDefault();
+          onNav('architecture');
+        }}
+      >
+        Architecture
+      </a>
+      <a
+        className={active==='about' ? 'active' : ''}
+        href="#about"
+        onClick={(event) => {
+          event.preventDefault();
+          onNav('about');
+        }}
+      >
+        About
+      </a>
+      <a href="/pitch-video.html">90s Deck</a>
+      <a href="/api/hackathon/summary" target="_blank" rel="noreferrer">Proof JSON</a>
+      <a href="/docs" target="_blank" rel="noreferrer">Swagger</a>
       <a href="https://github.com/martinlofranodeoliveira/ToTheMoonTokens" target="_blank" rel="noreferrer"><Icon name="github" size={12}/> GitHub</a>
     </nav>
     <div className="right">

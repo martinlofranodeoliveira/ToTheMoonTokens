@@ -25,7 +25,7 @@ make demo-status
 ### URLs do demo
 
 - Swagger UI: `http://127.0.0.1:8010/docs`
-- sala operacional: `http://127.0.0.1:4173`
+- marketplace ao vivo: `http://127.0.0.1:4173`
 - pitch site: `http://127.0.0.1:4174`
 
 ### Encerrar
@@ -52,7 +52,8 @@ make demo-stop
 6. Rode `POST /api/payments/execute` com:
    ```json
    {
-     "artifact_id": "artifact_review_bundle"
+     "artifact_id": "artifact_review_bundle",
+     "payment_id": "<payment_id retornado no intent>"
    }
    ```
 7. Rode o fluxo demo curto:
@@ -61,16 +62,16 @@ make demo-stop
    - `POST /api/demo/jobs/{id}/execute`
    - `POST /api/demo/jobs/{id}/review?approve=true`
    - `POST /api/demo/jobs/{id}/deliver`
-8. Abra a sala operacional em `:4173`, clique em refresh e mostre:
-   - guardrails
-   - evidence journal
-   - artifact board
-   - market heartbeat como contexto, nao como produto principal
+8. Abra o marketplace em `:4173`, clique em refresh e mostre:
+   - catalogo de artefatos
+   - checkout desk com payment intent
+   - live settlements
+   - active orders
 
 ## O que dizer explicitamente
 
 - "Nexus foi usado para construir e validar o sistema, mas o demo que o jurado roda localmente nao precisa iniciar Nexus."
-- "O produto nao e live trading. E uma artifact room para machine work pago."
+- "O produto nao e live trading. E um marketplace de artefatos pagos para machine work."
 - "A entrega fica bloqueada ate settlement e review."
 - "O tx hash em Arc testnet e a ancora onchain do walkthrough."
 
@@ -81,7 +82,7 @@ make demo-stop
 - Swagger UI com `POST /api/payments/intent`
 - Arcscan com o tx hash real
 - Swagger UI com `POST /api/payments/verify`
-- sala operacional `apps/web`
+- marketplace `apps/web`
 
 ## Arquivos para colar no formulario
 

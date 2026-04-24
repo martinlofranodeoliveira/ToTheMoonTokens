@@ -58,10 +58,11 @@ def test_payment_verification_fails_with_invalid_tx():
 def test_job_lifecycle_requires_payment():
     # Attempt to execute without payment
     response = client.post(
-        "/api/payments/execute", json={"artifact_id": "artifact_delivery_packet"}
+        "/api/payments/execute",
+        json={"artifact_id": "artifact_delivery_packet", "payment_id": "missing-payment"},
     )
-    assert response.status_code == 402
-    assert "Payment required" in response.json()["detail"]
+    assert response.status_code == 404
+    assert "Payment intent not found" in response.json()["detail"]
 
     # 1. Create intent
     intent_response = client.post(
@@ -77,7 +78,30 @@ def test_job_lifecycle_requires_payment():
 
     # 3. Execute job after payment
     response = client.post(
-        "/api/payments/execute", json={"artifact_id": "artifact_delivery_packet"}
+        "/api/payments/execute",
+        json={"artifact_id": "artifact_delivery_packet", "payment_id": payment_id},
     )
     assert response.status_code == 200
     assert response.json()["status"] == "completed"
+
+
+def test_execute_requires_matching_payment_intent():
+    delivery_intent = client.post(
+        "/api/payments/intent",
+        json={"artifact_id": "artifact_delivery_packet", "buyer_address": "0xBuyerAddress"},
+    )
+    delivery_payment_id = delivery_intent.json()["payment_id"]
+    client.post(
+        "/api/payments/verify",
+        json={"payment_id": delivery_payment_id, "tx_hash": "0xMockTransactionHash"},
+    )
+
+    response = client.post(
+        "/api/payments/execute",
+        json={
+            "artifact_id": "artifact_market_intel_brief",
+            "payment_id": delivery_payment_id,
+        },
+    )
+    assert response.status_code == 409
+    assert "does not match requested artifact" in response.json()["detail"]

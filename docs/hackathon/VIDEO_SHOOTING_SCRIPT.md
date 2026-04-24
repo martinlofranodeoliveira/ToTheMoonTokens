@@ -57,11 +57,11 @@ Before recording, open these tabs in order (you'll switch between them):
 - **Narration segment 7**: *"Here is the live deployment. The pitch site runs at three four dot five six dot one nine three dot two two one — served by Caddy, backed by the same Arc + Circle stack you just saw."*
 - Screen capture: 15 seconds
 
-### Scene B — Operational control room with live batch data (1:45 – 2:00, 15s)
+### Scene B — Live marketplace with checkout + proof data (1:45 – 2:00, 15s)
 
 - Switch to tab 2: `http://34.56.193.221/ops/`
-- Scroll gently through the page — the control room shows 63 tx, wallet set ID, margin counterfactual, catalog cards
-- **Narration segment 8**: *"The operational control room pulls live from the judge-facing API. Sixty-three transactions, one hundred percent success. Counterfactual gas on Ethereum L one would be thirty-one dollars and fifty cents — five hundred times the value moved."*
+- Scroll gently through the page — the marketplace shows catalog cards, checkout desk, 63 tx, wallet set ID, and the margin counterfactual
+- **Narration segment 8**: *"This is the live marketplace. Buyers can open a checkout, pay per artifact, verify the transaction on Arc, and unlock delivery. Under the hood you still see sixty-three settled transfers and the five-hundred-times gas advantage versus Ethereum L one."*
 - Screen capture: 15 seconds
 
 ### Scene C — Judge-facing API endpoint (2:00 – 2:15, 15s)
@@ -169,7 +169,7 @@ Upload as **unlisted** on YouTube or directly to X — both are accepted by labl
 0:00 ─────── Part 1 (pitch-video.html, 90s, captions + narration 1-6)
 1:30 ─┐
       │      Part 2 Scene A — live site       (15s, narr 7)
-1:45 ─┤      Part 2 Scene B — control room    (15s, narr 8)
+1:45 ─┤      Part 2 Scene B — marketplace     (15s, narr 8)
 2:00 ─┤      Part 2 Scene C — API endpoint    (15s, narr 9)
 2:15 ─┤      Part 2 Scene D — Circle Console  (30s, narr 10) ← brief-critical
 2:45 ─┘      Part 2 Scene E — Arc Explorer    (15s, narr 11) ← brief-critical

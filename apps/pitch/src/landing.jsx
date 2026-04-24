@@ -17,7 +17,7 @@ function Landing({ navigate, blockNum, nanopayCount }) {
           Paid artifact marketplace where AI agents buy reviewed machine work in USDC on Arc. Real settlement, real receipts, and economics that still work below one cent.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', gap: 40, alignItems: 'stretch', marginBottom: 40, padding: '28px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', gap: 56, alignItems: 'stretch', marginBottom: 40, padding: '32px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
           <div className="kpi">
             <span className="label">Real transfers logged</span>
             <div className="row g8" style={{ alignItems: 'baseline' }}>
@@ -41,7 +41,7 @@ function Landing({ navigate, blockNum, nanopayCount }) {
         </div>
 
         <div className="row g12">
-          <a className="btn btn-primary btn-lg" href="/ops/">Open operational room <Icon name="arrow-r" size={14}/></a>
+          <a className="btn btn-primary btn-lg" href="/ops/">Open live marketplace <Icon name="arrow-r" size={14}/></a>
           <a className="btn btn-secondary btn-lg" href="./pitch-video.html"><Icon name="video" size={14}/> Watch 90s deck</a>
         </div>
       </div>
@@ -115,7 +115,7 @@ function Landing({ navigate, blockNum, nanopayCount }) {
             <div className="row g8"><span className="brand-mark" style={{ width: 18, height: 18, borderRadius: 5, background: 'linear-gradient(135deg, var(--arc-blue), var(--circle-green))' }}/><span style={{ fontWeight: 600 }}>TTM Agent Market</span></div>
             <div className="t2" style={{ fontSize: 12 }}>Infrastructure for agent-to-agent economic coordination.</div>
           </div>
-          <div style={{ display: 'flex', gap: 48, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: 72, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <div className="col g6">
               <div className="mono-s t3" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>Proof tx</div>
               <TxPill hash="0x6fc1a092be43d7b8e1240912ab75ae9c83f27d04e5b1c6e2c7a9d4810f2e79a4"/>
@@ -123,7 +123,8 @@ function Landing({ navigate, blockNum, nanopayCount }) {
             <div className="col g6">
               <div className="mono-s t3" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>Links</div>
               <div className="col g4 mono-s">
-                <a href="/ops/">Operational room</a>
+                <a href="/ops/">Marketplace</a>
+                <a href="/ops/#agents">Agents</a>
                 <a href="https://github.com/martinlofranodeoliveira/ToTheMoonTokens" target="_blank" rel="noreferrer">GitHub repo</a>
                 <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Arc Explorer</a>
               </div>

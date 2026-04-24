@@ -183,7 +183,7 @@ function About({ navigate }) {
   const deliveryStack = [
     { title: 'FastAPI backend', sub: 'payments, settlement verification, demo jobs, and hard guardrails' },
     { title: 'Public pitch', sub: 'landing plus a 90-second autoplay deck for recording and review' },
-    { title: 'Operational room', sub: 'judge-facing proof panel exposed at /ops/' },
+    { title: 'Marketplace + agents', sub: 'judge-facing commerce surface exposed at /ops/ and /ops/#agents' },
   ];
   const proofs = [
     { hash: '0x6fc1a092be43d7b8e1240912ab75ae9c83f27d04e5b1c6e2c7a9d4810f2e79a4', desc: 'Initial smoke transfer cited across the submission', when: 'Apr 22, 2026' },
@@ -224,7 +224,8 @@ function About({ navigate }) {
           {[
             { icon: 'video',  title: '90-second deck', sub: 'Autoplay slideshow built for screen capture', href: './pitch-video.html', link: 'Open' },
             { icon: 'github', title: 'GitHub repo', sub: 'Backend, UI, docs, scripts, and CI', href: 'https://github.com/martinlofranodeoliveira/ToTheMoonTokens', link: 'View repo' },
-            { icon: 'folder', title: 'Operational room', sub: 'Judge-facing proof screen at /ops/', href: '/ops/', link: 'Open room' },
+            { icon: 'folder', title: 'Live marketplace', sub: 'Buyer-facing commerce flow at /ops/', href: '/ops/', link: 'Open marketplace' },
+            { icon: 'layers', title: 'Agents dashboard', sub: 'Live agent surface at /ops/#agents', href: '/ops/#agents', link: 'Open agents' },
             { icon: 'sparkles', title: 'Transaction log', sub: '63 settled Arc Testnet transfers with explorer links', href: 'https://github.com/martinlofranodeoliveira/ToTheMoonTokens/blob/main/docs/hackathon/TRANSACTION_LOG.md', link: 'Open log' },
           ].map(a => (
             <a key={a.title} className="card card-pad row between" style={{ padding: '14px 18px', color: 'inherit', textDecoration: 'none' }} href={a.href} target={a.href.startsWith('http') ? '_blank' : undefined} rel={a.href.startsWith('http') ? 'noreferrer' : undefined}>

@@ -2,27 +2,25 @@
 
 ## Submission Title
 
-`Nexus Economy on Arc`
+`TTM Agent Market`
 
 ## Backup Title Options
 
-- `Paid Agent Workflows on Arc`
-- `USDC-Priced Agent Teams`
-- `Nexus Paid Artifact Network`
+- `TTM Agent Market — Agent Commerce on Arc`
+- `Paid Agent Artifacts on Arc`
+- `USDC-Priced Agent Workflows`
 
 ## Short Description
 
-Nexus Economy on Arc lets teams pay AI agents per validated action in USDC. Buyers unlock reviewed machine work such as delivery packets, audits, and evidence bundles through micropayment-gated workflows, with Nexus orchestrating execution and review end to end.
+TTM Agent Market is a live Arc + Circle demo where buyers pay for validated AI artifacts in sub-cent USDC, verify settlement on Arc Testnet, and unlock delivery only after receipt verification and review.
 
 ## Long Description
 
-Nexus Economy on Arc is a paid coordination system for autonomous software agents. Instead of treating AI work as a flat subscription or an opaque black box, we price individual machine actions and deliverables in USDC, then unlock the output only after execution and review succeed. The core idea is simple: if agents, APIs, and users are going to transact at high frequency, the system needs sub-cent economics, reliable settlement, and a clean operational model for who did what, when, and under which approval path.
+TTM Agent Market is a judge-facing marketplace for paid machine work. Instead of charging flat subscriptions for vague AI access, we price concrete artifacts such as delivery packets, review bundles, and market intelligence briefs in USDC, then unlock those artifacts only after payment settlement is verified on Arc Testnet. The workflow is explicit: request artifact, create payment intent, route funds to the treasury wallet, verify the transaction receipt, advance the review lifecycle, and deliver the artifact.
 
-Our project combines three layers. First, we use Arc as the economic settlement layer for agent-native value exchange. Second, we use Circle primitives to support stablecoin-based pricing and payment flows for small, usage-based actions. Third, we use Nexus as the orchestration engine that helped us build and validate the job flow, review logic, and delivery discipline behind the demo.
+We chose Arc + Circle because sub-cent agent commerce breaks on every other stack we evaluated. Our typical ticket is 0.001 USDC. On Ethereum L1 that would be immediately destroyed by gas. Generic L2s get closer, but the economics remain fragile and fee denomination stays volatile. Arc preserves sub-cent viability with fast settlement, while Circle gives us dev-controlled wallets, USDC-native pricing, and the operational model needed to coordinate multiple agent identities safely.
 
-The demo vertical for the hackathon is ToTheMoonTokens, now repositioned as a safe artifact marketplace for AI agents. Users do not buy live trading or bot automation. They buy validated machine outputs: a delivery packet, a review bundle, a settlement audit, an evidence pack, or a market intelligence brief. Each artifact becomes a priced machine task. Once payment is confirmed, the local API opens the internal job record, the right job lifecycle executes, reviewers validate the output, and the final artifact is unlocked in the UI with full status visibility. Nexus can mirror that same workflow internally, but judges do not need to boot it to validate the product.
-
-This makes the project a concrete example of the agentic economy: economically viable machine work, paid per action, with explicit review and delivery rather than vague AI usage. We think that model is more durable than one-shot chatbot monetization because it turns agent labor into structured, billable, auditable work units. The long-term vision is broader than this initial evidence-market vertical. The same pattern can power code review, analytics, document generation, compliance checks, or API-assisted workflows. For the hackathon, however, we keep the scope disciplined and prove one strong path end to end.
+This is not a mock pitch. The demo already exposes a public deployment, a public summary endpoint, and proof from a 63-transaction Arc Testnet batch recorded on April 23, 2026. That batch moved 0.063 USDC total at 0.001 USDC per action, reached 100% success, and sustained 17.7 transactions per minute. Judges can watch the live checkout flow, trigger a payment through the Circle Developer Console, and verify the resulting hash on the Arc Block Explorer. The product stays safely in paper mode for the hackathon: no mainnet, no live trading, no promises of profit.
 
 ## Participation Mode
 
@@ -33,7 +31,7 @@ This makes the project a concrete example of the agentic economy: economically v
 - Agentic Economy
 - Payments
 - Infrastructure / Developer Tools
-- AI x Finance
+- AI x Onchain Commerce
 
 ## Suggested Event Tracks
 
@@ -44,15 +42,18 @@ This makes the project a concrete example of the agentic economy: economically v
 
 ## Technologies Used
 
-- NexusOrchestrator
-- ToTheMoonTokens
 - Arc
-- Circle USDC / Nanopayments flow
-- x402-style payment gating
+- Circle USDC
+- Circle Dev-Controlled Wallets
 - FastAPI
 - JavaScript / HTML / CSS
-- GitHub + GitLab validation pipeline
-- OpenCode review gate
+- Caddy
+- Docker Compose
+- Arc receipt verification
+- ToTheMoonTokens
+- Nexus-assisted orchestration during development
+- Prometheus
+- structlog
 
 ## Did you use Circle products?
 
@@ -61,8 +62,10 @@ This makes the project a concrete example of the agentic economy: economically v
 ## Circle products used
 
 - USDC
-- Nanopayments / x402-oriented payment flow
-- Circle developer stack for onchain payment UX
+- Circle Dev-Controlled Wallets
+- Entity Secret signing flow
+- Testnet Faucet
+- Arc settlement flow with Circle-managed wallets
 
 ## Why we used them
 
@@ -75,30 +78,30 @@ This makes the project a concrete example of the agentic economy: economically v
 
 ### Products Used
 
-We used Circle-aligned stablecoin payment flows to frame per-action agent pricing, focusing on a micropayment-gated experience for machine work and delivery unlocks.
+We used Arc L1 for settlement, USDC for pricing, Circle Dev-Controlled Wallets for multi-agent wallet identity, the Entity Secret flow for signing wallet operations, and the Circle Testnet Faucet to bootstrap the demo wallets.
 
 ### Use Case
 
-We chose Circle because this project depends on economically viable low-cost payments for small but frequent AI actions. Subscription-only pricing is a poor fit for agent-to-agent and API-to-agent work. Stablecoin settlement makes the pricing model more explicit and operationally understandable.
+We chose Circle because this project depends on economically viable low-cost payments for small but frequent AI actions. Subscription-only pricing is a poor fit for agent-to-agent and API-to-agent work. Stablecoin settlement makes the pricing model explicit, understandable, and easy for judges to validate in a live demo.
 
 ### Successes
 
-The conceptual fit between micropayments and the agentic economy is very strong. The stablecoin-native framing is easy to explain to developers and judges, and it gives the product a credible business model.
+The conceptual fit between micropayments and the agentic economy is very strong. Arc preserved the unit economics, Circle made wallet provisioning and treasury routing practical, and the resulting UX is easy for developers and judges to understand.
 
 ### Challenges
 
-The hardest part is not the value proposition but the integration clarity during rapid prototyping: developers need an even more opinionated reference path for “charge for one AI action, verify payment, unlock artifact, record audit trail.” That end-to-end path is the critical developer journey for this category.
+The hardest part is not the value proposition but the integration clarity during rapid prototyping: developers need an even more opinionated reference path for “charge for one AI action, verify payment, unlock artifact, record audit trail.” Local simulation and transaction waiting are the main DX gaps.
 
 ### Recommendations
 
 - provide a canonical micropayment-for-agent-work sample app
-- provide an opinionated end-to-end example with buyer, provider, webhook verification, and artifact unlock
-- make it easier to test multiple payment outcomes locally
-- provide stronger guidance on production-safe audit patterns for agentic systems
+- ship a first-class `waitForTransaction` or equivalent webhook-oriented helper
+- publish a Python SDK with parity to the Node flow
+- make local testing of multiple payment outcomes easier
 
 ## Demo talking points
 
 - We are not monetizing prompts. We are monetizing validated machine work.
 - Payment alone is not enough; output is unlocked only after review.
-- The same economic model can be reused for many agent workloads.
+- The same economic model can be reused for code review, analytics, compliance, or research artifacts.
 - Our live demo uses safe paid agent artifacts instead of risky real-money automation.

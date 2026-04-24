@@ -43,7 +43,6 @@ ARTIFACT_CATALOG: dict[str, BillableArtifact] = {
 
 # In-memory storage for testnet/mock
 _PAYMENT_INTENTS: dict[str, dict] = {}
-_UNLOCKED_JOBS: dict[str, bool] = {}
 
 
 @router.get("/catalog", response_model=list[BillableArtifact])
@@ -72,6 +71,7 @@ def create_payment_intent(request: PaymentIntentRequest):
         "status": "pending",
         "job_id": request.job_id,
         "tx_hash": None,
+        "executed": False,
     }
     _PAYMENT_INTENTS[payment_id] = intent
 
@@ -127,7 +127,6 @@ def verify_payment(request: PaymentVerificationRequest):
     if settlement_result.status == "SETTLED":
         intent["status"] = "verified"
         intent["tx_hash"] = request.tx_hash
-        _UNLOCKED_JOBS[intent["artifact_id"]] = True
     else:
         intent["status"] = "failed"
         intent["tx_hash"] = request.tx_hash
@@ -143,8 +142,17 @@ def verify_payment(request: PaymentVerificationRequest):
 
 @router.post("/execute", response_model=JobExecutionResponse)
 def execute_job(request: JobExecutionRequest):
-    if not _UNLOCKED_JOBS.get(request.artifact_id):
+    intent = _PAYMENT_INTENTS.get(request.payment_id)
+    if not intent:
+        raise HTTPException(status_code=404, detail="Payment intent not found.")
+
+    if str(intent["artifact_id"]) != request.artifact_id:
+        raise HTTPException(status_code=409, detail="Payment intent does not match requested artifact.")
+
+    if intent["status"] != "verified":
         raise HTTPException(status_code=402, detail="Payment required to unlock this job.")
+
+    intent["executed"] = True
 
     return JobExecutionResponse(
         artifact_id=request.artifact_id,

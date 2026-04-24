@@ -3,158 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="ttm-api-base-url" content="http://127.0.0.1:8010" />
+    <meta name="ttm-api-base-url" content="" />
     <meta name="theme-color" content="#0B0D10" />
-    <title>TTM Agent Market — Operational Room</title>
+    <title>TTM Agent Market — Marketplace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="chain-strip">
-      <span class="dot"></span>
-      <strong>LIVE</strong>
-      <span class="sep">·</span>
-      <span>Arc Testnet</span>
-      <span class="sep">·</span>
-      <span>Chain ID <span id="chain-id">5042002</span></span>
-      <span class="sep">·</span>
-      <span>Block <span id="chain-block" class="mono">#1,234,567</span></span>
-      <span style="margin-left: auto;" class="sep">·</span>
-      <span><strong>TTM Agent Market</strong> · Operational Room</span>
-    </div>
-
-    <div class="scene">
-      <header class="topbar">
-        <div class="brand-lockup">
-          <div class="brand-mark">TT</div>
-          <div>
-            <p class="eyebrow">Arc x Circle operational room</p>
-            <h1>TTM Agent Market</h1>
-          </div>
-        </div>
-
-        <div class="topbar-actions">
-          <div class="runtime-badge" id="top-runtime-badge">Loading runtime</div>
-          <button id="refresh-button" class="button">Refresh board</button>
-          <button id="open-docs-button" class="button button-secondary">Open Swagger</button>
-        </div>
-      </header>
-
-      <main class="dashboard">
-        <section class="card hero-panel">
-          <div class="hero-copy">
-            <p class="eyebrow">Judge-facing proof room</p>
-            <h2>Validate Arc settlement, Circle wallets, and real per-action pricing in one screen.</h2>
-            <p class="lede">
-              This room turns the live backend into something a judge can audit quickly:
-              real nanopayment throughput, wallet inventory, artifact pricing, guardrails,
-              and the latest settled transactions.
-            </p>
-            <div class="chip-row" id="runtime-strip"></div>
-            <p id="status-banner" class="status-banner" role="status" aria-live="polite" hidden></p>
-          </div>
-
-          <div class="hero-market">
-            <article class="spotlight-card">
-              <p class="eyebrow">Arc settlement batch</p>
-              <strong id="spot-price">-</strong>
-              <div class="spotlight-meta">
-                <span id="spot-change" class="trend-pill">-</span>
-                <span id="spot-volume" class="mono">Proof pending</span>
-              </div>
-            </article>
-
-            <article class="spotlight-card spotlight-card-muted">
-              <p class="eyebrow">Judge runtime</p>
-              <strong id="runtime-state">Waiting for evidence</strong>
-              <p id="runtime-window" class="spotlight-copy">
-                Loading Circle wallet set and Arc network snapshot.
-              </p>
-              <div class="progress-track">
-                <span id="runtime-progress" class="progress-value"></span>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section id="kpi-grid" class="kpi-grid"></section>
-
-        <section class="main-grid">
-          <article class="card strategy-panel">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">What gets paid per action</p>
-                <h3>Artifact catalog</h3>
-              </div>
-              <p class="section-copy">Every item stays at or below one cent so per-call economics remain real.</p>
-            </div>
-            <div id="strategy-grid" class="strategy-grid"></div>
-          </article>
-
-          <div class="side-stack">
-            <article class="card side-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Execution envelope</p>
-                  <h3>Guardrails</h3>
-                </div>
-              </div>
-              <div id="approval-summary" class="approval-summary"></div>
-              <ul id="guardrail-list" class="stack-list"></ul>
-            </article>
-
-            <article class="card side-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Infra heartbeat</p>
-                  <h3>Arc + Circle</h3>
-                </div>
-              </div>
-              <div id="connector-grid" class="connector-grid"></div>
-            </article>
-          </div>
-        </section>
-
-        <section class="bottom-grid">
-          <article class="card journal-panel">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Latest settled transactions</p>
-                <h3>Transaction log</h3>
-              </div>
-              <p class="section-copy">Recent Arc Testnet transfers from the real nanopayment batch.</p>
-            </div>
-            <div id="journal-list" class="trade-list"></div>
-          </article>
-
-          <article class="card runtime-panel">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Execution path</p>
-                <h3>Demo jobs</h3>
-              </div>
-              <p class="section-copy">Current request → payment → review → delivery states exposed by the demo API.</p>
-            </div>
-            <div id="runtime-monitor" class="runtime-monitor"></div>
-          </article>
-        </section>
-
-        <section class="panel arc-panel">
-          <div class="panel-heading">
-            <p class="eyebrow">Settlement lane</p>
-            <h3>Arc proof bundle</h3>
-          </div>
-          <div class="lede" style="margin-bottom: 1rem;">
-            Network health, wallet set identity, margin counterfactuals, and recent Arc-side proof objects live here so the public room stays focused on the hackathon story instead of old trading internals.
-          </div>
-          <div id="arc-jobs-list" class="journal-list"></div>
-        </section>
-      </main>
-    </div>
-
+    <div id="app-root"></div>
     <script src="./config.js"></script>
-    <script src="./app.js" type="module"></script>
+    <script src="./app.js"></script>
   </body>
 </html>

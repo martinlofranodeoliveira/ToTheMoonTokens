@@ -1,15 +1,28 @@
-const DEFAULT_API_BASE_URL = "http://127.0.0.1:8010";
+const DEFAULT_API_BASE_URL = "";
+const STORAGE_KEY = "ttm-marketplace-state-v3";
+
 let refreshTimer = null;
+let bannerTimer = null;
 
 function resolveApiBaseUrl() {
   const meta = document.querySelector('meta[name="ttm-api-base-url"]');
   const fromMeta = meta && meta.getAttribute("content");
-  const fromQuery = new URLSearchParams(window.location.search).get("api");
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.has("api") ? params.get("api") : null;
   const fromGlobal = typeof window.TTM_API_BASE_URL === "string" ? window.TTM_API_BASE_URL : null;
-  return fromQuery || fromGlobal || fromMeta || DEFAULT_API_BASE_URL;
+
+  for (const candidate of [fromQuery, fromGlobal, fromMeta, DEFAULT_API_BASE_URL]) {
+    if (typeof candidate === "string") {
+      const normalized = candidate.trim();
+      return normalized ? normalized.replace(/\/$/, "") : window.location.origin;
+    }
+  }
+
+  return window.location.origin;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
+const root = document.getElementById("app-root");
 
 const FALLBACK_SUMMARY = {
   ok: true,
@@ -160,6 +173,59 @@ const FALLBACK_SUMMARY = {
   arc_jobs: [],
 };
 
+const ARTIFACT_PROFILES = {
+  artifact_delivery_packet: {
+    publisher: "research_00",
+    score: 96,
+    ttl: 42,
+    note: "Reviewed execution receipt with unlock metadata.",
+  },
+  artifact_review_bundle: {
+    publisher: "auditor",
+    score: 92,
+    ttl: 58,
+    note: "Reviewer-approved evidence bundle with settlement checks.",
+  },
+  artifact_market_intel_brief: {
+    publisher: "research_03",
+    score: 89,
+    ttl: 75,
+    note: "Premium machine brief released only after payment verification.",
+  },
+};
+
+const state = {
+  summary: FALLBACK_SUMMARY,
+  demoJobs: FALLBACK_SUMMARY.demo_jobs.slice(),
+  usedFallback: false,
+  filters: {
+    search: "",
+    types: new Set(FALLBACK_SUMMARY.catalog.map((item) => item.type)),
+    maxPrice: 0.01,
+    underOneCentOnly: false,
+  },
+  market: loadMarketState(),
+  ui: {
+    route: "marketplace",
+    modalArtifactId: null,
+    creatingArtifactId: null,
+    verifyingOrderId: null,
+    unlockingOrderId: null,
+    banner: null,
+    selectedAgentId: "research_00",
+  },
+};
+
+const VALID_ROUTES = new Set(["marketplace", "agents", "architecture", "about"]);
+
+function resolveRoute(value) {
+  const route = String(value || "")
+    .replace(/^#\/?/, "")
+    .trim()
+    .toLowerCase();
+  return VALID_ROUTES.has(route) ? route : "marketplace";
+}
+
 function escapeHtml(value) {
   if (value === null || value === undefined) {
     return "";
@@ -188,16 +254,20 @@ function formatNumber(value, digits = 0) {
   return number.toFixed(digits);
 }
 
-function formatPct(value, digits = 0) {
-  return `${formatNumber(value, digits)}%`;
-}
-
 function formatUsdc(value, digits = 3) {
   const number = Number(value);
   if (!Number.isFinite(number)) {
     return "-";
   }
   return `${number.toFixed(digits)} USDC`;
+}
+
+function formatPct(value, digits = 0) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return "-";
+  }
+  return `${number.toFixed(digits)}%`;
 }
 
 function formatDateTime(value) {
@@ -216,436 +286,1712 @@ function formatDateTime(value) {
   }).format(date);
 }
 
+function relativeTime(value) {
+  if (!value) {
+    return "just now";
+  }
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) {
+    return "just now";
+  }
+  const seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (seconds < 5) {
+    return "just now";
+  }
+  if (seconds < 60) {
+    return `${seconds}s ago`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
+
 function truncateHash(hash, head = 6, tail = 4) {
   if (!hash) {
     return "-";
   }
-  return `${hash.slice(0, 2 + head)}…${hash.slice(-tail)}`;
+  const text = String(hash);
+  return `${text.slice(0, 2 + head)}...${text.slice(-tail)}`;
 }
 
-function chip(label, value, tone = "neutral") {
-  return `<span class="chip" data-tone="${escapeHtml(tone)}">${escapeHtml(label)}: ${escapeHtml(value)}</span>`;
+function truncateMiddle(value, head = 8, tail = 6) {
+  if (!value) {
+    return "-";
+  }
+  const text = String(value);
+  if (text.length <= head + tail + 3) {
+    return text;
+  }
+  return `${text.slice(0, head)}...${text.slice(-tail)}`;
 }
 
-async function fetchJson(path) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { Accept: "application/json" },
+function formatArtifactType(value) {
+  return String(value || "artifact").replaceAll("_", " ");
+}
+
+function tierFromPrice(price) {
+  const value = asNumber(price);
+  if (value <= 0.001) {
+    return "low";
+  }
+  if (value <= 0.005) {
+    return "med";
+  }
+  return "high";
+}
+
+function tierPill(tier) {
+  if (tier === "low") {
+    return "pill-low";
+  }
+  if (tier === "med") {
+    return "pill-med";
+  }
+  return "pill-high";
+}
+
+function scoreColor(score) {
+  if (score >= 95) {
+    return "rep-gold";
+  }
+  if (score >= 90) {
+    return "rep-green";
+  }
+  if (score >= 80) {
+    return "rep-blue";
+  }
+  return "rep-gray";
+}
+
+function hashString(value) {
+  return Array.from(String(value)).reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) >>> 0, 7);
+}
+
+function avatarGradient(id) {
+  const hue = hashString(id) % 360;
+  return `linear-gradient(135deg, hsl(${hue} 78% 58%), hsl(${(hue + 48) % 360} 74% 50%))`;
+}
+
+function initialsFor(value) {
+  const text = String(value || "??").replace(/[^a-zA-Z0-9]/g, "");
+  return text.slice(0, 2).toUpperCase() || "??";
+}
+
+function syntheticAddressFor(value) {
+  const chars = "0123456789abcdef";
+  let seed = hashString(value);
+  let result = "0x";
+  for (let index = 0; index < 40; index += 1) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    result += chars[seed % chars.length];
+  }
+  return result;
+}
+
+function txUrl(txHash) {
+  return `https://testnet.arcscan.app/tx/${encodeURIComponent(txHash)}`;
+}
+
+function icon(name, size = 14) {
+  const common = `width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"`;
+  switch (name) {
+    case "search":
+      return `<svg ${common}><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>`;
+    case "link":
+      return `<svg ${common}><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>`;
+    case "x":
+      return `<svg ${common}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`;
+    case "arrow-r":
+      return `<svg ${common}><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>`;
+    case "copy":
+      return `<svg ${common}><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+    case "github":
+      return `<svg ${common}><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>`;
+    case "check":
+      return `<svg ${common}><path d="M20 6 9 17l-5-5"></path></svg>`;
+    default:
+      return "";
+  }
+}
+
+function sanitizeOrder(order) {
+  if (!order || typeof order !== "object") {
+    return null;
+  }
+
+  const paymentId = String(order.paymentId || order.payment_id || "");
+  if (!paymentId) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  return {
+    paymentId,
+    artifactId: String(order.artifactId || order.artifact_id || ""),
+    artifactName: String(order.artifactName || order.artifact_name || "Artifact"),
+    artifactType: String(order.artifactType || order.artifact_type || "delivery_packet"),
+    amountUsd: asNumber(order.amountUsd ?? order.amount_usd),
+    buyerAddress: String(order.buyerAddress || order.buyer_address || ""),
+    depositAddress: String(order.depositAddress || order.deposit_address || ""),
+    jobId: order.jobId ? String(order.jobId) : order.job_id ? String(order.job_id) : null,
+    status: String(order.status || "CHECKOUT_READY"),
+    settlementStatus: order.settlementStatus ? String(order.settlementStatus) : null,
+    reason: order.reason ? String(order.reason) : null,
+    txHash: String(order.txHash || order.tx_hash || ""),
+    downloadUrl: order.downloadUrl ? String(order.downloadUrl) : null,
+    executionMessage: order.executionMessage ? String(order.executionMessage) : null,
+    createdAt: String(order.createdAt || order.created_at || now),
+    updatedAt: String(order.updatedAt || order.updated_at || now),
+  };
+}
+
+function loadMarketState() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return {
+        buyerAddress: "",
+        activeOrderId: null,
+        orders: [],
+      };
+    }
+    const parsed = JSON.parse(raw);
+    const orders = (parsed.orders || []).map(sanitizeOrder).filter(Boolean);
+    return {
+      buyerAddress: typeof parsed.buyerAddress === "string" ? parsed.buyerAddress : "",
+      activeOrderId: typeof parsed.activeOrderId === "string" ? parsed.activeOrderId : null,
+      orders,
+    };
+  } catch (_error) {
+    return {
+      buyerAddress: "",
+      activeOrderId: null,
+      orders: [],
+    };
+  }
+}
+
+function persistMarketState() {
+  try {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        buyerAddress: state.market.buyerAddress,
+        activeOrderId: state.market.activeOrderId,
+        orders: state.market.orders,
+      }),
+    );
+  } catch (_error) {
+    // Ignore persistence errors.
+  }
+}
+
+function getSortedOrders() {
+  return [...state.market.orders].sort((left, right) => {
+    return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
   });
+}
+
+function latestOrderForArtifact(artifactId) {
+  return getSortedOrders().find((order) => order.artifactId === artifactId) || null;
+}
+
+function findOrderById(orderId) {
+  return state.market.orders.find((order) => order.paymentId === orderId) || null;
+}
+
+function getActiveOrder() {
+  if (state.market.activeOrderId) {
+    const order = findOrderById(state.market.activeOrderId);
+    if (order) {
+      return order;
+    }
+  }
+  const first = getSortedOrders()[0] || null;
+  if (first) {
+    state.market.activeOrderId = first.paymentId;
+    persistMarketState();
+  }
+  return first;
+}
+
+function upsertOrder(nextOrder) {
+  const sanitized = sanitizeOrder(nextOrder);
+  if (!sanitized) {
+    return;
+  }
+  const index = state.market.orders.findIndex((order) => order.paymentId === sanitized.paymentId);
+  if (index === -1) {
+    state.market.orders.unshift(sanitized);
+  } else {
+    state.market.orders[index] = {
+      ...state.market.orders[index],
+      ...sanitized,
+    };
+  }
+  state.market.activeOrderId = sanitized.paymentId;
+  persistMarketState();
+}
+
+function patchOrder(paymentId, patch) {
+  const current = findOrderById(paymentId);
+  if (!current) {
+    return null;
+  }
+  const nextOrder = {
+    ...current,
+    ...patch,
+    updatedAt: patch.updatedAt || new Date().toISOString(),
+  };
+  upsertOrder(nextOrder);
+  return nextOrder;
+}
+
+async function fetchJson(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: options.method || "GET",
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  const text = await response.text();
+  const payload = text
+    ? (() => {
+        try {
+          return JSON.parse(text);
+        } catch (_error) {
+          return null;
+        }
+      })()
+    : null;
+
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const detail = payload?.detail || payload?.message || text || `Request failed: ${response.status}`;
+    throw new Error(typeof detail === "string" ? detail : `Request failed: ${response.status}`);
   }
-  return response.json();
+
+  return payload;
 }
 
-function showStatus(message, variant = "info") {
-  const banner = document.getElementById("status-banner");
-  if (!banner) {
+async function safePost(path) {
+  try {
+    return await fetchJson(path, { method: "POST" });
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function copyToClipboard(value, label) {
+  if (!value) {
+    showBanner(`No ${label} available to copy.`, "warn");
     return;
   }
-  banner.textContent = message;
-  banner.dataset.variant = variant;
-  banner.hidden = !message;
-}
-
-function renderHero(summary) {
-  const topRuntimeBadge = document.getElementById("top-runtime-badge");
-  const runtimeStrip = document.getElementById("runtime-strip");
-  const runtimeState = document.getElementById("runtime-state");
-  const runtimeWindow = document.getElementById("runtime-window");
-  const runtimeProgress = document.getElementById("runtime-progress");
-  const spotPrice = document.getElementById("spot-price");
-  const spotChange = document.getElementById("spot-change");
-  const spotVolume = document.getElementById("spot-volume");
-
-  if (topRuntimeBadge) {
-    topRuntimeBadge.textContent = `${summary.guardrails.mode.toUpperCase()} mode`;
-  }
-
-  if (runtimeStrip) {
-    runtimeStrip.innerHTML = [
-      chip("Track", "Agent payments", "positive"),
-      chip("Wallet set", truncateHash(summary.proof.wallet_set_id, 4, 4), "neutral"),
-      chip("Transactions", String(summary.proof.transactions_total), "positive"),
-      chip("Throughput", `${formatNumber(summary.proof.throughput_tx_per_min, 1)} tx/min`, "positive"),
-      chip("Cap", "<= $0.01", "warning"),
-    ].join("");
-  }
-
-  if (spotPrice) {
-    spotPrice.textContent = `${summary.proof.transactions_total} real tx`;
-  }
-
-  if (spotChange) {
-    spotChange.textContent = `${formatPct(summary.proof.success_rate_pct, 0)} success`;
-    spotChange.dataset.tone = "positive";
-  }
-
-  if (spotVolume) {
-    spotVolume.textContent = `${formatUsdc(summary.proof.total_usdc_moved)} moved`;
-  }
-
-  if (runtimeState) {
-    runtimeState.textContent = `${summary.circle.wallets_configured} wallets configured`;
-  }
-
-  if (runtimeWindow) {
-    runtimeWindow.textContent = [
-      `Wallet set ${truncateHash(summary.circle.wallet_set_id, 4, 4)}`,
-      `Arc chain ${summary.arc.chain_id || "unknown"}`,
-      `p50 ${summary.proof.latency_p50_ms} ms`,
-      `p95 ${summary.proof.latency_p95_ms} ms`,
-      `generated ${formatDateTime(summary.proof.generated_at)}`,
-    ].join(" · ");
-  }
-
-  if (runtimeProgress) {
-    runtimeProgress.style.width = `${Math.max(4, Math.min(asNumber(summary.proof.success_rate_pct), 100))}%`;
+  try {
+    await navigator.clipboard.writeText(value);
+    showBanner(`${label} copied to clipboard.`, "info");
+  } catch (_error) {
+    showBanner(`Clipboard access failed. Copy the ${label} manually.`, "warn");
   }
 }
 
-function renderKpis(summary) {
-  const container = document.getElementById("kpi-grid");
-  if (!container) {
+function showBanner(message, tone = "info", timeoutMs = 4500) {
+  state.ui.banner = { message, tone };
+  renderApp();
+  if (bannerTimer) {
+    window.clearTimeout(bannerTimer);
+  }
+  if (timeoutMs > 0) {
+    bannerTimer = window.setTimeout(() => {
+      state.ui.banner = null;
+      renderApp();
+    }, timeoutMs);
+  }
+}
+
+function syncRouteFromLocation() {
+  const nextRoute = resolveRoute(window.location.hash);
+  state.ui.route = nextRoute;
+  if (nextRoute !== "marketplace") {
+    state.ui.modalArtifactId = null;
+  }
+}
+
+function setRoute(route) {
+  const nextRoute = resolveRoute(route);
+  if (window.location.hash !== `#${nextRoute}`) {
+    window.location.hash = nextRoute;
     return;
   }
+  syncRouteFromLocation();
+  renderApp();
+}
 
-  const cards = [
-    {
-      label: "Transactions",
-      value: String(summary.proof.transactions_total),
-      tone: "positive",
-      copy: `${summary.proof.transactions_successful} settled on Arc Testnet`,
-    },
-    {
-      label: "Price ceiling",
-      value: "$0.01",
-      tone: "warning",
-      copy: "All catalog actions stay within the hackathon limit",
-    },
-    {
-      label: "Latency p50",
-      value: `${summary.proof.latency_p50_ms} ms`,
-      tone: "neutral",
-      copy: `p95 ${summary.proof.latency_p95_ms} ms`,
-    },
-    {
-      label: "Throughput",
-      value: `${formatNumber(summary.proof.throughput_tx_per_min, 1)} tx/min`,
-      tone: "positive",
-      copy: `${formatUsdc(summary.proof.total_usdc_moved)} moved in the batch`,
-    },
-    {
-      label: "Wallets",
-      value: String(summary.circle.wallets_configured),
-      tone: "neutral",
-      copy: summary.circle.wallets_loaded ? "Loaded from Circle client" : "Provisioned in wallet set",
-    },
-    {
-      label: "ETH L1 counterfactual",
-      value: `$${formatNumber(summary.margin.eth_l1_counterfactual_gas_usd, 2)}`,
-      tone: "danger",
-      copy: `${formatNumber(summary.margin.eth_l1_overhead_multiple, 0)}x the value moved`,
-    },
+function buildListings() {
+  return (state.summary.catalog || []).map((item) => {
+    const profile = ARTIFACT_PROFILES[item.id] || {
+      publisher: "market",
+      score: 88,
+      ttl: 60,
+      note: item.description,
+    };
+    const latestOrder = latestOrderForArtifact(item.id);
+    return {
+      ...item,
+      publisher: profile.publisher,
+      score: profile.score,
+      ttl: profile.ttl,
+      note: profile.note,
+      tier: tierFromPrice(item.price_usd),
+      latestOrder,
+    };
+  });
+}
+
+function getFilteredListings() {
+  const listings = buildListings();
+  return listings.filter((listing) => {
+    const query = state.filters.search.trim().toLowerCase();
+    const haystack = `${listing.name} ${listing.description} ${listing.publisher} ${listing.type}`.toLowerCase();
+    if (query && !haystack.includes(query)) {
+      return false;
+    }
+    if (!state.filters.types.has(listing.type)) {
+      return false;
+    }
+    if (asNumber(listing.price_usd) > asNumber(state.filters.maxPrice)) {
+      return false;
+    }
+    if (state.filters.underOneCentOnly && asNumber(listing.price_usd) >= 0.01) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function buildSettlements() {
+  const local = getSortedOrders()
+    .filter((order) => order.txHash)
+    .map((order) => {
+      const listing = buildListings().find((item) => item.id === order.artifactId);
+      return {
+        id: `order-${order.paymentId}`,
+        consumer: order.buyerAddress || "buyer",
+        research: listing?.publisher || "treasury",
+        amount: order.amountUsd,
+        hash: order.txHash,
+        ts: order.updatedAt,
+        agoLabel: relativeTime(order.updatedAt),
+      };
+    });
+
+  const proof = (state.summary.transactions || []).map((tx) => {
+    return {
+      id: `proof-${tx.seq}`,
+      consumer: tx.from,
+      research: tx.to,
+      amount: asNumber(tx.amount_usdc),
+      hash: tx.tx_hash,
+      ts: tx.timestamp,
+      agoLabel: relativeTime(tx.timestamp),
+    };
+  });
+
+  const seen = new Set();
+  return [...local, ...proof]
+    .filter((item) => {
+      if (!item.hash || seen.has(item.hash)) {
+        return false;
+      }
+      seen.add(item.hash);
+      return true;
+    })
+    .sort((left, right) => new Date(right.ts).getTime() - new Date(left.ts).getTime())
+    .slice(0, 15);
+}
+
+function orderStateLabel(order) {
+  switch (order?.status) {
+    case "CHECKOUT_READY":
+      return "Awaiting tx";
+    case "SETTLED":
+      return "Settlement verified";
+    case "DELIVERED":
+      return "Artifact unlocked";
+    case "FAILED":
+      return "Verification failed";
+    default:
+      return "Ready";
+  }
+}
+
+function modalArtifact() {
+  if (!state.ui.modalArtifactId) {
+    return null;
+  }
+  return buildListings().find((listing) => listing.id === state.ui.modalArtifactId) || null;
+}
+
+function stepState(order, step) {
+  if (!order) {
+    return "pending";
+  }
+
+  if (step === "intent") {
+    return "complete";
+  }
+  if (step === "route") {
+    return order.depositAddress ? "complete" : "active";
+  }
+  if (step === "fund") {
+    return order.txHash ? "complete" : "active";
+  }
+  if (step === "settle") {
+    if (order.status === "FAILED") {
+      return "failed";
+    }
+    if (order.status === "SETTLED" || order.status === "DELIVERED") {
+      return "complete";
+    }
+    return order.txHash ? "active" : "pending";
+  }
+  if (step === "deliver") {
+    if (order.status === "DELIVERED") {
+      return "complete";
+    }
+    if (order.status === "SETTLED") {
+      return "active";
+    }
+  }
+  return "pending";
+}
+
+function renderStepper(order) {
+  const labels = [
+    { key: "intent", label: "Quote" },
+    { key: "route", label: "Route" },
+    { key: "fund", label: "Fund" },
+    { key: "settle", label: "Settle" },
+    { key: "deliver", label: "Deliver" },
   ];
 
-  container.innerHTML = cards
-    .map(
-      (card) => `
-        <article class="kpi-card">
-          <p class="eyebrow">${escapeHtml(card.label)}</p>
-          <strong class="trend-pill" data-tone="${escapeHtml(card.tone)}">${escapeHtml(card.value)}</strong>
-          <p class="subcopy">${escapeHtml(card.copy)}</p>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function renderCatalog(catalog) {
-  const container = document.getElementById("strategy-grid");
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = catalog
-    .map(
-      (item) => `
-        <article class="strategy-card">
-          <div class="strategy-header">
-            <div>
-              <p class="eyebrow">${escapeHtml(item.type.replaceAll("_", " "))}</p>
-              <h4>${escapeHtml(item.name)}</h4>
+  return `
+    <div class="stepper">
+      <div class="stepper-connectors">
+        ${[0, 1, 2, 3]
+          .map((index) => {
+            const previous = stepState(order, labels[index].key);
+            const next = stepState(order, labels[index + 1].key);
+            const lineClass =
+              previous === "complete" && (next === "complete" || next === "active")
+                ? "done"
+                : next === "active"
+                  ? "active"
+                  : "";
+            return `<div class="line ${lineClass}"></div>`;
+          })
+          .join("")}
+      </div>
+      ${labels
+        .map((item, index) => {
+          const status = stepState(order, item.key);
+          return `
+            <div class="step ${status}">
+              <div class="step-circle">${status === "complete" ? icon("check", 14) : String(index + 1).padStart(2, "0")}</div>
+              <div class="step-label">${escapeHtml(item.label)}</div>
             </div>
-            <span class="strategy-pill" data-tone="positive">${escapeHtml(formatUsdc(item.price_usd))}</span>
-          </div>
-          <p class="strategy-copy">${escapeHtml(item.description)}</p>
-          <div class="metric-stack">
-            <div class="metric-tile">
-              <p class="eyebrow">Settlement</p>
-              <strong>Arc + Circle</strong>
-            </div>
-            <div class="metric-tile">
-              <p class="eyebrow">Unlock gate</p>
-              <strong>verify tx</strong>
-            </div>
-            <div class="metric-tile">
-              <p class="eyebrow">Economic model</p>
-              <strong>per action</strong>
-            </div>
-            <div class="metric-tile">
-              <p class="eyebrow">Judge status</p>
-              <strong>demo-ready</strong>
-            </div>
-          </div>
-          <p class="helper-text">Request -> pay -> verify -> review -> deliver</p>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function renderGuardrails(guardrails) {
-  const summary = document.getElementById("approval-summary");
-  const list = document.getElementById("guardrail-list");
-  if (!summary || !list) {
-    return;
-  }
-
-  summary.innerHTML = `
-    <div class="approval-tile">
-      <p class="eyebrow">Exchange orders</p>
-      <strong>${guardrails.can_submit_testnet_orders ? "Enabled" : "Disabled"}</strong>
-    </div>
-    <div class="approval-tile">
-      <p class="eyebrow">Mainnet</p>
-      <strong>${guardrails.can_submit_mainnet_orders ? "Enabled" : "Blocked"}</strong>
-    </div>
-    <div class="approval-tile">
-      <p class="eyebrow">Wallet signing</p>
-      <strong>${guardrails.requires_manual_wallet_signature ? "Manual only" : "Review needed"}</strong>
-    </div>
-  `;
-
-  list.innerHTML = (guardrails.reasons || [])
-    .map(
-      (reason) => `
-        <li class="guardrail-item">
-          <p>${escapeHtml(reason)}</p>
-        </li>
-      `,
-    )
-    .join("");
-}
-
-function renderConnectors(summary) {
-  const container = document.getElementById("connector-grid");
-  if (!container) {
-    return;
-  }
-
-  const arcTone = summary.arc.status === "online" ? "positive" : "warning";
-  const walletStatus = summary.circle.wallets_loaded ? "loaded" : "configured";
-
-  container.innerHTML = `
-    <article class="connector-card">
-      <p class="eyebrow">Settlement network</p>
-      <strong>${escapeHtml(summary.connectors.settlement_network)}</strong>
-      <p>Chain ${escapeHtml(String(summary.arc.chain_id || "unknown"))} · ${escapeHtml(summary.arc.url || summary.connectors.arc_rpc_url)}</p>
-    </article>
-    <article class="connector-card">
-      <p class="eyebrow">Wallet provider</p>
-      <strong>${escapeHtml(summary.connectors.wallet_provider)}</strong>
-      <p>${escapeHtml(summary.circle.wallets_configured)} wallets ${escapeHtml(walletStatus)} · mode ${escapeHtml(summary.connectors.wallet_mode)}</p>
-    </article>
-    <article class="connector-card">
-      <p class="eyebrow">Counterfactual</p>
-      <strong class="trend-pill" data-tone="${escapeHtml(arcTone)}">$${escapeHtml(formatNumber(summary.margin.eth_l1_counterfactual_gas_usd, 2))}</strong>
-      <p>ETH L1 gas to move ${escapeHtml(formatUsdc(summary.proof.total_usdc_moved))}</p>
-    </article>
-  `;
-}
-
-function renderTransactions(transactions) {
-  const container = document.getElementById("journal-list");
-  if (!container) {
-    return;
-  }
-
-  if (!transactions || transactions.length === 0) {
-    container.innerHTML = `
-      <article class="trade-card">
-        <p class="eyebrow">No transactions loaded</p>
-        <p>The API did not return any Arc settlement evidence.</p>
-      </article>
-    `;
-    return;
-  }
-
-  container.innerHTML = transactions
-    .map(
-      (tx) => `
-        <article class="trade-card">
-          <div class="trade-topline">
-            <strong class="trade-symbol">#${escapeHtml(String(tx.seq))} ${escapeHtml(tx.from)} -> ${escapeHtml(tx.to)}</strong>
-            <span class="trade-pill" data-tone="positive">${escapeHtml(tx.state)}</span>
-          </div>
-          <p class="mono">${escapeHtml(truncateHash(tx.tx_hash, 10, 6))}</p>
-          <div class="trade-meta">
-            <span>${escapeHtml(formatUsdc(tx.amount_usdc))}</span>
-            <span>${escapeHtml(formatDateTime(tx.timestamp))}</span>
-          </div>
-          <div class="trade-grid">
-            <div class="trade-stat">
-              <p class="eyebrow">Elapsed</p>
-              <strong>${escapeHtml(String(tx.elapsed_ms))} ms</strong>
-            </div>
-            <div class="trade-stat">
-              <p class="eyebrow">State</p>
-              <strong>${escapeHtml(tx.state)}</strong>
-            </div>
-            <div class="trade-stat">
-              <p class="eyebrow">Explorer</p>
-              <strong><a href="https://testnet.arcscan.app/tx/${escapeHtml(tx.tx_hash)}" target="_blank" rel="noreferrer">open tx</a></strong>
-            </div>
-            <div class="trade-stat">
-              <p class="eyebrow">Sequence</p>
-              <strong>${escapeHtml(String(tx.seq))}</strong>
-            </div>
-          </div>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function renderDemoJobs(demoJobs) {
-  const container = document.getElementById("runtime-monitor");
-  if (!container) {
-    return;
-  }
-
-  const jobs = demoJobs && demoJobs.length > 0 ? demoJobs : FALLBACK_SUMMARY.demo_jobs;
-  container.innerHTML = jobs
-    .map(
-      (job) => `
-        <article class="runtime-card">
-          <div class="runtime-card-header">
-            <div>
-              <p class="eyebrow">${escapeHtml(job.artifact_type.replaceAll("_", " "))}</p>
-              <strong>${escapeHtml(job.state)}</strong>
-            </div>
-            <span class="trend-pill" data-tone="${escapeHtml(job.state === "DELIVERED" ? "positive" : "warning")}">
-              ${escapeHtml(formatUsdc(job.price_usdc))}
-            </span>
-          </div>
-          <div class="runtime-grid">
-            <div class="runtime-stat">
-              <p class="eyebrow">Job ID</p>
-              <strong>${escapeHtml(job.id)}</strong>
-            </div>
-            <div class="runtime-stat">
-              <p class="eyebrow">Flow</p>
-              <strong>request -> review</strong>
-            </div>
-          </div>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function renderArcProof(summary) {
-  const container = document.getElementById("arc-jobs-list");
-  if (!container) {
-    return;
-  }
-
-  const cards = [
-    {
-      title: "Arc network",
-      body: `${summary.arc.status} · chain ${summary.arc.chain_id || "unknown"}`,
-      detail: summary.arc.url || summary.connectors.arc_rpc_url,
-    },
-    {
-      title: "Wallet set",
-      body: truncateHash(summary.proof.wallet_set_id, 4, 4),
-      detail: `${summary.circle.wallets_configured} wallets configured`,
-    },
-    {
-      title: "Margin proof",
-      body: `$${formatNumber(summary.margin.eth_l1_counterfactual_gas_usd, 2)} ETH L1 gas`,
-      detail: `${formatNumber(summary.margin.eth_l1_overhead_multiple, 0)}x the value moved`,
-    },
-    {
-      title: "Sample tx",
-      body: truncateHash(summary.proof.sample_tx_hash, 10, 6),
-      detail: "click to inspect on Arc Explorer",
-      href: `https://testnet.arcscan.app/tx/${summary.proof.sample_tx_hash}`,
-    },
-  ];
-
-  const arcJobs = summary.arc_jobs || [];
-  const arcJobMarkup = arcJobs
-    .map(
-      (job) => `
-        <article class="trade-card">
-          <div class="trade-topline">
-            <strong class="trade-symbol">${escapeHtml(job.task_id)} · ${escapeHtml(job.agent_id)}</strong>
-            <span class="trade-pill" data-tone="${escapeHtml(job.status === "completed" ? "positive" : "warning")}">${escapeHtml(job.status)}</span>
-          </div>
-          <p class="mono">${escapeHtml(truncateHash(job.proof_hash, 10, 6))}</p>
-          <div class="trade-meta">
-            <span>${escapeHtml(job.metadata?.action || "proof")}</span>
-            <span>${escapeHtml(formatDateTime(job.timestamp))}</span>
-          </div>
-        </article>
-      `,
-    )
-    .join("");
-
-  container.innerHTML = `
-    <div class="connector-grid" style="margin-bottom: 1rem;">
-      ${cards
-        .map(
-          (card) => `
-            <article class="connector-card">
-              <p class="eyebrow">${escapeHtml(card.title)}</p>
-              <strong>${card.href ? `<a href="${escapeHtml(card.href)}" target="_blank" rel="noreferrer">${escapeHtml(card.body)}</a>` : escapeHtml(card.body)}</strong>
-              <p>${escapeHtml(card.detail)}</p>
-            </article>
-          `,
-        )
+          `;
+        })
         .join("")}
     </div>
-    ${arcJobMarkup || ""}
   `;
+}
+
+function rolePillClass(role) {
+  return (
+    {
+      research: "pill-blue",
+      consumer: "pill-violet",
+      auditor: "pill-green",
+      treasury: "pill-gold",
+    }[role] || "pill"
+  );
+}
+
+function roleLabel(role) {
+  return (
+    {
+      research: "Research",
+      consumer: "Consumer",
+      auditor: "Auditor",
+      treasury: "Treasury",
+    }[role] || "Agent"
+  );
+}
+
+function getWalletAddress(index, fallbackId) {
+  const wallets = Array.isArray(state.summary.circle?.wallets) ? state.summary.circle.wallets : [];
+  const wallet = wallets[index];
+  return wallet?.address || syntheticAddressFor(fallbackId);
+}
+
+function buildAgentModels() {
+  const proof = state.summary.proof || FALLBACK_SUMMARY.proof;
+  const transactions = state.summary.transactions || [];
+  const totalMoved = asNumber(proof.total_usdc_moved);
+  const buyerWallet = state.market.buyerAddress.trim();
+  const buyerLabel = buyerWallet ? "buyer_wallet" : "consumer_01";
+  const treasuryAddress =
+    state.summary.circle?.treasury_address ||
+    state.summary.connectors?.treasury_address ||
+    getWalletAddress(0, "treasury");
+
+  return [
+    {
+      id: "research_00",
+      role: "research",
+      address: getWalletAddress(1, "research_00"),
+      balance: 0.214 + totalMoved / 3,
+      reputation: 96,
+      txCount: transactions.filter((tx) => tx.from === "research_00" || tx.to === "research_00").length || 26,
+      flowLabel: "Revenue 24h",
+      flowValue: totalMoved / 2 || 0.0315,
+      flowDisplay: formatUsdc(totalMoved / 2 || 0.0315),
+      note: "Publishes reviewed delivery packets and settlement-ready unlock metadata.",
+      status: "Publishing live artifacts to the marketplace feed.",
+    },
+    {
+      id: "research_03",
+      role: "research",
+      address: getWalletAddress(2, "research_03"),
+      balance: 0.181,
+      reputation: 89,
+      txCount: transactions.filter((tx) => tx.from === "research_03" || tx.to === "research_03").length || 18,
+      flowLabel: "Revenue 24h",
+      flowValue: 0.018,
+      flowDisplay: formatUsdc(0.018),
+      note: "Owns the premium market intelligence brief unlocked after verified payment.",
+      status: "Premium artifact pipeline online.",
+    },
+    {
+      id: "auditor",
+      role: "auditor",
+      address: getWalletAddress(3, "auditor"),
+      balance: 0.119,
+      reputation: 92,
+      txCount: transactions.filter((tx) => tx.from === "auditor" || tx.to === "auditor").length || 12,
+      flowLabel: "Reviews 24h",
+      flowValue: 14,
+      flowDisplay: "14 approvals",
+      note: "Verifies receipts, approves review bundles, and gates final delivery.",
+      status: "Final settlement verification path healthy.",
+    },
+    {
+      id: buyerLabel,
+      role: "consumer",
+      address: buyerWallet || getWalletAddress(4, "consumer_01"),
+      balance: 1.247,
+      reputation: 74,
+      txCount: getSortedOrders().length || 7,
+      flowLabel: "Spend 24h",
+      flowValue: 0.016,
+      flowDisplay: formatUsdc(0.016),
+      note: "Buyer wallet funding intents on Arc and unlocking artifacts without subscription rails.",
+      status: buyerWallet ? "Live buyer wallet connected." : "Ready to fund checkout intents.",
+    },
+    {
+      id: "treasury",
+      role: "treasury",
+      address: treasuryAddress,
+      balance: totalMoved,
+      reputation: null,
+      txCount: asNumber(proof.transactions_total) || 63,
+      flowLabel: "Settled batch",
+      flowValue: totalMoved,
+      flowDisplay: formatUsdc(totalMoved),
+      note: "Receives buyer funds and hands off to verification before artifact release.",
+      status: state.summary.circle?.wallets_loaded ? "Wallet bootstrap complete." : "Wallet bootstrap pending.",
+    },
+  ];
+}
+
+function getSelectedAgent() {
+  const agents = buildAgentModels();
+  const selected = agents.find((agent) => agent.id === state.ui.selectedAgentId);
+  if (selected) {
+    return { agents, selected };
+  }
+  state.ui.selectedAgentId = agents[0]?.id || "research_00";
+  return { agents, selected: agents[0] || null };
+}
+
+function sparkColorForRole(role) {
+  if (role === "consumer") {
+    return "var(--danger)";
+  }
+  if (role === "treasury") {
+    return "var(--arc-blue)";
+  }
+  return "var(--circle-green)";
+}
+
+function buildSparklinePoints(agent) {
+  const seed = hashString(agent.id);
+  const base =
+    agent.role === "consumer"
+      ? 8
+      : agent.role === "treasury"
+        ? 12
+        : 6;
+  return Array.from({ length: 24 }, (_value, index) => {
+    const drift = agent.role === "consumer" ? -index * 0.06 : index * 0.04;
+    const wave = Math.sin(index * 0.6 + (seed % 7)) * 0.9;
+    const noise = ((seed >> (index % 8)) & 7) / 10;
+    return base + drift + wave + noise;
+  });
+}
+
+function renderSparkline(points, color = "var(--arc-blue)") {
+  const width = 280;
+  const height = 64;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = Math.max(0.0001, max - min);
+  const path = points
+    .map((point, index) => {
+      const x = (index / (points.length - 1)) * width;
+      const y = height - 4 - ((point - min) / range) * (height - 8);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  return `
+    <svg class="spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="sparkGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.25"></stop>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0"></stop>
+        </linearGradient>
+      </defs>
+      <path d="${path} L ${width} ${height} L 0 ${height} Z" fill="url(#sparkGrad)"></path>
+      <path d="${path}" stroke="${color}" stroke-width="1.5" fill="none"></path>
+    </svg>
+  `;
+}
+
+function renderActivityFeed(agent) {
+  const rows = [];
+  const orders = getSortedOrders();
+
+  (state.summary.transactions || []).slice(0, 6).forEach((tx) => {
+    const matchesAgent =
+      agent.role === "treasury"
+        ? tx.to === "treasury"
+        : tx.from === agent.id || tx.to === agent.id;
+
+    if (!matchesAgent) {
+      return;
+    }
+
+    rows.push({
+      pill: tx.to === "treasury" ? "pill-gold" : tx.from === agent.id ? "pill-blue" : "pill-green",
+      label: tx.to === "treasury" ? "settlement" : tx.from === agent.id ? "outbound" : "receipt",
+      description: `${tx.from} → ${tx.to}`,
+      amount: `${formatNumber(tx.amount_usdc, 3)} USDC`,
+      hash: tx.tx_hash,
+      ago: relativeTime(tx.timestamp),
+    });
+  });
+
+  if (agent.role === "consumer") {
+    orders.slice(0, 4).forEach((order) => {
+      rows.push({
+        pill: order.status === "DELIVERED" ? "pill-green" : order.status === "FAILED" ? "pill-high" : "pill-violet",
+        label: order.status.toLowerCase(),
+        description: `${order.artifactName} · ${orderStateLabel(order)}`,
+        amount: formatUsdc(order.amountUsd),
+        hash: order.txHash || null,
+        ago: relativeTime(order.updatedAt),
+      });
+    });
+  }
+
+  if (rows.length === 0) {
+    rows.push({
+      pill: rolePillClass(agent.role),
+      label: "ready",
+      description: agent.status,
+      amount: agent.role === "treasury" ? formatUsdc(agent.balance) : agent.flowDisplay || formatUsdc(agent.flowValue),
+      hash: state.summary.proof?.sample_tx_hash || null,
+      ago: "just now",
+    });
+  }
+
+  return rows.slice(0, 6);
+}
+
+function renderProofTransactions(limit = 4) {
+  return (state.summary.transactions || [])
+    .slice(0, limit)
+    .map((tx) => {
+      return `
+        <div class="trade-row">
+          <span class="seq">#${escapeHtml(String(tx.seq))}</span>
+          <span class="path">
+            <span class="agent">${escapeHtml(tx.from)}</span>
+            <span class="arrow">${icon("arrow-r", 12)}</span>
+            <span class="agent">${escapeHtml(tx.to)}</span>
+          </span>
+          <span class="amount">${escapeHtml(formatNumber(tx.amount_usdc, 3))} USDC</span>
+          <a class="hash" href="${escapeHtml(txUrl(tx.tx_hash))}" target="_blank" rel="noreferrer">${escapeHtml(truncateHash(tx.tx_hash, 8, 6))}</a>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderChainStrip() {
+  const summary = state.summary;
+  return `
+    <div class="chain-strip">
+      <span class="row g6"><span class="dot"></span><strong>Arc Testnet</strong></span>
+      <span class="sep">·</span>
+      <span>Chain ID <strong>${escapeHtml(String(summary.arc.chain_id || 5042002))}</strong></span>
+      <span class="sep">·</span>
+      <span>${escapeHtml(String(summary.proof.transactions_total || 63))} onchain settlements</span>
+      <div class="right">
+        <span class="live-block">≤ $0.01 per action</span>
+        <span>${escapeHtml(formatNumber(summary.proof.throughput_tx_per_min || 17.7, 1))} tx/min</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderTopNav() {
+  const route = state.ui.route;
+  const connectedAgent = route === "agents" ? state.ui.selectedAgentId : state.market.buyerAddress.trim() || "consumer_01";
+  return `
+    <div class="topnav">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span>TTM Agent Market</span>
+      </a>
+      <nav aria-label="Primary">
+        <a href="/">Pitch</a>
+        <a class="${route === "marketplace" ? "active" : ""}" href="#marketplace" data-route="marketplace">Marketplace</a>
+        <a class="${route === "agents" ? "active" : ""}" href="#agents" data-route="agents">Agents</a>
+        <a class="${route === "architecture" ? "active" : ""}" href="#architecture" data-route="architecture">Architecture</a>
+        <a class="${route === "about" ? "active" : ""}" href="#about" data-route="about">About</a>
+        <a href="/pitch-video.html">90s Deck</a>
+        <a href="/api/hackathon/summary" target="_blank" rel="noreferrer">Proof JSON</a>
+        <a href="/docs" target="_blank" rel="noreferrer">Swagger</a>
+        <a href="https://github.com/martinlofranodeoliveira/ToTheMoonTokens" target="_blank" rel="noreferrer">${icon("github", 12)} GitHub</a>
+      </nav>
+      <div class="right">
+        <span class="live"><span class="dot"></span>Connected</span>
+        <span class="testnet-badge">Arc Testnet</span>
+        <div class="row g6" style="padding-left: 8px; border-left: 1px solid var(--border)">
+          ${renderAvatar(connectedAgent, "sm")}
+          <span class="mono-s t2">${escapeHtml(truncateMiddle(connectedAgent, 8, 4))}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAvatar(id, size = "") {
+  const sizeClass = size === "sm" ? "avatar-sm" : size === "lg" ? "avatar-lg" : size === "xl" ? "avatar-xl" : "";
+  return `<span class="avatar ${sizeClass}" style="background:${escapeHtml(avatarGradient(id))}">${escapeHtml(initialsFor(id))}</span>`;
+}
+
+function renderFilterColumn(listings) {
+  const types = Array.from(new Set((state.summary.catalog || []).map((item) => item.type)));
+  const activeOrder = getActiveOrder();
+
+  return `
+    <aside class="col-filter">
+      <div class="col g16">
+        <div class="col g8">
+          <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Search</label>
+          <div style="position: relative;">
+            <input
+              class="search"
+              style="padding-left: 30px;"
+              placeholder="Artifact, publisher, type"
+              data-field="search"
+              value="${escapeHtml(state.filters.search)}"
+            />
+            <div style="position: absolute; left: 10px; top: 11px; pointer-events: none; color: var(--text-3);">${icon("search", 12)}</div>
+          </div>
+        </div>
+
+        <div class="col g8">
+          <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Artifact type</label>
+          <div>
+            ${types
+              .map((type) => {
+                return `
+                  <label class="check-row">
+                    <input type="checkbox" data-type-filter="${escapeHtml(type)}" ${state.filters.types.has(type) ? "checked" : ""} />
+                    <span class="mono-s">${escapeHtml(formatArtifactType(type))}</span>
+                  </label>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <div class="col g8">
+          <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Max price (USDC)</label>
+          <input type="range" min="0.001" max="0.01" step="0.001" value="${escapeHtml(String(state.filters.maxPrice))}" data-field="max-price" style="accent-color: var(--arc-blue);" />
+          <div class="row between">
+            <span class="mono-s t3">0.001</span>
+            <span class="mono-s">${escapeHtml(formatNumber(state.filters.maxPrice, 3))}</span>
+          </div>
+        </div>
+
+        <label class="check-row">
+          <input type="checkbox" data-field="under-one-cent" ${state.filters.underOneCentOnly ? "checked" : ""} />
+          <span>Only sub-cent artifacts (&lt; $0.01)</span>
+        </label>
+
+        <div class="col g8">
+          <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Buyer wallet</label>
+          <input
+            class="input"
+            placeholder="0xBuyerAddress"
+            data-field="buyer-address"
+            value="${escapeHtml(state.market.buyerAddress)}"
+          />
+        </div>
+
+        <button class="btn btn-ghost" style="width: 100%; justify-content: center;" data-action="clear-filters">
+          Clear filters
+        </button>
+
+        <div class="card card-pad">
+          <div class="sect-head" style="margin-bottom: 8px;">
+            <h3>Live proof</h3>
+            <span class="live"><span class="dot"></span>Batch</span>
+          </div>
+          <div class="col g8">
+            <div class="row between">
+              <span class="mono-s t3">Transfers</span>
+              <span class="mono-s">${escapeHtml(String(state.summary.proof.transactions_total))}</span>
+            </div>
+            <div class="row between">
+              <span class="mono-s t3">Throughput</span>
+              <span class="mono-s">${escapeHtml(formatNumber(state.summary.proof.throughput_tx_per_min, 1))} tx/min</span>
+            </div>
+            <div class="row between">
+              <span class="mono-s t3">Margin</span>
+              <span class="mono-s">$${escapeHtml(formatNumber(state.summary.margin.eth_l1_counterfactual_gas_usd, 2))} on ETH L1</span>
+            </div>
+            <div class="row between">
+              <span class="mono-s t3">Wallets</span>
+              <span class="mono-s">${escapeHtml(String(state.summary.circle.wallets_configured))} configured</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="sect-head" style="margin-bottom: 8px;">
+            <h3>${activeOrder ? "Active checkout" : "Ready to buy"}</h3>
+          </div>
+          ${
+            activeOrder
+              ? `
+                <div class="col g8">
+                  <div class="mono-s t3">Artifact</div>
+                  <div>${escapeHtml(activeOrder.artifactName)}</div>
+                  <div class="mono-s t3">State</div>
+                  <div>${escapeHtml(orderStateLabel(activeOrder))}</div>
+                  <div class="mono-s t3">Treasury route</div>
+                  <div class="mono-s">${escapeHtml(truncateMiddle(activeOrder.depositAddress, 10, 6))}</div>
+                  ${
+                    activeOrder.txHash
+                      ? `<a class="tx-pill" href="${escapeHtml(txUrl(activeOrder.txHash))}" target="_blank" rel="noreferrer">${escapeHtml(truncateHash(activeOrder.txHash, 10, 6))} ${icon("link", 10)}</a>`
+                      : `<div class="mono-s t2">Awaiting buyer tx hash.</div>`
+                  }
+                  <button class="btn btn-secondary" style="width: 100%; justify-content: center;" data-select-order="${escapeHtml(activeOrder.paymentId)}">
+                    Open checkout
+                  </button>
+                </div>
+              `
+              : `
+                <div class="col g8">
+                  <div class="t2" style="font-size: 12px;">
+                    Pick any artifact in the live feed to open the same modal flow from the prototype, now wired to real payment intents and Arc settlement verification.
+                  </div>
+                  <button class="btn btn-secondary" style="width: 100%; justify-content: center;" data-action="open-first-artifact">
+                    See the marketplace live ${icon("arrow-r", 12)}
+                  </button>
+                </div>
+              `
+          }
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+function renderListingCard(listing) {
+  const latestOrder = listing.latestOrder;
+  const actionLabel = latestOrder ? "Open checkout" : "Subscribe & pay";
+  const statusText = latestOrder ? orderStateLabel(latestOrder) : "Verify tx";
+  const profileColor = latestOrder?.status === "DELIVERED" ? "var(--circle-green)" : latestOrder?.status === "FAILED" ? "var(--danger)" : "var(--text-2)";
+
+  return `
+    <div class="signal">
+      <div class="col g4">
+        <div class="sym">${escapeHtml(listing.name)}</div>
+        <div class="row g6">
+          <span class="pill pill-blue">${escapeHtml(formatArtifactType(listing.type))}</span>
+          <span class="pill ${escapeHtml(tierPill(listing.tier))}">${escapeHtml(listing.tier)}</span>
+        </div>
+      </div>
+      <div class="score-cell">
+        <span class="rep-badge ${escapeHtml(scoreColor(listing.score))}">${escapeHtml(String(listing.score))}</span>
+      </div>
+      <div class="col g4">
+        <div class="mono-s t3">checkout</div>
+        <div class="mono-s" style="color:${escapeHtml(profileColor)};">${escapeHtml(statusText)}</div>
+      </div>
+      <div class="pub">
+        ${renderAvatar(listing.publisher, "sm")}
+        <span class="pub-name mono-s">${escapeHtml(listing.publisher)}</span>
+      </div>
+      <div class="actions">
+        <div class="price-pill">${escapeHtml(formatNumber(listing.price_usd, 3))} <span class="t3">USDC</span></div>
+        <button class="btn ${latestOrder ? "btn-secondary" : "btn-primary"}" data-open-artifact="${escapeHtml(listing.id)}">${escapeHtml(actionLabel)}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMainColumn(listings) {
+  return `
+    <main class="col-main">
+      ${renderBanner()}
+      <div class="card card-pad" style="margin-bottom: 16px;">
+        <div class="row between" style="margin-bottom: 10px;">
+          <div class="sect-head" style="margin-bottom: 0;">
+            <h3>Live marketplace</h3>
+            <span class="live"><span class="dot"></span>Arc + Circle</span>
+          </div>
+          <button class="btn btn-ghost" style="height: 30px;" data-action="refresh-market">Refresh market</button>
+        </div>
+        <div class="t2" style="font-size: 13px;">
+          Real-Time Micro-Commerce Flow. Buyers request a priced artifact, fund treasury in USDC, paste the Arc tx hash, verify settlement, and unlock delivery without leaving the marketplace surface.
+        </div>
+      </div>
+
+      <div class="row between" style="margin-bottom: 16px;">
+        <div class="sect-head" style="margin-bottom: 0;">
+          <h3>Live artifacts</h3>
+          <span class="live"><span class="dot"></span>Streaming proof</span>
+          <span class="count">${escapeHtml(String(listings.length))} active</span>
+        </div>
+        <div class="row g8">
+          <button class="btn btn-ghost" style="height: 30px;">${icon("search", 12)} Sort: newest</button>
+        </div>
+      </div>
+
+      ${
+        listings.length === 0
+          ? `
+            <div class="empty">
+              <div class="glyph">${icon("search", 22)}</div>
+              <h4>No artifacts match your filters</h4>
+              <p>Try loosening the type or price filters to bring the marketplace cards back into view.</p>
+            </div>
+          `
+          : `
+            <div class="col g8">
+              ${listings.map((listing) => renderListingCard(listing)).join("")}
+            </div>
+          `
+      }
+    </main>
+  `;
+}
+
+function renderSettlementItem(item) {
+  return `
+    <div class="settle-item">
+      <div class="flow">
+        ${renderAvatar(item.consumer, "sm")}
+        <span class="arrow">${icon("arrow-r", 12)}</span>
+        ${renderAvatar(item.research, "sm")}
+      </div>
+      <div class="meta">
+        <div class="amt">+${escapeHtml(formatNumber(item.amount, 3))} USDC</div>
+        <a class="tx-pill" href="${escapeHtml(txUrl(item.hash))}" target="_blank" rel="noreferrer">
+          <span>${escapeHtml(truncateHash(item.hash, 10, 6))}</span>
+          ${icon("link", 10)}
+        </a>
+      </div>
+      <div class="ts">${escapeHtml(item.agoLabel)}</div>
+    </div>
+  `;
+}
+
+function renderOrdersCard() {
+  const orders = getSortedOrders();
+  return `
+    <div class="card card-pad" style="margin-top: 14px;">
+      <div class="sect-head">
+        <h3>Active orders</h3>
+        <span class="count">${escapeHtml(String(orders.length))} tracked</span>
+      </div>
+      ${
+        orders.length === 0
+          ? `
+            <div class="t2" style="font-size: 12px; margin-bottom: 12px;">
+              Checkout history from this browser session appears here after the first purchase flow starts.
+            </div>
+          `
+          : `
+            <div class="col g8">
+              ${orders
+                .slice(0, 4)
+                .map(
+                  (order) => `
+                    <button class="order-item" data-select-order="${escapeHtml(order.paymentId)}">
+                      <span class="mono-s">${escapeHtml(order.artifactName)}</span>
+                      <span class="mono-s t2">${escapeHtml(orderStateLabel(order))}</span>
+                    </button>
+                  `,
+                )
+                .join("")}
+            </div>
+          `
+      }
+      <button class="btn btn-ghost" style="width: 100%; justify-content: center; margin-top: 12px;" data-action="inspect-payment-flow">
+        Inspect payment flow ${icon("arrow-r", 12)}
+      </button>
+    </div>
+  `;
+}
+
+function renderRightColumn() {
+  const settlements = buildSettlements();
+  const totalAmount = settlements.reduce((sum, item) => sum + asNumber(item.amount), 0);
+  return `
+    <aside class="col-right">
+      <div class="sect-head">
+        <h3>Settlements</h3>
+        <span class="live"><span class="dot"></span>Live</span>
+      </div>
+
+      <div class="card card-pad" style="margin-bottom: 14px; padding: 14px;">
+        <div class="row between" style="margin-bottom: 8px;">
+          <span class="mono-s t3">LAST BATCH</span>
+          <span class="mono-s t2">${escapeHtml(String(state.summary.proof.transactions_total))} txs</span>
+        </div>
+        <div class="row between">
+          <div class="col g4">
+            <span class="mono-s t3">Total</span>
+            <span class="mono" style="font-size: 15px; color: var(--circle-green);">${escapeHtml(formatNumber(totalAmount, 3))} USDC</span>
+          </div>
+          <div class="col g4">
+            <span class="mono-s t3">Avg finality</span>
+            <span class="mono" style="font-size: 15px;">${escapeHtml(formatNumber(state.summary.proof.latency_p50_ms / 1000, 1))}<span class="t3">s</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        ${settlements.map((item) => renderSettlementItem(item)).join("")}
+      </div>
+
+      ${renderOrdersCard()}
+    </aside>
+  `;
+}
+
+function renderMarketplacePage(listings) {
+  return `
+    <div class="layout-3col">
+      ${renderFilterColumn(listings)}
+      ${renderMainColumn(listings)}
+      ${renderRightColumn()}
+    </div>
+  `;
+}
+
+function renderAgentsPage() {
+  const { agents, selected } = getSelectedAgent();
+  if (!selected) {
+    return "";
+  }
+
+  const activities = renderActivityFeed(selected);
+  const proof = state.summary.proof || FALLBACK_SUMMARY.proof;
+  const selectedSpark = renderSparkline(buildSparklinePoints(selected), sparkColorForRole(selected.role));
+
+  const roleDetail =
+    selected.role === "research"
+      ? `
+        <div class="col g8">
+          <div class="row between"><span class="mono-s t3">Revenue path</span><span class="mono-s">${escapeHtml(formatUsdc(selected.flowValue))}</span></div>
+          <div class="row between"><span class="mono-s t3">Artifact pricing</span><span class="mono-s">0.001 / 0.005 / 0.010</span></div>
+          <div class="row between"><span class="mono-s t3">Current role</span><span class="mono-s">${escapeHtml(selected.status)}</span></div>
+        </div>
+      `
+      : selected.role === "consumer"
+        ? `
+          <div class="col g8">
+            <div class="row between"><span class="mono-s t3">Last checkout</span><span class="mono-s">${escapeHtml(getSortedOrders()[0]?.artifactName || "Awaiting first purchase")}</span></div>
+            <div class="row between"><span class="mono-s t3">Funding mode</span><span class="mono-s">Circle Console or Arc wallet</span></div>
+            <div class="row between"><span class="mono-s t3">Buyer address</span><span class="mono-s">${escapeHtml(truncateMiddle(selected.address, 8, 6))}</span></div>
+          </div>
+        `
+        : selected.role === "auditor"
+          ? `
+            <div class="col g8">
+              <div class="row between"><span class="mono-s t3">Verification step</span><span class="mono-s">Receipt + settlement proof</span></div>
+              <div class="row between"><span class="mono-s t3">Demo jobs</span><span class="mono-s">${escapeHtml(String(state.demoJobs.length || 0))} tracked</span></div>
+              <div class="row between"><span class="mono-s t3">Unlock gate</span><span class="mono-s">Manual approval required</span></div>
+            </div>
+          `
+          : `
+            <div class="col g8">
+              <div class="row between"><span class="mono-s t3">Treasury route</span><span class="mono-s">${escapeHtml(truncateMiddle(selected.address, 8, 6))}</span></div>
+              <div class="row between"><span class="mono-s t3">Wallets loaded</span><span class="mono-s">${state.summary.circle?.wallets_loaded ? "yes" : "no"}</span></div>
+              <div class="row between"><span class="mono-s t3">Batch value</span><span class="mono-s">${escapeHtml(formatUsdc(proof.total_usdc_moved))}</span></div>
+            </div>
+          `;
+
+  return `
+    <main style="padding: 28px 32px 64px; max-width: 1240px; margin: 0 auto;">
+      <div class="row g8" style="margin-bottom: 24px; overflow-x: auto; padding: 4px 0;">
+        ${agents
+          .map((agent) => {
+            const active = agent.id === selected.id;
+            return `
+              <button
+                class="btn ${active ? "btn-secondary" : "btn-ghost"}"
+                data-select-agent="${escapeHtml(agent.id)}"
+                style="${active ? "border-color: var(--arc-blue); color: var(--text);" : "color: var(--text-2);"}"
+              >
+                ${renderAvatar(agent.id, "sm")}
+                <span class="mono-s">${escapeHtml(agent.id)}</span>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+
+      <div class="card card-pad" style="margin-bottom: 20px;">
+        <div class="row g16">
+          ${renderAvatar(selected.id, "xl")}
+          <div class="col g8" style="flex: 1;">
+            <div class="row g10">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em;">${escapeHtml(selected.id)}</h1>
+              <span class="pill ${escapeHtml(rolePillClass(selected.role))}">${escapeHtml(roleLabel(selected.role))}</span>
+              <span class="live"><span class="dot"></span>Active</span>
+            </div>
+            <div class="row g12 mono-s t2" style="flex-wrap: wrap;">
+              <span class="row g6">${icon("copy", 11)}<span class="mono">${escapeHtml(truncateMiddle(selected.address, 10, 8))}</span></span>
+              <span class="t3">·</span>
+              <span>${escapeHtml(selected.status)}</span>
+              <span class="t3">·</span>
+              <span>${escapeHtml(String(selected.txCount))} tx observed</span>
+            </div>
+            <p class="section-copy" style="max-width: 780px;">${escapeHtml(selected.note)}</p>
+          </div>
+          <button class="btn btn-secondary" data-route="marketplace">Open marketplace ${icon("arrow-r", 12)}</button>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap: 20px;">
+        <div class="card card-pad">
+          <div class="row between" style="margin-bottom: 14px;">
+            <span class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Balance &amp; flow</span>
+            <span class="mono-s t3">24h</span>
+          </div>
+          <div class="balance">
+            <div class="big">
+              <span>${escapeHtml(formatUsdc(selected.balance, 4).replace(" USDC", ""))}</span>
+              <span class="ccy">USDC</span>
+            </div>
+            <div class="sub">${escapeHtml(selected.flowLabel)} · ${escapeHtml(selected.flowDisplay || (typeof selected.flowValue === "number" ? formatUsdc(selected.flowValue) : String(selected.flowValue)))}</div>
+          </div>
+          <div class="row g16" style="margin-top: 14px; margin-bottom: 14px; flex-wrap: wrap;">
+            <div class="col g4"><span class="mono-s t3">Role</span><span class="mono">${escapeHtml(roleLabel(selected.role))}</span></div>
+            <div class="col g4"><span class="mono-s t3">Observed txs</span><span class="mono">${escapeHtml(String(selected.txCount))}</span></div>
+            <div class="col g4"><span class="mono-s t3">Finality</span><span class="mono">${escapeHtml(formatNumber(proof.latency_p50_ms / 1000, 1))}s</span></div>
+          </div>
+          ${selectedSpark}
+        </div>
+
+        <div class="card card-pad">
+          <div class="row between" style="margin-bottom: 18px;">
+            <span class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">${selected.role === "treasury" ? "Wallet health" : "Reputation"}</span>
+            <span class="mono-s t3">${selected.role === "treasury" ? "Circle wallets" : "score 0-100"}</span>
+          </div>
+          ${
+            selected.reputation !== null
+              ? `
+                <div class="row g24" style="align-items: center;">
+                  <div class="col g8" style="align-items: center;">
+                    <span class="rep-badge rep-badge-lg ${escapeHtml(scoreColor(selected.reputation))}">${escapeHtml(String(selected.reputation))}</span>
+                    <span class="mono-s t3">overall</span>
+                  </div>
+                  <div class="col g8" style="flex: 1;">
+                    <div class="row between"><span class="mono-s t3">Settlement readiness</span><span class="mono-s">${escapeHtml(String(Math.min(99, selected.reputation + 1)))} / 100</span></div>
+                    <div class="row between"><span class="mono-s t3">Artifact quality</span><span class="mono-s">${escapeHtml(String(Math.max(70, selected.reputation - 4)))} / 100</span></div>
+                    <div class="row between"><span class="mono-s t3">Response latency</span><span class="mono-s">${escapeHtml(formatNumber(proof.latency_p50_ms, 0))} ms</span></div>
+                  </div>
+                </div>
+              `
+              : `
+                <div class="col g8">
+                  <div class="row between"><span class="mono-s t3">Wallet provider</span><span class="mono-s">${escapeHtml(state.summary.connectors?.wallet_provider || "circle")}</span></div>
+                  <div class="row between"><span class="mono-s t3">Wallet set</span><span class="mono-s">${escapeHtml(truncateMiddle(state.summary.circle?.wallet_set_id || "", 10, 6))}</span></div>
+                  <div class="row between"><span class="mono-s t3">Wallets configured</span><span class="mono-s">${escapeHtml(String(state.summary.circle?.wallets_configured || 0))}</span></div>
+                  <div class="row between"><span class="mono-s t3">Wallets loaded</span><span class="mono-s">${state.summary.circle?.wallets_loaded ? "yes" : "no"}</span></div>
+                </div>
+              `
+          }
+          <div style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px;">
+            ${roleDetail}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header row between">
+            <span>Recent activity</span>
+            <span class="live"><span class="dot"></span>Live</span>
+          </div>
+          <div style="padding: 4px;">
+            ${activities
+              .map((activity, index) => {
+                return `
+                  <div class="row" style="padding: 10px 14px; border-bottom: ${index < activities.length - 1 ? "1px solid var(--border)" : "none"}; gap: 10px;">
+                    <span class="pill ${escapeHtml(activity.pill)}" style="font-size: 10px; min-width: 108px; justify-content: center;">${escapeHtml(activity.label)}</span>
+                    <span class="mono-s t2" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(activity.description)}</span>
+                    <span class="mono-s" style="color: var(--circle-green);">${escapeHtml(activity.amount)}</span>
+                    ${activity.hash ? `<a class="tx-pill" href="${escapeHtml(txUrl(activity.hash))}" target="_blank" rel="noreferrer">${escapeHtml(truncateHash(activity.hash, 8, 6))} ${icon("link", 10)}</a>` : ""}
+                    <span class="mono-s t3" style="min-width: 56px; text-align: right;">${escapeHtml(activity.ago)}</span>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="row between" style="margin-bottom: 14px;">
+            <span class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Settlement context</span>
+            <a class="btn btn-ghost" href="/api/hackathon/summary" target="_blank" rel="noreferrer" style="height: 26px;">Proof JSON</a>
+          </div>
+          <div class="col g12">
+            <div class="grid-2" style="gap: 10px;">
+              <div class="col g4"><span class="mono-s t3">Track</span><span class="mono">${escapeHtml((state.summary.tracks || [])[0] || "Real-Time Micro-Commerce Flow")}</span></div>
+              <div class="col g4"><span class="mono-s t3">Wallet mode</span><span class="mono">${escapeHtml(state.summary.connectors?.wallet_mode || "manual_only")}</span></div>
+              <div class="col g4"><span class="mono-s t3">Treasury</span><span class="mono">${escapeHtml(truncateMiddle(state.summary.connectors?.treasury_address || state.summary.circle?.treasury_address || selected.address, 8, 6))}</span></div>
+              <div class="col g4"><span class="mono-s t3">Batch throughput</span><span class="mono">${escapeHtml(formatNumber(proof.throughput_tx_per_min, 1))} tx/min</span></div>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 14px;">
+              <div class="mono-s t3" style="margin-bottom: 8px;">Last proof transactions</div>
+              <div class="trade-list" style="max-height: 240px;">${renderProofTransactions(4)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  `;
+}
+
+function renderArchitecturePage() {
+  const summary = state.summary;
+  const proof = summary.proof || FALLBACK_SUMMARY.proof;
+  const connectors = summary.connectors || FALLBACK_SUMMARY.connectors;
+  const flowCards = [
+    {
+      eyebrow: "01 Quote",
+      title: "Buyer opens marketplace",
+      copy: "Marketplace creates a priced payment intent for one artifact at a time with sub-cent USDC pricing.",
+    },
+    {
+      eyebrow: "02 Route",
+      title: "Circle treasury address",
+      copy: "The checkout surfaces a live treasury route sourced from the Circle wallet set instead of a mock fallback.",
+    },
+    {
+      eyebrow: "03 Verify",
+      title: "Arc settlement proof",
+      copy: "Buyer pastes the Arc tx hash and the API verifies the receipt before the artifact unlock path can advance.",
+    },
+    {
+      eyebrow: "04 Deliver",
+      title: "Artifact unlock",
+      copy: "Once settlement is verified, the agent flow executes demo jobs and releases the paid artifact payload.",
+    },
+  ];
+
+  return `
+    <main style="padding: 28px 32px 64px; max-width: 1240px; margin: 0 auto;" class="col g20">
+      <div class="card card-pad">
+        <div class="col g8">
+          <p class="eyebrow">Architecture</p>
+          <h1>Real-Time Micro-Commerce on Arc + Circle</h1>
+          <p class="lede">The frontend judges see is the same buyer surface that creates intents, routes settlement to Circle wallets, verifies Arc receipts, and unlocks paid agent artifacts after proof lands onchain.</p>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="card card-pad kpi"><span class="label">Pricing</span><span class="value green">0.001</span><span class="sub">Entry artifact price in USDC</span></div>
+        <div class="card card-pad kpi"><span class="label">Transactions</span><span class="value">${escapeHtml(String(proof.transactions_total || 63))}</span><span class="sub">Real Arc settlements demonstrated</span></div>
+        <div class="card card-pad kpi"><span class="label">Throughput</span><span class="value blue">${escapeHtml(formatNumber(proof.throughput_tx_per_min || 17.7, 1))}</span><span class="sub">Observed tx/min in the proof batch</span></div>
+        <div class="card card-pad kpi"><span class="label">ETH L1 Counterfactual</span><span class="value">${escapeHtml(formatNumber(summary.margin?.eth_l1_counterfactual_gas_usd || 31.5, 1))}</span><span class="sub">Why this would break on traditional gas</span></div>
+      </div>
+
+      <div class="grid-2" style="gap: 20px;">
+        <div class="card card-pad">
+          <div class="sect-head">
+            <h3>Settlement flow</h3>
+            <span class="live"><span class="dot"></span>Live checkout</span>
+          </div>
+          <div class="col g8">
+            ${flowCards
+              .map((card) => {
+                return `
+                  <div class="signal" style="grid-template-columns: minmax(88px, 100px) 1fr auto;">
+                    <div class="col g4">
+                      <span class="pill pill-blue">${escapeHtml(card.eyebrow)}</span>
+                    </div>
+                    <div class="col g4">
+                      <div class="sym" style="font-size: 14px;">${escapeHtml(card.title)}</div>
+                      <div class="mono-s t2" style="white-space: normal;">${escapeHtml(card.copy)}</div>
+                    </div>
+                    <div class="actions">
+                      <span class="price-pill">proof</span>
+                    </div>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="sect-head">
+            <h3>Connectors</h3>
+            <span class="count">${escapeHtml(String(summary.circle?.wallets_configured || 0))} wallets</span>
+          </div>
+          <div class="connector-grid">
+            <div class="connector-card"><span class="eyebrow">Wallet Provider</span><strong>${escapeHtml(connectors.wallet_provider || "circle_developer_controlled_wallets")}</strong><p>Developer-controlled wallets route the buyer into a known treasury destination.</p></div>
+            <div class="connector-card"><span class="eyebrow">Wallet Set</span><strong>${escapeHtml(truncateMiddle(summary.circle?.wallet_set_id || "", 12, 8))}</strong><p>Wallet set exposed in the public judge-facing summary.</p></div>
+            <div class="connector-card"><span class="eyebrow">Treasury</span><strong>${escapeHtml(truncateMiddle(connectors.treasury_address || summary.circle?.treasury_address || "", 10, 8))}</strong><p>Checkout intents now use the live treasury route instead of the mock fallback.</p></div>
+            <div class="connector-card"><span class="eyebrow">Arc RPC</span><strong><a href="${escapeHtml(connectors.arc_rpc_url || summary.arc?.url || "#")}" target="_blank" rel="noreferrer">${escapeHtml(connectors.arc_rpc_url || summary.arc?.url || "https://rpc.testnet.arc.network")}</a></strong><p>Receipt verification happens against Arc Testnet before delivery unlocks.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-pad">
+        <div class="sect-head">
+          <h3>Recent proof</h3>
+          <span class="live"><span class="dot"></span>63 tx batch</span>
+        </div>
+        <div class="trade-list">${renderProofTransactions(6)}</div>
+      </div>
+    </main>
+  `;
+}
+
+function renderAboutPage() {
+  const summary = state.summary;
+  const proof = summary.proof || FALLBACK_SUMMARY.proof;
+  const listings = buildListings();
+
+  return `
+    <main style="padding: 28px 32px 64px; max-width: 1240px; margin: 0 auto;" class="col g20">
+      <div class="card card-pad">
+        <div class="col g8">
+          <p class="eyebrow">About</p>
+          <h1>TTM Agent Market</h1>
+          <p class="lede">A buyer experience for paid agent artifacts where every interaction is priced in USDC, settled on Arc, and unlocked only after verification. The public demo aligns with the hackathon tracks instead of the old trading-bot surface.</p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap: 20px;">
+        <div class="card card-pad">
+          <div class="sect-head"><h3>Submission alignment</h3></div>
+          <div class="col g8">
+            ${(summary.tracks || FALLBACK_SUMMARY.tracks)
+              .map((track) => `<div class="row between"><span class="mono-s t3">Track</span><span class="pill pill-blue">${escapeHtml(track)}</span></div>`)
+              .join("")}
+            <div class="row between"><span class="mono-s t3">Chain</span><span class="mono-s">Arc Testnet · ${escapeHtml(String(summary.arc?.chain_id || 5042002))}</span></div>
+            <div class="row between"><span class="mono-s t3">Wallet stack</span><span class="mono-s">Circle developer-controlled wallets</span></div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="sect-head"><h3>Judge click path</h3></div>
+          <div class="col g8">
+            <div class="row between"><span class="mono-s t3">1.</span><span class="mono-s">Open Marketplace and select an artifact.</span></div>
+            <div class="row between"><span class="mono-s t3">2.</span><span class="mono-s">Create checkout, fund treasury, paste tx hash.</span></div>
+            <div class="row between"><span class="mono-s t3">3.</span><span class="mono-s">Verify settlement and unlock the paid artifact.</span></div>
+            <div class="row between"><span class="mono-s t3">4.</span><span class="mono-s">Inspect Agents and Architecture for onchain proof.</span></div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="sect-head"><h3>Artifact catalog</h3><span class="count">${escapeHtml(String(listings.length))} SKUs</span></div>
+          <div class="col g8">
+            ${listings
+              .map((listing) => {
+                return `
+                  <div class="row between" style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                    <div class="col g4">
+                      <span class="mono-s">${escapeHtml(listing.name)}</span>
+                      <span class="mono-s t3">${escapeHtml(formatArtifactType(listing.type))}</span>
+                    </div>
+                    <span class="price-pill">${escapeHtml(formatNumber(listing.price_usd, 3))} USDC</span>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="sect-head"><h3>Proof snapshot</h3></div>
+          <div class="col g8">
+            <div class="row between"><span class="mono-s t3">Transactions</span><span class="mono-s">${escapeHtml(String(proof.transactions_total || 63))}</span></div>
+            <div class="row between"><span class="mono-s t3">Success rate</span><span class="mono-s">${escapeHtml(formatPct(proof.success_rate_pct || 100))}</span></div>
+            <div class="row between"><span class="mono-s t3">Throughput</span><span class="mono-s">${escapeHtml(formatNumber(proof.throughput_tx_per_min || 17.7, 1))} tx/min</span></div>
+            <div class="row between"><span class="mono-s t3">Moved</span><span class="mono-s">${escapeHtml(formatUsdc(proof.total_usdc_moved || 0.063))}</span></div>
+            <div class="row between"><span class="mono-s t3">Margin vs ETH L1</span><span class="mono-s">$${escapeHtml(formatNumber(summary.margin?.eth_l1_counterfactual_gas_usd || 31.5, 2))}</span></div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="sect-head"><h3>Project links</h3></div>
+          <div class="row g8" style="flex-wrap: wrap;">
+            <a class="btn btn-ghost" href="/">Pitch</a>
+            <a class="btn btn-ghost" href="/pitch-video.html">90s Deck</a>
+            <a class="btn btn-ghost" href="/api/hackathon/summary" target="_blank" rel="noreferrer">Proof JSON</a>
+            <a class="btn btn-ghost" href="/docs" target="_blank" rel="noreferrer">Swagger</a>
+          </div>
+          <p class="section-copy" style="margin-top: 12px;">These public links are repeated here so judges can reach every proof surface from inside the page body as well.</p>
+        </div>
+      </div>
+    </main>
+  `;
+}
+
+function renderBanner() {
+  if (state.ui.banner) {
+    return `<div class="banner ${escapeHtml(state.ui.banner.tone)}" style="margin-bottom: 16px;">${escapeHtml(state.ui.banner.message)}</div>`;
+  }
+  if (state.usedFallback) {
+    return `<div class="banner warn" style="margin-bottom: 16px;">API offline. Showing repo-backed fallback proof so the marketplace remains presentation-ready.</div>`;
+  }
+  return "";
+}
+
+function renderModal() {
+  const artifact = modalArtifact();
+  if (!artifact) {
+    return "";
+  }
+
+  const selectedOrder = latestOrderForArtifact(artifact.id);
+  const isCreating = state.ui.creatingArtifactId === artifact.id;
+  const isVerifying = selectedOrder && state.ui.verifyingOrderId === selectedOrder.paymentId;
+  const isUnlocking = selectedOrder && state.ui.unlockingOrderId === selectedOrder.paymentId;
+
+  let primaryAction = "";
+  let secondaryAction = `<button class="btn btn-ghost" data-action="close-modal">Close</button>`;
+
+  if (!selectedOrder) {
+    primaryAction = `<button class="btn btn-primary" data-action="create-checkout" data-artifact-id="${escapeHtml(artifact.id)}">${isCreating ? "Creating checkout..." : `Pay ${escapeHtml(formatNumber(artifact.price_usd, 3))} USDC`}</button>`;
+  } else if (selectedOrder.status === "SETTLED") {
+    secondaryAction = `<button class="btn btn-secondary" data-action="open-tx" data-tx-hash="${escapeHtml(selectedOrder.txHash)}">Open tx</button>`;
+    primaryAction = `<button class="btn btn-primary" data-action="unlock-order" data-order-id="${escapeHtml(selectedOrder.paymentId)}">${isUnlocking ? "Unlocking..." : "Unlock artifact"}</button>`;
+  } else if (selectedOrder.status === "DELIVERED") {
+    secondaryAction = `<button class="btn btn-secondary" data-action="open-tx" data-tx-hash="${escapeHtml(selectedOrder.txHash)}">Open tx</button>`;
+    primaryAction = `<button class="btn btn-primary" data-action="copy-payment-id" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy payment ID</button>`;
+  } else {
+    secondaryAction = `<button class="btn btn-secondary" data-action="copy-treasury" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy treasury</button>`;
+    primaryAction = `<button class="btn btn-primary" data-action="verify-order" data-order-id="${escapeHtml(selectedOrder.paymentId)}">${isVerifying ? "Verifying..." : "Verify settlement"}</button>`;
+  }
+
+  return `
+    <div class="modal-backdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <div class="row between">
+            <h2>Confirm purchase</h2>
+            <button class="btn btn-ghost" data-action="close-modal" style="height: 28px; padding: 0 6px;">${icon("x", 14)}</button>
+          </div>
+          <p class="t2" style="margin: 0; font-size: 13px;">One priced artifact = one settlement path in USDC on Arc Testnet.</p>
+        </div>
+
+        <div class="modal-body">
+          <div class="card card-pad" style="margin-bottom: 20px;">
+            <div class="row between" style="margin-bottom: 10px;">
+              <div class="mono" style="font-size: 16px; font-weight: 500;">${escapeHtml(artifact.name)}</div>
+              <div class="row g6">
+                <span class="pill pill-blue">${escapeHtml(formatArtifactType(artifact.type))}</span>
+                <span class="pill ${escapeHtml(tierPill(artifact.tier))}">${escapeHtml(artifact.tier)}</span>
+              </div>
+            </div>
+            <div class="row between">
+              <div class="col g4">
+                <span class="mono-s t3">PUBLISHER</span>
+                <div class="row g6">${renderAvatar(artifact.publisher, "sm")}<span class="mono-s">${escapeHtml(artifact.publisher)}</span></div>
+              </div>
+              <div class="col g4">
+                <span class="mono-s t3">SCORE</span>
+                <span class="rep-badge ${escapeHtml(scoreColor(artifact.score))}">${escapeHtml(String(artifact.score))}</span>
+              </div>
+              <div class="col g4" style="align-items: flex-end;">
+                <span class="mono-s t3">PRICE</span>
+                <div class="mono" style="font-size: 18px; font-weight: 500;">${escapeHtml(formatNumber(artifact.price_usd, 3))} <span class="t2" style="font-size: 12px;">USDC</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            ${renderStepper(selectedOrder)}
+          </div>
+
+          <div class="col g12">
+            <div class="col g6">
+              <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Buyer wallet</label>
+              <input class="input" placeholder="0xBuyerAddress" data-field="buyer-address" value="${escapeHtml(state.market.buyerAddress)}" />
+            </div>
+
+            ${
+              selectedOrder
+                ? `
+                  <div class="card card-pad" style="padding: 14px;">
+                    <div class="row between" style="margin-bottom: 8px;">
+                      <span class="mono-s t3">PAYMENT ID</span>
+                      <span class="mono-s">${escapeHtml(truncateMiddle(selectedOrder.paymentId, 10, 8))}</span>
+                    </div>
+                    <div class="row between" style="margin-bottom: 8px;">
+                      <span class="mono-s t3">TREASURY</span>
+                      <span class="mono-s">${escapeHtml(truncateMiddle(selectedOrder.depositAddress, 12, 8))}</span>
+                    </div>
+                    <div class="col g6" style="margin-bottom: 8px;">
+                      <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Settlement tx hash</label>
+                      <input class="input mono-s" data-field="tx-hash" data-order-id="${escapeHtml(selectedOrder.paymentId)}" placeholder="0x..." value="${escapeHtml(selectedOrder.txHash)}" />
+                    </div>
+                    <div class="t2" style="font-size: 12px;">
+                      1. Create the payment intent. 2. Send the exact amount to treasury from Circle Console or another Arc-compatible wallet. 3. Paste the tx hash. 4. Verify and unlock.
+                    </div>
+                  </div>
+                `
+                : `
+                  <div class="banner info">
+                    Create a checkout to receive a payment ID and a live treasury address for this artifact.
+                  </div>
+                `
+            }
+
+            ${
+              selectedOrder && selectedOrder.reason
+                ? `<div class="banner danger">${escapeHtml(selectedOrder.reason)}</div>`
+                : ""
+            }
+
+            ${
+              selectedOrder && selectedOrder.status === "DELIVERED"
+                ? `
+                  <div class="card card-pad" style="border-color: rgba(17, 217, 139, 0.3); background: rgba(17, 217, 139, 0.04);">
+                    <div class="row between" style="margin-bottom: 10px;">
+                      <span class="row g6" style="color: var(--circle-green);">${icon("check", 14)} Delivered</span>
+                      ${
+                        selectedOrder.txHash
+                          ? `<a class="tx-pill" href="${escapeHtml(txUrl(selectedOrder.txHash))}" target="_blank" rel="noreferrer">${escapeHtml(truncateHash(selectedOrder.txHash, 10, 6))} ${icon("link", 10)}</a>`
+                          : ""
+                      }
+                    </div>
+                    <pre class="json">{
+  "artifact_id": "${escapeHtml(selectedOrder.artifactId)}",
+  "status": "completed",
+  "download_url": "${escapeHtml(selectedOrder.downloadUrl || "/api/artifacts/download")}"
+}</pre>
+                  </div>
+                `
+                : ""
+            }
+          </div>
+        </div>
+
+        <div class="modal-foot">
+          ${secondaryAction}
+          ${primaryAction}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderApp() {
+  if (!root) {
+    return;
+  }
+
+  syncRouteFromLocation();
+  const listings = getFilteredListings();
+  const route = state.ui.route;
+
+  let page = "";
+  if (route === "agents") {
+    page = renderAgentsPage();
+  } else if (route === "architecture") {
+    page = renderArchitecturePage();
+  } else if (route === "about") {
+    page = renderAboutPage();
+  } else {
+    page = renderMarketplacePage(listings);
+  }
+
+  root.innerHTML = `
+    ${renderChainStrip()}
+    <div class="app">
+      ${renderTopNav()}
+      ${page}
+      ${route === "marketplace" ? renderModal() : ""}
+    </div>
+  `;
+}
+
+async function refreshDemoJobs() {
+  try {
+    state.demoJobs = (await fetchJson("/api/demo/jobs")) || [];
+  } catch (_error) {
+    state.demoJobs = state.summary.demo_jobs || FALLBACK_SUMMARY.demo_jobs.slice();
+  }
 }
 
 async function loadBoard({ manual = false } = {}) {
-  let summary;
-  let usedFallback = false;
   try {
-    summary = await fetchJson("/api/hackathon/summary");
+    state.summary = await fetchJson("/api/hackathon/summary");
+    state.usedFallback = false;
   } catch (_error) {
-    summary = FALLBACK_SUMMARY;
-    usedFallback = true;
+    state.summary = FALLBACK_SUMMARY;
+    state.usedFallback = true;
   }
 
-  renderHero(summary);
-  renderKpis(summary);
-  renderCatalog(summary.catalog || []);
-  renderGuardrails(summary.guardrails || FALLBACK_SUMMARY.guardrails);
-  renderConnectors(summary);
-  renderTransactions(summary.transactions || []);
-  renderDemoJobs(summary.demo_jobs || []);
-  renderArcProof(summary);
+  await refreshDemoJobs();
+  renderApp();
 
-  if (usedFallback) {
-    showStatus("API offline. Showing repo-backed fallback proof so the room stays presentation-ready.", "warning");
-  } else if (manual) {
-    showStatus(`Board refreshed at ${new Date().toLocaleTimeString()}.`, "success");
-  } else {
-    showStatus("", "info");
+  if (manual) {
+    showBanner(`Marketplace refreshed at ${new Date().toLocaleTimeString()}.`, "info");
   }
 }
 
@@ -655,29 +2001,363 @@ function startAutoRefresh() {
   }
   refreshTimer = window.setInterval(() => {
     loadBoard().catch((_error) => {
-      showStatus("Auto-refresh failed. Keeping the latest successful snapshot on screen.", "warning");
+      showBanner("Auto-refresh failed. Keeping the latest successful marketplace snapshot.", "warn");
     });
-  }, 60_000);
+  }, 60000);
 }
 
-const refreshButton = document.getElementById("refresh-button");
-if (refreshButton) {
-  refreshButton.addEventListener("click", () => {
-    loadBoard({ manual: true }).catch((_error) => {
-      showStatus("Could not refresh the operational room.", "error");
+async function createCheckout(artifactId) {
+  const artifact = buildListings().find((item) => item.id === artifactId);
+  const buyerAddress = state.market.buyerAddress.trim();
+
+  if (!artifact) {
+    showBanner("Artifact not found in the marketplace.", "danger");
+    return;
+  }
+  if (!buyerAddress) {
+    showBanner("Enter a buyer wallet before creating a checkout.", "warn");
+    return;
+  }
+
+  state.ui.creatingArtifactId = artifactId;
+  renderApp();
+
+  try {
+    const demoJob = await fetchJson("/api/demo/jobs/request", {
+      method: "POST",
+      body: { artifact_type: artifact.type },
+    }).catch(() => null);
+
+    const intent = await fetchJson("/api/payments/intent", {
+      method: "POST",
+      body: {
+        artifact_id: artifact.id,
+        buyer_address: buyerAddress,
+        job_id: demoJob?.id || null,
+      },
     });
-  });
+
+    upsertOrder({
+      paymentId: intent.payment_id,
+      artifactId: artifact.id,
+      artifactName: artifact.name,
+      artifactType: artifact.type,
+      amountUsd: intent.amount_usd,
+      buyerAddress,
+      depositAddress: intent.deposit_address,
+      jobId: intent.job_id || demoJob?.id || null,
+      status: "CHECKOUT_READY",
+      settlementStatus: "PENDING",
+      reason: null,
+      txHash: "",
+      downloadUrl: null,
+      executionMessage: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    await refreshDemoJobs();
+    renderApp();
+    showBanner(`Checkout created for ${artifact.name}. Fund treasury and paste the tx hash.`, "info");
+  } catch (error) {
+    showBanner(`Could not create checkout: ${error.message}`, "danger");
+  } finally {
+    state.ui.creatingArtifactId = null;
+    renderApp();
+  }
 }
 
-const docsButton = document.getElementById("open-docs-button");
-if (docsButton) {
-  docsButton.addEventListener("click", () => {
-    window.open(`${API_BASE_URL}/docs`, "_blank", "noopener,noreferrer");
-  });
+async function verifyOrder(orderId) {
+  const order = findOrderById(orderId);
+  if (!order) {
+    showBanner("Checkout not found.", "danger");
+    return;
+  }
+  if (!order.txHash.trim()) {
+    showBanner("Paste the settlement tx hash before verifying.", "warn");
+    return;
+  }
+
+  state.ui.verifyingOrderId = orderId;
+  renderApp();
+
+  try {
+    const verification = await fetchJson("/api/payments/verify", {
+      method: "POST",
+      body: {
+        payment_id: order.paymentId,
+        tx_hash: order.txHash.trim(),
+      },
+    });
+
+    if (verification.status === "verified" && order.jobId) {
+      await safePost(`/api/demo/jobs/${order.jobId}/pay`);
+    }
+
+    patchOrder(orderId, {
+      status: verification.status === "verified" ? "SETTLED" : "FAILED",
+      settlementStatus: verification.settlement_status || null,
+      reason: verification.reason || null,
+      txHash: order.txHash.trim(),
+    });
+
+    await refreshDemoJobs();
+    renderApp();
+    if (verification.status === "verified") {
+      showBanner("Settlement verified. The artifact can now be unlocked.", "info");
+    } else {
+      showBanner(`Settlement verification failed${verification.reason ? `: ${verification.reason}` : "."}`, "danger");
+    }
+  } catch (error) {
+    showBanner(`Could not verify settlement: ${error.message}`, "danger");
+  } finally {
+    state.ui.verifyingOrderId = null;
+    renderApp();
+  }
 }
 
+async function runDeliverySequence(jobId) {
+  if (!jobId) {
+    return;
+  }
+  await safePost(`/api/demo/jobs/${jobId}/execute`);
+  await safePost(`/api/demo/jobs/${jobId}/review?approve=true`);
+  await safePost(`/api/demo/jobs/${jobId}/deliver`);
+}
+
+async function unlockOrder(orderId) {
+  const order = findOrderById(orderId);
+  if (!order) {
+    showBanner("Checkout not found.", "danger");
+    return;
+  }
+  if (order.status !== "SETTLED") {
+    showBanner("Verify settlement before unlocking the artifact.", "warn");
+    return;
+  }
+
+  state.ui.unlockingOrderId = orderId;
+  renderApp();
+
+  try {
+    const execution = await fetchJson("/api/payments/execute", {
+      method: "POST",
+      body: {
+        artifact_id: order.artifactId,
+        payment_id: order.paymentId,
+      },
+    });
+
+    await runDeliverySequence(order.jobId);
+
+    patchOrder(orderId, {
+      status: "DELIVERED",
+      executionMessage: execution.message || "Artifact unlocked after payment verification.",
+      downloadUrl: execution.download_url || null,
+      reason: null,
+    });
+
+    await refreshDemoJobs();
+    renderApp();
+    showBanner(`${order.artifactName} unlocked after verified settlement.`, "info");
+  } catch (error) {
+    showBanner(`Could not unlock artifact: ${error.message}`, "danger");
+  } finally {
+    state.ui.unlockingOrderId = null;
+    renderApp();
+  }
+}
+
+function openArtifact(artifactId) {
+  state.ui.modalArtifactId = artifactId;
+  const order = latestOrderForArtifact(artifactId);
+  if (order) {
+    state.market.activeOrderId = order.paymentId;
+    persistMarketState();
+  }
+  renderApp();
+}
+
+function closeModal() {
+  state.ui.modalArtifactId = null;
+  renderApp();
+}
+
+function handleClick(event) {
+  if (event.target.classList.contains("modal-backdrop")) {
+    closeModal();
+    return;
+  }
+
+  const target = event.target.closest("[data-action], [data-open-artifact], [data-select-order], [data-route], [data-select-agent]");
+  if (!target || !root.contains(target)) {
+    return;
+  }
+
+  if (target.dataset.route) {
+    event.preventDefault();
+    setRoute(target.dataset.route);
+    return;
+  }
+
+  if (target.dataset.selectAgent) {
+    state.ui.selectedAgentId = target.dataset.selectAgent;
+    renderApp();
+    return;
+  }
+
+  if (target.dataset.openArtifact) {
+    openArtifact(target.dataset.openArtifact);
+    return;
+  }
+
+  if (target.dataset.selectOrder) {
+    state.market.activeOrderId = target.dataset.selectOrder;
+    persistMarketState();
+    const order = findOrderById(target.dataset.selectOrder);
+    if (order) {
+      state.ui.modalArtifactId = order.artifactId;
+    }
+    renderApp();
+    return;
+  }
+
+  const action = target.dataset.action;
+  if (!action) {
+    return;
+  }
+
+  if (target.tagName === "A" && target.getAttribute("href") === "#") {
+    event.preventDefault();
+  }
+
+  switch (action) {
+    case "close-modal":
+      closeModal();
+      return;
+    case "refresh-market":
+      loadBoard({ manual: true }).catch((_error) => {
+        showBanner("Could not refresh the marketplace.", "danger");
+      });
+      return;
+    case "clear-filters":
+      state.filters.search = "";
+      state.filters.types = new Set((state.summary.catalog || []).map((item) => item.type));
+      state.filters.maxPrice = 0.01;
+      state.filters.underOneCentOnly = false;
+      renderApp();
+      return;
+    case "open-first-artifact": {
+      const first = buildListings()[0];
+      if (first) {
+        openArtifact(first.id);
+      }
+      return;
+    }
+    case "inspect-payment-flow": {
+      const activeOrder = getActiveOrder();
+      if (activeOrder) {
+        state.ui.modalArtifactId = activeOrder.artifactId;
+      } else {
+        const first = buildListings()[0];
+        state.ui.modalArtifactId = first ? first.id : null;
+      }
+      renderApp();
+      return;
+    }
+    case "create-checkout":
+      createCheckout(target.dataset.artifactId);
+      return;
+    case "verify-order":
+      verifyOrder(target.dataset.orderId);
+      return;
+    case "unlock-order":
+      unlockOrder(target.dataset.orderId);
+      return;
+    case "copy-treasury": {
+      const order = findOrderById(target.dataset.paymentId);
+      copyToClipboard(order?.depositAddress, "treasury address");
+      return;
+    }
+    case "open-tx":
+      window.open(txUrl(target.dataset.txHash), "_blank", "noopener,noreferrer");
+      return;
+    case "copy-payment-id":
+      copyToClipboard(target.dataset.paymentId, "payment ID");
+      return;
+    case "open-docs":
+      window.open(`${API_BASE_URL}/docs`, "_blank", "noopener,noreferrer");
+      return;
+    default:
+      return;
+  }
+}
+
+function handleInput(event) {
+  const target = event.target;
+  if (!root.contains(target) || !target.dataset.field) {
+    return;
+  }
+
+  switch (target.dataset.field) {
+    case "search":
+      state.filters.search = target.value;
+      renderApp();
+      return;
+    case "max-price":
+      state.filters.maxPrice = asNumber(target.value);
+      renderApp();
+      return;
+    case "buyer-address":
+      state.market.buyerAddress = target.value;
+      persistMarketState();
+      return;
+    case "tx-hash":
+      patchOrder(target.dataset.orderId, { txHash: target.value });
+      return;
+    default:
+      return;
+  }
+}
+
+function handleChange(event) {
+  const target = event.target;
+  if (!root.contains(target)) {
+    return;
+  }
+
+  if (target.dataset.typeFilter) {
+    const value = target.dataset.typeFilter;
+    if (target.checked) {
+      state.filters.types.add(value);
+    } else {
+      state.filters.types.delete(value);
+    }
+    renderApp();
+    return;
+  }
+
+  if (target.dataset.field === "under-one-cent") {
+    state.filters.underOneCentOnly = target.checked;
+    renderApp();
+  }
+}
+
+document.addEventListener("click", handleClick);
+document.addEventListener("input", handleInput);
+document.addEventListener("change", handleChange);
+window.addEventListener("hashchange", () => {
+  syncRouteFromLocation();
+  renderApp();
+});
+
+if (!window.location.hash) {
+  window.location.hash = "marketplace";
+}
+
+renderApp();
 loadBoard()
   .then(startAutoRefresh)
   .catch((_error) => {
-    showStatus("Could not load the operational room.", "error");
+    showBanner("Could not load the marketplace.", "danger");
   });

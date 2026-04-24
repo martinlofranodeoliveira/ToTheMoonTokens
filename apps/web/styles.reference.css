@@ -173,14 +173,6 @@ button { font-family: inherit; color: inherit; cursor: pointer; border: 0; backg
   }
 }
 
-@media (max-width: 900px) {
-  .topnav .right {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
-  }
-}
-
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;

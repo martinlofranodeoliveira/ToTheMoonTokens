@@ -344,6 +344,7 @@ class PaymentVerificationResponse(BaseModel):
 
 class JobExecutionRequest(BaseModel):
     artifact_id: str
+    payment_id: str
 
 
 class JobExecutionResponse(BaseModel):

@@ -47,7 +47,7 @@ Settings: **Stability 35%, Similarity 75%, Style 20%, Speaker Boost ON**. These 
 
 ## Segment 6 — 1:15 to 1:30 (CTA / close of Part 1)
 
-> Three commands and five minutes. Clone, install, run. Judges get the API, the operational dashboard, and this pitch site running locally. This is the agent economy. Built on Arc. Powered by Circle.
+> Three commands and five minutes. Clone, install, run. Judges get the API, the live marketplace, and this pitch site running locally. This is the agent economy. Built on Arc. Powered by Circle.
 
 ---
 
@@ -65,9 +65,9 @@ See `docs/hackathon/VIDEO_SHOOTING_SCRIPT.md` for the scene-by-scene shooting gu
 
 ---
 
-## Segment 8 — 1:45 to 2:00 (Operational control room)
+## Segment 8 — 1:45 to 2:00 (Live marketplace)
 
-> The operational control room pulls live from the judge-facing API. Sixty-three transactions. One hundred percent success. Counterfactual gas on Ethereum L one would be thirty-one dollars and fifty cents. Five hundred times the value moved. That is why Arc wins.
+> This is the live marketplace. Buyers can open a checkout, pay per artifact, verify the transaction on Arc, and unlock delivery. Behind that commerce flow sit sixty-three settled transfers, one hundred percent success, and a gas counterfactual on Ethereum L one that would be five hundred times the value moved.
 
 ---
 

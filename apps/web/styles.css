@@ -66,6 +66,13 @@ h4 {
   line-height: 1.5;
 }
 
+.pill {
+  height: auto;
+  min-height: 22px;
+  padding: 4px 8px;
+  line-height: 1.2;
+}
+
 .trade-list {
   display: flex;
   flex-direction: column;

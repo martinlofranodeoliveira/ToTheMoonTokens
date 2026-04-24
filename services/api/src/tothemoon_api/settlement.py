@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
@@ -181,6 +182,23 @@ def _find_erc20_transfer_log(
     return None
 
 
+_ARC_RPC_CLIENT: httpx.Client | None = None
+_ARC_RPC_CLIENT_LOCK = threading.Lock()
+
+
+def _arc_rpc_client() -> httpx.Client:
+    global _ARC_RPC_CLIENT
+    if _ARC_RPC_CLIENT is not None:
+        return _ARC_RPC_CLIENT
+    with _ARC_RPC_CLIENT_LOCK:
+        if _ARC_RPC_CLIENT is None:
+            _ARC_RPC_CLIENT = httpx.Client(
+                timeout=5.0,
+                limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
+            )
+    return _ARC_RPC_CLIENT
+
+
 def fetch_transaction_receipt(
     tx_hash: str,
     timeout_s: float = 3.0,
@@ -193,7 +211,7 @@ def fetch_transaction_receipt(
         "params": [tx_hash],
         "id": 1,
     }
-    response = httpx.post(
+    response = _arc_rpc_client().post(
         rpc_url or settings.arc_testnet_rpc_url,
         json=payload,
         timeout=timeout_s,
@@ -215,7 +233,7 @@ def fetch_transaction_by_hash(
         "params": [tx_hash],
         "id": 1,
     }
-    response = httpx.post(
+    response = _arc_rpc_client().post(
         rpc_url or settings.arc_testnet_rpc_url,
         json=payload,
         timeout=timeout_s,

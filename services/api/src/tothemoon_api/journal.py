@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import uuid
 from collections import defaultdict
 from collections.abc import Iterable
@@ -13,6 +14,16 @@ from .models import AggregateBucket, PaperTradeRecord, PerformanceAggregates
 def _journal_path() -> Path:
     configured = os.getenv("PAPER_JOURNAL_FILE", ".nexus/paper_journal.json")
     return Path(configured)
+
+
+_CACHE_LOCK = threading.Lock()
+_CACHE: tuple[str, float, int, list[PaperTradeRecord]] | None = None
+
+
+def _invalidate_cache() -> None:
+    global _CACHE
+    with _CACHE_LOCK:
+        _CACHE = None
 
 
 def _load_raw() -> list[dict[str, object]]:
@@ -29,12 +40,34 @@ def _load_raw() -> list[dict[str, object]]:
 
 
 def load_trades() -> list[PaperTradeRecord]:
+    global _CACHE
+    path = _journal_path()
+    if not path.exists():
+        with _CACHE_LOCK:
+            _CACHE = None
+        return []
+
+    try:
+        stat = path.stat()
+    except OSError:
+        return []
+
+    key = (str(path), stat.st_mtime, stat.st_size)
+    with _CACHE_LOCK:
+        cached = _CACHE
+        if cached is not None and cached[:3] == key:
+            return list(cached[3])
+
     trades: list[PaperTradeRecord] = []
     for payload in _load_raw():
         try:
             trades.append(PaperTradeRecord.model_validate(payload))
         except Exception:
             continue
+
+    with _CACHE_LOCK:
+        _CACHE = (str(path), stat.st_mtime, stat.st_size, list(trades))
+
     return trades
 
 
@@ -47,6 +80,7 @@ def _persist(records: list[PaperTradeRecord]) -> None:
         encoding="utf-8",
     )
     tmp_path.replace(path)
+    _invalidate_cache()
 
 
 def add_trade(record: PaperTradeRecord) -> PaperTradeRecord:
@@ -77,6 +111,7 @@ def clear_trades() -> None:
     path = _journal_path()
     if path.exists():
         path.unlink()
+    _invalidate_cache()
 
 
 def clear_journal() -> None:

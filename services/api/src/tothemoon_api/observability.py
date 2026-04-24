@@ -7,14 +7,14 @@ import threading
 import time
 import uuid
 from collections import defaultdict, deque
-from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 import structlog
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.datastructures import Headers, MutableHeaders
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 REQUEST_ID_HEADER = "X-Request-ID"
 
@@ -208,55 +208,88 @@ def enforce_rate_limit(request: Request, *, limit: int, window_seconds: float) -
     )
 
 
-class PrometheusMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
+class PrometheusMiddleware:
+    """Pure ASGI middleware: avoids BaseHTTPMiddleware anyio overhead."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         start = time.perf_counter()
-        response = await call_next(request)
-        elapsed = time.perf_counter() - start
-        route = request.scope.get("route")
-        path = getattr(route, "path", None) or request.url.path
-        HTTP_REQUESTS_TOTAL.labels(
-            method=request.method, path=path, status=str(response.status_code)
-        ).inc()
-        HTTP_REQUEST_DURATION_SECONDS.labels(method=request.method, path=path).observe(elapsed)
-        return response
+        status_holder = {"code": 500}
+
+        async def send_wrapper(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                status_holder["code"] = int(message.get("status", 500))
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            elapsed = time.perf_counter() - start
+            route = scope.get("route")
+            path = getattr(route, "path", None) or scope.get("path", "")
+            method = scope.get("method", "")
+            HTTP_REQUESTS_TOTAL.labels(
+                method=method, path=path, status=str(status_holder["code"])
+            ).inc()
+            HTTP_REQUEST_DURATION_SECONDS.labels(method=method, path=path).observe(elapsed)
 
 
-class RequestIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
-        incoming = request.headers.get(REQUEST_ID_HEADER, "").strip()
+class RequestIdMiddleware:
+    """Pure ASGI middleware for request ID binding + echo header."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        incoming = Headers(scope=scope).get(REQUEST_ID_HEADER, "").strip()
         request_id = incoming if 0 < len(incoming) <= 128 else uuid.uuid4().hex
         structlog.contextvars.bind_contextvars(
             request_id=request_id,
-            method=request.method,
-            path=request.url.path,
+            method=scope.get("method", ""),
+            path=scope.get("path", ""),
         )
+
+        async def send_wrapper(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers[REQUEST_ID_HEADER] = request_id
+            await send(message)
+
         try:
-            response = await call_next(request)
+            await self.app(scope, receive, send_wrapper)
         finally:
             structlog.contextvars.clear_contextvars()
-        response.headers[REQUEST_ID_HEADER] = request_id
-        return response
 
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
-        response = await call_next(request)
-        for header, value in SECURITY_HEADERS.items():
-            response.headers.setdefault(header, value)
-        return response
+class SecurityHeadersMiddleware:
+    """Pure ASGI middleware: adds security headers without anyio overhead."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                for name, value in SECURITY_HEADERS.items():
+                    headers.setdefault(name, value)
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
 
 
 def metrics_response() -> Response:

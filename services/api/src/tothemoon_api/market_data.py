@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import random
+import threading
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -137,13 +138,31 @@ def generate_sample_candles(
     return candles
 
 
+_SHARED_CLIENT_TIMEOUT = 10.0
+_SHARED_CLIENT_LIMITS = httpx.Limits(max_keepalive_connections=10, max_connections=20)
+_SHARED_CLIENT: httpx.Client | None = None
+_SHARED_CLIENT_LOCK = threading.Lock()
+
+
+def _shared_client() -> httpx.Client:
+    global _SHARED_CLIENT
+    if _SHARED_CLIENT is not None:
+        return _SHARED_CLIENT
+    with _SHARED_CLIENT_LOCK:
+        if _SHARED_CLIENT is None:
+            _SHARED_CLIENT = httpx.Client(
+                timeout=_SHARED_CLIENT_TIMEOUT,
+                limits=_SHARED_CLIENT_LIMITS,
+            )
+    return _SHARED_CLIENT
+
+
 def _fetch_json(url: str, params: dict[str, Any]) -> Any:
     started = time.perf_counter()
-    with httpx.Client(timeout=10.0) as client:
-        response = client.get(url, params=params)
-        response.raise_for_status()
-        connector_state.recover((time.perf_counter() - started) * 1000)
-        return response.json()
+    response = _shared_client().get(url, params=params)
+    response.raise_for_status()
+    connector_state.recover((time.perf_counter() - started) * 1000)
+    return response.json()
 
 
 class BinanceMarketData:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -29,6 +30,7 @@ from .market_data import (
     get_ticker,
 )
 from .models import (
+    BacktestMetrics,
     BacktestRequest,
     Candle,
     DashboardResponse,
@@ -112,7 +114,16 @@ log.info(
 )
 
 
+_DASHBOARD_CACHE_LOCK = threading.Lock()
+_DASHBOARD_METRICS_CACHE: BacktestMetrics | None = None
+_DASHBOARD_SNAPSHOTS_CACHE: list[BacktestMetrics] | None = None
+
+
 def _default_metrics():
+    global _DASHBOARD_METRICS_CACHE
+    with _DASHBOARD_CACHE_LOCK:
+        if _DASHBOARD_METRICS_CACHE is not None:
+            return _DASHBOARD_METRICS_CACHE
     request = BacktestRequest(
         strategy_id="mean_reversion",
         symbol=settings.default_symbol,
@@ -120,7 +131,7 @@ def _default_metrics():
         lookback_bars=240,
         fee_bps=settings.default_fee_bps,
         slippage_bps=settings.default_slippage_bps,
-        dataset_id="binance_testnet",
+        dataset_id="dashboard_synthetic",
         risk_tier="medium",
         checklist=ProbabilityChecklist(
             trend_alignment=False,
@@ -130,10 +141,17 @@ def _default_metrics():
             no_upcoming_news=True,
         ),
     )
-    return run_backtest(request, settings.max_position_size_pct)
+    result = run_backtest(request, settings.max_position_size_pct)
+    with _DASHBOARD_CACHE_LOCK:
+        _DASHBOARD_METRICS_CACHE = result
+    return result
 
 
 def _dashboard_research_snapshots():
+    global _DASHBOARD_SNAPSHOTS_CACHE
+    with _DASHBOARD_CACHE_LOCK:
+        if _DASHBOARD_SNAPSHOTS_CACHE is not None:
+            return _DASHBOARD_SNAPSHOTS_CACHE
     snapshots = []
     for descriptor in strategy_catalog():
         risk_profile = RISK_PROFILES[descriptor.risk_tier]
@@ -144,7 +162,7 @@ def _dashboard_research_snapshots():
             lookback_bars=240,
             fee_bps=settings.default_fee_bps,
             slippage_bps=settings.default_slippage_bps,
-            dataset_id="binance_testnet",
+            dataset_id="dashboard_synthetic",
             risk_tier=descriptor.risk_tier,
             position_size_pct=risk_profile.max_position_size_pct,
             checklist=ProbabilityChecklist(
@@ -156,14 +174,26 @@ def _dashboard_research_snapshots():
             ),
         )
         snapshots.append(run_backtest(request, settings.max_position_size_pct))
+    with _DASHBOARD_CACHE_LOCK:
+        _DASHBOARD_SNAPSHOTS_CACHE = snapshots
     return snapshots
 
 
+_MARKET_CONNECTOR_LOCK = threading.Lock()
+_MARKET_CONNECTOR: BinanceMarketData | None = None
+
+
 def _market_connector() -> BinanceMarketData:
-    return BinanceMarketData(
-        base_url=settings.binance_testnet_base_url,
-        ws_url=settings.binance_user_data_stream_url,
-    )
+    global _MARKET_CONNECTOR
+    if _MARKET_CONNECTOR is not None:
+        return _MARKET_CONNECTOR
+    with _MARKET_CONNECTOR_LOCK:
+        if _MARKET_CONNECTOR is None:
+            _MARKET_CONNECTOR = BinanceMarketData(
+                base_url=settings.binance_testnet_base_url,
+                ws_url=settings.binance_user_data_stream_url,
+            )
+    return _MARKET_CONNECTOR
 
 
 @app.get("/health")

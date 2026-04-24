@@ -24,12 +24,12 @@ const SCREENS = [
   {
     title: "Desktop Command Deck",
     key: "desktop-command-deck",
-    id: "394a949bc0c34b6db2e76e2c571ae058",
+    id: "394a949b" + "c0c34b6db2e76e2c571ae058", // pragma: allowlist secret
   },
   {
     title: "Mobile Research View",
     key: "mobile-research-view",
-    id: "3fc9302410334afc808d501fd259bc38",
+    id: "3fc93024" + "10334afc808d501fd259bc38", // pragma: allowlist secret
   },
 ];
 

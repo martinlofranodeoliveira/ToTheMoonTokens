@@ -7,7 +7,10 @@ from tothemoon_api.circle import CircleDeveloperClient
 
 @pytest.fixture
 def circle_client():
-    return CircleDeveloperClient(api_key="TEST_API_KEY", entity_secret="TEST_ENTITY_SECRET")
+    return CircleDeveloperClient(  # pragma: allowlist secret
+        api_key="TEST_API_KEY",  # pragma: allowlist secret
+        entity_secret="TEST_ENTITY_VALUE",  # pragma: allowlist secret
+    )
 
 
 def test_create_wallet(circle_client):

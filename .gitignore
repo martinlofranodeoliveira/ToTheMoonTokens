@@ -21,6 +21,7 @@ node_modules/
 services/api/.nexus/
 ops/evidence/*.json
 !ops/evidence/arc-mcp-check.json
+!ops/evidence/nanopayments-batch-2026-04-23.json
 .env.hackathon
 ~$*
 *.tmp

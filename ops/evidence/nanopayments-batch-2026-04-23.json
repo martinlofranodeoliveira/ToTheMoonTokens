@@ -1,0 +1,684 @@
+{
+  "batch": "nanopayments-hackathon-evidence",
+  "project": "TTM Agent Market",
+  "generated_at": "2026-04-23T00:01:38.506Z",
+  "blockchain": "ARC-TESTNET",
+  "wallet_set_id": "e980936d-182e-50f6-bc6f-e54037777598",
+  "summary": {
+    "total_attempted": 63,
+    "successful": 63,
+    "failed": 0,
+    "total_elapsed_s": 214,
+    "latency_p50_ms": 2485,
+    "latency_p95_ms": 4733,
+    "throughput_tx_per_min": 17.7,
+    "total_usdc_moved": "0.063000",
+    "amount_per_tx_usdc": "0.001"
+  },
+  "source": {
+    "name": "research_00",
+    "address": "0xbcdb0012b84dc6158c50b1e353b1627d2d4af8aa"
+  },
+  "destinations": [
+    {
+      "name": "consumer_01",
+      "address": "0x0201fdaa7b7298f351d8bc58cb045abe7089bb01"
+    },
+    {
+      "name": "research_01",
+      "address": "0xde618b260763a606e0380150d1338364f5ff3139"
+    },
+    {
+      "name": "research_02",
+      "address": "0x95140a42f10eb10551e076ed8d9a2ad8dcdb968d"
+    },
+    {
+      "name": "research_03",
+      "address": "0xa82aa51fd19476a1dc37759b0fc41770f4a238d8"
+    },
+    {
+      "name": "consumer_02",
+      "address": "0x28c83e915c791131678286977a42c6fe95da9a42"
+    },
+    {
+      "name": "auditor",
+      "address": "0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f"
+    },
+    {
+      "name": "treasury",
+      "address": "0x9a2b38ec283d3a51faa3095f0c0708c1b225462a"
+    }
+  ],
+  "transactions": [
+    {
+      "seq": 1,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x447f070ba69f0b053fa58e33dd6ec0550098184595a2f680e30196acb1186ec9",
+      "elapsed_ms": 5221,
+      "timestamp": "2026-04-22T23:58:09.762Z"
+    },
+    {
+      "seq": 2,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x3f3980400773d85a92de3bab464911b59955ddcfcecf28064abfbfc4c0b33432",
+      "elapsed_ms": 2452,
+      "timestamp": "2026-04-22T23:58:12.620Z"
+    },
+    {
+      "seq": 3,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x4c209095f2865df689bfd2ea558909beb6c7d32af073fa9cca33c0624977790c",
+      "elapsed_ms": 2489,
+      "timestamp": "2026-04-22T23:58:15.524Z"
+    },
+    {
+      "seq": 4,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x10621500e2a46addf6b6f620f4cb48414b0ef7fb5bdb04de7b358dbebcbb33ec",
+      "elapsed_ms": 2502,
+      "timestamp": "2026-04-22T23:58:18.436Z"
+    },
+    {
+      "seq": 5,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x0eb178eed516b6b0107ff95f900cb4fd2623ea328c47a57dd72a93fa62712ca8",
+      "elapsed_ms": 4695,
+      "timestamp": "2026-04-22T23:58:23.545Z"
+    },
+    {
+      "seq": 6,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xe60e95228deb61b97b62266d79f3d028d019021b282ee06970afe65b85f940af",
+      "elapsed_ms": 4681,
+      "timestamp": "2026-04-22T23:58:28.647Z"
+    },
+    {
+      "seq": 7,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x1ab30265e9c71322bebff7c4fac1658bcf06e45de46c252c0ee603fb5f2ce725",
+      "elapsed_ms": 2453,
+      "timestamp": "2026-04-22T23:58:31.501Z"
+    },
+    {
+      "seq": 8,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x2294053c1e792d792879af46f5865491b1e1edb02dd8ef503467e4bd44be3368",
+      "elapsed_ms": 2458,
+      "timestamp": "2026-04-22T23:58:34.374Z"
+    },
+    {
+      "seq": 9,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x54dfd4a40ac9189586e4f7e1640b498aa499a7e2ab1ab67522b9d3386d353ea9",
+      "elapsed_ms": 2458,
+      "timestamp": "2026-04-22T23:58:37.240Z"
+    },
+    {
+      "seq": 10,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x9f78ef77760c7d3a419df83785113d485fd36262b00ef69c8ca5a4419f850751",
+      "elapsed_ms": 2469,
+      "timestamp": "2026-04-22T23:58:40.118Z"
+    },
+    {
+      "seq": 11,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x84072839a74c3c22ed57a4e341154f3c0902f0a2cb6f80eed75ff05cfbd5d332",
+      "elapsed_ms": 4710,
+      "timestamp": "2026-04-22T23:58:45.242Z"
+    },
+    {
+      "seq": 12,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x606bf1860777022745f5e65539cfd43abe10114e7102c71c0f3bf6277f79735b",
+      "elapsed_ms": 4737,
+      "timestamp": "2026-04-22T23:58:50.384Z"
+    },
+    {
+      "seq": 13,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x85005b2bd59112bab0e1685c66140c3b2e08d1616a0722a1fe778483f1cfe5ff",
+      "elapsed_ms": 2469,
+      "timestamp": "2026-04-22T23:58:53.267Z"
+    },
+    {
+      "seq": 14,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xd10ea0391d23d67007b6fcb3d37a0a79d545ddbbce575f8865f9e9f512799ddd",
+      "elapsed_ms": 2435,
+      "timestamp": "2026-04-22T23:58:56.115Z"
+    },
+    {
+      "seq": 15,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xfcc9c9fa0432b9802a59155dafe7e53616191d2d1eae39adc96a34def13904b9",
+      "elapsed_ms": 2456,
+      "timestamp": "2026-04-22T23:58:58.971Z"
+    },
+    {
+      "seq": 16,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x4b8559b2a248d6786ecacbfd21327fb9cb387722babfb710898b2ed59702fcef",
+      "elapsed_ms": 2482,
+      "timestamp": "2026-04-22T23:59:01.863Z"
+    },
+    {
+      "seq": 17,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x71940e2c53d5c7b018f8ae6eb8dbdabefd6d8ef35661026a900fddafb321c172",
+      "elapsed_ms": 2510,
+      "timestamp": "2026-04-22T23:59:04.774Z"
+    },
+    {
+      "seq": 18,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xd9d53fdcebd5754ef6087e73e8851d3c5e3a1bff58da7c106e3736cd074b730b",
+      "elapsed_ms": 2485,
+      "timestamp": "2026-04-22T23:59:07.667Z"
+    },
+    {
+      "seq": 19,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xd05d73b4a89d362e01dfeaf8af8832345fc8c69324849e7b8e2f89ffecf0aa9a",
+      "elapsed_ms": 2485,
+      "timestamp": "2026-04-22T23:59:10.567Z"
+    },
+    {
+      "seq": 20,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xaa9d3f1b43f8bb7f91a0d20b83ce296cf55891070cbc1212a958e33528444f5c",
+      "elapsed_ms": 2482,
+      "timestamp": "2026-04-22T23:59:13.463Z"
+    },
+    {
+      "seq": 21,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x031afb6b326b0eebc30890ded45d78d150e8c0ec3818512582fac26bbd7b9875",
+      "elapsed_ms": 2469,
+      "timestamp": "2026-04-22T23:59:16.334Z"
+    },
+    {
+      "seq": 22,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x972d1fa32f236328b2523e261662ecf5a84ca9fdd7398e3c751993c7d6d0f836",
+      "elapsed_ms": 2474,
+      "timestamp": "2026-04-22T23:59:19.222Z"
+    },
+    {
+      "seq": 23,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x12e87fa6c902450f92f4c1d4c61b0ff779cfb85c14eb2989bf221d6e4dbfa72a",
+      "elapsed_ms": 2468,
+      "timestamp": "2026-04-22T23:59:22.099Z"
+    },
+    {
+      "seq": 24,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x2b1d7a0239c50261a9a71eaf396878c2a37d7702ec430c727f27bc9b5a8fdd56",
+      "elapsed_ms": 4688,
+      "timestamp": "2026-04-22T23:59:27.202Z"
+    },
+    {
+      "seq": 25,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x56350221ef7cfa9a66ee5fccfb670c6ba481aee139475e388fa0e59f590e21f1",
+      "elapsed_ms": 2487,
+      "timestamp": "2026-04-22T23:59:30.101Z"
+    },
+    {
+      "seq": 26,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xefa540e6d96e9528a8cc5e7ac169f0207507d361837f251d36fc59aee84f3b75",
+      "elapsed_ms": 2458,
+      "timestamp": "2026-04-22T23:59:32.969Z"
+    },
+    {
+      "seq": 27,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xfb842be133237d14072465131c27c69b9c5e650648b0ab33f67b543a1f308927",
+      "elapsed_ms": 4648,
+      "timestamp": "2026-04-22T23:59:38.028Z"
+    },
+    {
+      "seq": 28,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xeebcaa6629efefeaf4b89a2bf1b3717e856db73d5ecc752bff376f2d5f718cfd",
+      "elapsed_ms": 4827,
+      "timestamp": "2026-04-22T23:59:43.256Z"
+    },
+    {
+      "seq": 29,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x7878a3b1e9ffd416273b7b41cd53b6e432080d0c6e712f9fac8ff6a62255b0db",
+      "elapsed_ms": 2481,
+      "timestamp": "2026-04-22T23:59:46.143Z"
+    },
+    {
+      "seq": 30,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xd8aacd70a34b202244c90d2da01fe35b6290b5e2855fe49fc6811cbcd2814239",
+      "elapsed_ms": 2460,
+      "timestamp": "2026-04-22T23:59:49.004Z"
+    },
+    {
+      "seq": 31,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x994f74a9bae72e9fd5424e82c20dcc1aad3a7e43b74e712bc1f12aab911a6328",
+      "elapsed_ms": 2470,
+      "timestamp": "2026-04-22T23:59:51.890Z"
+    },
+    {
+      "seq": 32,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x4d2621c9f4586e4058036c419c552540340e22652fa1457c6cf500eb814caf57",
+      "elapsed_ms": 2454,
+      "timestamp": "2026-04-22T23:59:54.746Z"
+    },
+    {
+      "seq": 33,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x443e9b59062851bc339f538fa42db65b7ce55cf9a3da075f6f0b53a404db14b0",
+      "elapsed_ms": 2448,
+      "timestamp": "2026-04-22T23:59:57.598Z"
+    },
+    {
+      "seq": 34,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xc6aabd4001e7b92e1803008f25c5037329018f7a4dfd62cd30b08eecab49dfd0",
+      "elapsed_ms": 2499,
+      "timestamp": "2026-04-23T00:00:00.499Z"
+    },
+    {
+      "seq": 35,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xa82730ddd5990388f8bf56b1ce99318f4ccd19579a1ed4766034d74fd1d0e8ba",
+      "elapsed_ms": 4657,
+      "timestamp": "2026-04-23T00:00:05.557Z"
+    },
+    {
+      "seq": 36,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xf1579e8d0f686df6aaf11361ecaa6cc6079e581231f1149891c90249b66dea7b",
+      "elapsed_ms": 2687,
+      "timestamp": "2026-04-23T00:00:08.645Z"
+    },
+    {
+      "seq": 37,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xfbc87c76950beaba4a5f66dec680c8d4c8ec02b9365e514e4f073b3fbf669052",
+      "elapsed_ms": 2485,
+      "timestamp": "2026-04-23T00:00:11.544Z"
+    },
+    {
+      "seq": 38,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xb2a2aba1ee908003845b292380c0efdda48a86ac15f47972ef36e8c57655ddac",
+      "elapsed_ms": 2464,
+      "timestamp": "2026-04-23T00:00:14.415Z"
+    },
+    {
+      "seq": 39,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xb343dcafc50bac26e462f7da9322131a122143a17993d93850e9fed82af4aa5e",
+      "elapsed_ms": 2464,
+      "timestamp": "2026-04-23T00:00:17.285Z"
+    },
+    {
+      "seq": 40,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x7eee3cace8b7adaf0fb9d83d4f8edcc8034d5799735281b4529147a23ccbd4fc",
+      "elapsed_ms": 4658,
+      "timestamp": "2026-04-23T00:00:22.352Z"
+    },
+    {
+      "seq": 41,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x3af5d7bda4e9424c759e446b3300ab8145b394520efb345759a6d5a17070ba9d",
+      "elapsed_ms": 4641,
+      "timestamp": "2026-04-23T00:00:27.401Z"
+    },
+    {
+      "seq": 42,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x2bda5a4f65dcd76ec5c2392b9c0b96aae2faa726ec73bdf3b820f50daa865696",
+      "elapsed_ms": 2620,
+      "timestamp": "2026-04-23T00:00:30.437Z"
+    },
+    {
+      "seq": 43,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xc0babbfea3531956d6ef327a5cb4f9a7c192b6939466dd1c40febafa526e3171",
+      "elapsed_ms": 2481,
+      "timestamp": "2026-04-23T00:00:33.321Z"
+    },
+    {
+      "seq": 44,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x65691584060a9270f8532bdffc51dbd53061dcb3687de813e0a02288f26a08e0",
+      "elapsed_ms": 2495,
+      "timestamp": "2026-04-23T00:00:36.218Z"
+    },
+    {
+      "seq": 45,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x4fdcddbc44bdfb6fcaa6fd1341f6c01fd891d3d5cd40752292c36c101a2bf64f",
+      "elapsed_ms": 2469,
+      "timestamp": "2026-04-23T00:00:39.090Z"
+    },
+    {
+      "seq": 46,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xc9ae034dd369e911c1e9d9f1f92f4127916652f94280ce3c60221344e8fa7fd9",
+      "elapsed_ms": 2490,
+      "timestamp": "2026-04-23T00:00:41.985Z"
+    },
+    {
+      "seq": 47,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x04a8a6826c30c66b99e724314d713b1a2681f20c1cd69f0598129a5dafdc921a",
+      "elapsed_ms": 2529,
+      "timestamp": "2026-04-23T00:00:44.921Z"
+    },
+    {
+      "seq": 48,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x01ce2a1c87c93bcfbe5a8777d1ea65803c38bd6830db1527c054846ff7e18ede",
+      "elapsed_ms": 2480,
+      "timestamp": "2026-04-23T00:00:47.807Z"
+    },
+    {
+      "seq": 49,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xfd5164fa11d5be54d676a3fcd09d055ce0dc1218ba5eb63c402944e0ded7fda6",
+      "elapsed_ms": 2515,
+      "timestamp": "2026-04-23T00:00:50.734Z"
+    },
+    {
+      "seq": 50,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xeb46b5c2d302b367d749b6bef310528a32f8cffb981ffbe140b0f4791460e723",
+      "elapsed_ms": 2508,
+      "timestamp": "2026-04-23T00:00:53.649Z"
+    },
+    {
+      "seq": 51,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x45d742fece1b564621386e2e6a94d66c24845f79650583aba5c1f4dc67067443",
+      "elapsed_ms": 2497,
+      "timestamp": "2026-04-23T00:00:56.551Z"
+    },
+    {
+      "seq": 52,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x53e52d10aa7e0f5988f71c40eb05f0c450f3a2d75b8d621a6aef9002ca6ba00e",
+      "elapsed_ms": 4721,
+      "timestamp": "2026-04-23T00:01:01.676Z"
+    },
+    {
+      "seq": 53,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x1ab3cfc5d6e90da3f5a09ed12d8bcc5413a6069f891a1b50d394a37d484d520d",
+      "elapsed_ms": 4704,
+      "timestamp": "2026-04-23T00:01:06.784Z"
+    },
+    {
+      "seq": 54,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x1f892cb05ee42f5fdb71e98d2f5e301300eeebb1fdee1528adaff12f0f82b36e",
+      "elapsed_ms": 2480,
+      "timestamp": "2026-04-23T00:01:09.665Z"
+    },
+    {
+      "seq": 55,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x5fe0a42ade44e583e1afde787c4924e7d696e1b9ec8b47e8e28a479ee0585108",
+      "elapsed_ms": 2503,
+      "timestamp": "2026-04-23T00:01:12.578Z"
+    },
+    {
+      "seq": 56,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xb092d52c40a9ae17961127cadecbfd0b19d1e305708fbe797b0d8e37c889b44b",
+      "elapsed_ms": 4733,
+      "timestamp": "2026-04-23T00:01:17.722Z"
+    },
+    {
+      "seq": 57,
+      "from": "research_00",
+      "to": "consumer_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xe0e3898c3999949a117530ecfae149c7ef309f8edb1990ffa68e99ec53627791",
+      "elapsed_ms": 2483,
+      "timestamp": "2026-04-23T00:01:20.612Z"
+    },
+    {
+      "seq": 58,
+      "from": "research_00",
+      "to": "research_01",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x90ff7d14db5835cbf57fc98a10a81ee47d408df5b39b3ee5cef778a178306c87",
+      "elapsed_ms": 2456,
+      "timestamp": "2026-04-23T00:01:23.484Z"
+    },
+    {
+      "seq": 59,
+      "from": "research_00",
+      "to": "research_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x7b6743d1a8e15598b95c303baea37b97ecd78d7621e5c8054fcfd2e46731299c",
+      "elapsed_ms": 2741,
+      "timestamp": "2026-04-23T00:01:26.627Z"
+    },
+    {
+      "seq": 60,
+      "from": "research_00",
+      "to": "research_03",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x1ece4fd34bf75d7dbe4feab863846851e61ff3b64fedf4881a0051e14c50d7ec",
+      "elapsed_ms": 2450,
+      "timestamp": "2026-04-23T00:01:29.485Z"
+    },
+    {
+      "seq": 61,
+      "from": "research_00",
+      "to": "consumer_02",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xf5c9bd5bdda0032ef31e1ac8451e9c73e54fbd8866faf5d148939bf5ecf0ea7a",
+      "elapsed_ms": 2464,
+      "timestamp": "2026-04-23T00:01:32.356Z"
+    },
+    {
+      "seq": 62,
+      "from": "research_00",
+      "to": "auditor",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0xef9dcf454ce5e2763eaff4c49e57f0492defb7b206d646c5579e57ede9e0fb38",
+      "elapsed_ms": 2471,
+      "timestamp": "2026-04-23T00:01:35.242Z"
+    },
+    {
+      "seq": 63,
+      "from": "research_00",
+      "to": "treasury",
+      "amount_usdc": "0.001",
+      "state": "COMPLETE",
+      "tx_hash": "0x01092dbfccb591728a41e14a7716c2ac7aec4d93f478d725590a3a3988b13c9d",
+      "elapsed_ms": 2455,
+      "timestamp": "2026-04-23T00:01:38.102Z"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ from tothemoon_api.guards import connector_status, evaluate_guardrails
 def _make_settings(**overrides: object) -> Settings:
     defaults: dict[str, object] = {
         "wallet_mode": "manual_only",
+        "circle_wallet_set_id": "ws-demo",
     }
     defaults.update(overrides)
     return Settings(**defaults)  # type: ignore[arg-type]

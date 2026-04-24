@@ -178,18 +178,21 @@ const ARTIFACT_PROFILES = {
     publisher: "research_00",
     score: 96,
     ttl: 42,
+    badgeLabel: "execution receipt",
     note: "Reviewed execution receipt with unlock metadata.",
   },
   artifact_review_bundle: {
     publisher: "auditor",
     score: 92,
     ttl: 58,
+    badgeLabel: "reviewed evidence",
     note: "Reviewer-approved evidence bundle with settlement checks.",
   },
   artifact_market_intel_brief: {
     publisher: "research_03",
     score: 89,
     ttl: 75,
+    badgeLabel: "premium brief",
     note: "Premium machine brief released only after payment verification.",
   },
 };
@@ -639,6 +642,7 @@ function buildListings() {
       publisher: "market",
       score: 88,
       ttl: 60,
+      badgeLabel: formatArtifactType(item.type),
       note: item.description,
     };
     const latestOrder = latestOrderForArtifact(item.id);
@@ -647,6 +651,7 @@ function buildListings() {
       publisher: profile.publisher,
       score: profile.score,
       ttl: profile.ttl,
+      badgeLabel: profile.badgeLabel,
       note: profile.note,
       tier: tierFromPrice(item.price_usd),
       latestOrder,
@@ -1252,7 +1257,7 @@ function renderListingCard(listing) {
       <div class="col g4">
         <div class="sym">${escapeHtml(listing.name)}</div>
         <div class="row g6">
-          <span class="pill pill-blue">${escapeHtml(formatArtifactType(listing.type))}</span>
+          <span class="pill pill-blue">${escapeHtml(listing.badgeLabel || formatArtifactType(listing.type))}</span>
           <span class="pill ${escapeHtml(tierPill(listing.tier))}">${escapeHtml(listing.tier)}</span>
         </div>
       </div>
@@ -1843,7 +1848,7 @@ function renderModal() {
             <div class="row between" style="margin-bottom: 10px;">
               <div class="mono" style="font-size: 16px; font-weight: 500;">${escapeHtml(artifact.name)}</div>
               <div class="row g6">
-                <span class="pill pill-blue">${escapeHtml(formatArtifactType(artifact.type))}</span>
+                <span class="pill pill-blue">${escapeHtml(artifact.badgeLabel || formatArtifactType(artifact.type))}</span>
                 <span class="pill ${escapeHtml(tierPill(artifact.tier))}">${escapeHtml(artifact.tier)}</span>
               </div>
             </div>

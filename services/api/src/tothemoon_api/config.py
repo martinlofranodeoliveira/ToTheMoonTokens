@@ -24,19 +24,19 @@ class Settings(BaseSettings):
     host: str = Field("127.0.0.1", alias="API_HOST")
     port: int = Field(8010, alias="API_PORT")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
-    enable_live_trading: bool | str = Field(False, alias="ENABLE_LIVE_TRADING")
-    allow_mainnet_trading: bool | str = Field(False, alias="ALLOW_MAINNET_TRADING")
+    enable_live_trading: bool = Field(False, alias="ENABLE_LIVE_TRADING")
+    allow_mainnet_trading: bool = Field(False, alias="ALLOW_MAINNET_TRADING")
     live_trading_acknowledgement: str = Field("", alias="LIVE_TRADING_ACKNOWLEDGEMENT")
     live_trading_approval_token: str = Field("", alias="LIVE_TRADING_APPROVAL_TOKEN")
     wallet_mode: str = Field("manual_only", alias="WALLET_MODE")
     default_exchange: str = Field("binance_spot_testnet", alias="DEFAULT_EXCHANGE")
     default_symbol: str = Field("BTCUSDT", alias="DEFAULT_SYMBOL")
     default_timeframe: str = Field("1m", alias="DEFAULT_TIMEFRAME")
-    max_position_size_pct: float | str = Field(25.0, alias="MAX_POSITION_SIZE_PCT")
-    max_daily_loss_pct: float | str = Field(3.0, alias="MAX_DAILY_LOSS_PCT")
-    max_open_positions: int | str = Field(1, alias="MAX_OPEN_POSITIONS")
-    default_fee_bps: float | str = Field(10.0, alias="DEFAULT_FEE_BPS")
-    default_slippage_bps: float | str = Field(5.0, alias="DEFAULT_SLIPPAGE_BPS")
+    max_position_size_pct: float = Field(25.0, alias="MAX_POSITION_SIZE_PCT")
+    max_daily_loss_pct: float = Field(3.0, alias="MAX_DAILY_LOSS_PCT")
+    max_open_positions: int = Field(1, alias="MAX_OPEN_POSITIONS")
+    default_fee_bps: float = Field(10.0, alias="DEFAULT_FEE_BPS")
+    default_slippage_bps: float = Field(5.0, alias="DEFAULT_SLIPPAGE_BPS")
     binance_testnet_base_url: str = Field(
         "https://testnet.binance.vision", alias="BINANCE_TESTNET_BASE_URL"
     )
@@ -51,9 +51,9 @@ class Settings(BaseSettings):
     cors_allowed_origins: str | list[str] = Field(
         _DEFAULT_CORS_ORIGINS, alias="CORS_ALLOWED_ORIGINS"
     )
-    rate_limit_live_arm_per_minute: int | str = Field(5, alias="RATE_LIMIT_LIVE_ARM_PER_MINUTE")
-    rate_limit_backtest_per_minute: int | str = Field(30, alias="RATE_LIMIT_BACKTEST_PER_MINUTE")
-    marketplace_settlement_timeout_s: float | str = Field(
+    rate_limit_live_arm_per_minute: int = Field(5, alias="RATE_LIMIT_LIVE_ARM_PER_MINUTE")
+    rate_limit_backtest_per_minute: int = Field(30, alias="RATE_LIMIT_BACKTEST_PER_MINUTE")
+    marketplace_settlement_timeout_s: float = Field(
         3.0,
         alias="MARKETPLACE_SETTLEMENT_TIMEOUT_S",
     )
@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     circle_api_key: str = Field("", alias="CIRCLE_API_KEY")
     circle_entity_secret: str = Field("", alias="CIRCLE_ENTITY_SECRET")
     circle_wallet_set_id: str = Field("", alias="CIRCLE_WALLET_SET_ID")
-    circle_bootstrap_on_startup: bool | str = Field(False, alias="CIRCLE_BOOTSTRAP_ON_STARTUP")
+    circle_bootstrap_on_startup: bool = Field(False, alias="CIRCLE_BOOTSTRAP_ON_STARTUP")
 
     model_config = SettingsConfigDict(
         env_file=(str(_ROOT_DIR / ".env"), str(_ROOT_DIR / ".env.hackathon")),
@@ -90,7 +90,7 @@ class Settings(BaseSettings):
             return "blocked_mainnet"
         return "paper"
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]
         errors: list[str] = []
         if self.log_level.upper() not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
             errors.append(
@@ -132,7 +132,7 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    settings = Settings()
+    settings = Settings()  # type: ignore[call-arg]
     settings.validate()
     # Normalize types after parsing if needed, pydantic handles basic coercions though.
     settings.port = int(settings.port)

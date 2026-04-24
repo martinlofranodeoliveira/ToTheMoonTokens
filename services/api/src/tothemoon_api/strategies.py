@@ -125,7 +125,12 @@ def build_signals(strategy_id: StrategyId, candles: list[Candle]) -> list[str]:
             regime_ok = candles[index].regime in policy.allowed_entry_regimes
             volume_confirmed = candles[index].volume >= avg_volume * 1.15
             trend_support = closes[index] >= _rolling_average(closes, index - 8, index) * 1.001
-            if regime_ok and volume_confirmed and trend_support and candles[index].close > prior_high * 1.0008:
+            if (
+                regime_ok
+                and volume_confirmed
+                and trend_support
+                and candles[index].close > prior_high * 1.0008
+            ):
                 signals[index] = "buy"
             elif candles[index].close < prior_low or candles[index].regime == "bear":
                 signals[index] = "sell"
@@ -150,7 +155,11 @@ def build_signals(strategy_id: StrategyId, candles: list[Candle]) -> list[str]:
             and zscore < -2.05
         ):
             signals[index] = "buy"
-        elif zscore > 0.85 or closes[index] >= anchor[index] * 1.003 or candles[index].regime == "bull":
+        elif (
+            zscore > 0.85
+            or closes[index] >= anchor[index] * 1.003
+            or candles[index].regime == "bull"
+        ):
             signals[index] = "sell"
 
     return signals

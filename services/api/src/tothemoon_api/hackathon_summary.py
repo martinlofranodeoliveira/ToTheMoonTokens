@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter
 
@@ -145,8 +145,22 @@ def _margin_snapshot(total_attempted: int, total_usdc_moved: float) -> dict[str,
 def get_hackathon_summary() -> dict[str, Any]:
     settings = get_settings()
     evidence_path, evidence = _load_latest_evidence()
-    summary = evidence.get("summary") if isinstance(evidence, dict) and isinstance(evidence.get("summary"), dict) else _FALLBACK_SUMMARY
-    transactions = evidence.get("transactions") if isinstance(evidence, dict) and isinstance(evidence.get("transactions"), list) else _FALLBACK_TRANSACTIONS
+    summary = cast(
+        dict[str, Any],
+        (
+            evidence.get("summary")
+            if isinstance(evidence, dict) and isinstance(evidence.get("summary"), dict)
+            else _FALLBACK_SUMMARY
+        ),
+    )
+    transactions = cast(
+        list[dict[str, Any]],
+        (
+            evidence.get("transactions")
+            if isinstance(evidence, dict) and isinstance(evidence.get("transactions"), list)
+            else _FALLBACK_TRANSACTIONS
+        ),
+    )
     wallets = _wallet_inventory(evidence)
     connectors = connector_status(settings)
 

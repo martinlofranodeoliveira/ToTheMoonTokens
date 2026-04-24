@@ -7,17 +7,13 @@ from .observability import get_logger
 
 log = get_logger(__name__)
 
+
 def ping_arc_network() -> dict[str, object]:
     settings = get_settings()
     url = settings.arc_testnet_rpc_url
-    
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "eth_chainId",
-        "params": [],
-        "id": 1
-    }
-    
+
+    payload = {"jsonrpc": "2.0", "method": "eth_chainId", "params": [], "id": 1}
+
     try:
         response = httpx.post(url, json=payload, timeout=5.0)
         response.raise_for_status()

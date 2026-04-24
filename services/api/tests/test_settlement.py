@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 import httpx
 
@@ -8,7 +8,6 @@ from tothemoon_api.settlement import (
     clear_seen_payment_intents,
     verify_settlement,
 )
-
 
 SENDER = "0x00000000000000000000000000000000000000aa"
 RECEIVER = "0x00000000000000000000000000000000000000bb"

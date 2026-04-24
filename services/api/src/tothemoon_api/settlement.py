@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
 import httpx
@@ -107,6 +107,10 @@ def _extract_topic_address(topic: object) -> str | None:
     if not normalized.startswith("0x") or len(normalized) < 42:
         return None
     return _normalize_address(f"0x{normalized[-40:]}")
+
+
+def _as_optional_str(value: object) -> str | None:
+    return value if isinstance(value, str) else None
 
 
 def _find_native_movement_log(
@@ -449,11 +453,15 @@ def verify_settlement(
     erc20_amount = _to_base_units(request.amount, _ERC20_USDC_DECIMALS)
 
     onchain_receiver = _normalize_address(
-        transaction.get("to") if isinstance(transaction, dict) else None
-    ) or _normalize_address(receipt.get("to") if isinstance(receipt, dict) else None)
+        _as_optional_str(transaction.get("to")) if isinstance(transaction, dict) else None
+    ) or _normalize_address(
+        _as_optional_str(receipt.get("to")) if isinstance(receipt, dict) else None
+    )
     onchain_sender = _normalize_address(
-        transaction.get("from") if isinstance(transaction, dict) else None
-    ) or _normalize_address(receipt.get("from") if isinstance(receipt, dict) else None)
+        _as_optional_str(transaction.get("from")) if isinstance(transaction, dict) else None
+    ) or _normalize_address(
+        _as_optional_str(receipt.get("from")) if isinstance(receipt, dict) else None
+    )
     onchain_value = _parse_quantity(
         transaction.get("value") if isinstance(transaction, dict) else None
     )
@@ -508,9 +516,7 @@ def verify_settlement(
         elif expected_receiver and onchain_receiver and expected_receiver != onchain_receiver:
             mismatch_reason = "Settlement receiver does not match the payment intent."
             mismatch_signal = "receipt_mismatch"
-            mismatch_description = (
-                f"Transaction receiver {onchain_receiver} does not match expected {expected_receiver}"
-            )
+            mismatch_description = f"Transaction receiver {onchain_receiver} does not match expected {expected_receiver}"
         elif onchain_value is not None and onchain_value != native_amount:
             mismatch_reason = "Settlement amount does not match the payment intent."
             mismatch_signal = "amount_mismatch"

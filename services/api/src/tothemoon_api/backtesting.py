@@ -192,8 +192,12 @@ def _compute_metrics(
 
         signal_exit_allowed = signal == "sell"
         if units > 0 and signal == "sell" and policy.signal_exit_min_pct > -900:
-            change_pct = ((candle.close - entry_price) / entry_price) * 100 if entry_price > 0 else 0.0
-            signal_exit_allowed = change_pct >= policy.signal_exit_min_pct or candle.regime == "bear"
+            change_pct = (
+                ((candle.close - entry_price) / entry_price) * 100 if entry_price > 0 else 0.0
+            )
+            signal_exit_allowed = (
+                change_pct >= policy.signal_exit_min_pct or candle.regime == "bear"
+            )
 
         if units > 0 and (forced_exit or signal_exit_allowed):
             gross = units * candle.close * (1 - request.slippage_bps / 10_000)
@@ -213,7 +217,9 @@ def _compute_metrics(
                 current_win_streak = 0
                 max_consecutive_losses = max(max_consecutive_losses, current_loss_streak)
                 if current_loss_streak >= policy.loss_streak_for_cooldown:
-                    cooldown_bars_remaining = max(cooldown_bars_remaining, policy.cooldown_bars_after_loss)
+                    cooldown_bars_remaining = max(
+                        cooldown_bars_remaining, policy.cooldown_bars_after_loss
+                    )
             cash += proceeds
             units = 0.0
             entry_cost = 0.0

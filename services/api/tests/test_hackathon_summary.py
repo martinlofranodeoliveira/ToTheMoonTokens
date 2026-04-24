@@ -9,7 +9,11 @@ client = TestClient(app)
 
 @patch(
     "tothemoon_api.hackathon_summary.ping_arc_network",
-    return_value={"status": "online", "chain_id": 5042002, "url": "https://rpc.testnet.arc.network"},
+    return_value={
+        "status": "online",
+        "chain_id": 5042002,
+        "url": "https://rpc.testnet.arc.network",
+    },
 )
 def test_hackathon_summary_exposes_judge_facing_proof(_mock_arc_health):
     response = client.get("/api/hackathon/summary")

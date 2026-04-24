@@ -1,5 +1,5 @@
 import uuid
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, HTTPException
 
@@ -32,6 +32,7 @@ def _looks_like_evm_address(value: str | None) -> bool:
 def _to_native_usdc_units(amount: float) -> int:
     scaled = Decimal(str(amount)) * (Decimal(10) ** 18)
     return int(scaled.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
 
 ARTIFACT_CATALOG: dict[str, BillableArtifact] = {
     "artifact_delivery_packet": BillableArtifact(
@@ -196,7 +197,9 @@ def execute_job(request: JobExecutionRequest):
         raise HTTPException(status_code=404, detail="Payment intent not found.")
 
     if str(intent["artifact_id"]) != request.artifact_id:
-        raise HTTPException(status_code=409, detail="Payment intent does not match requested artifact.")
+        raise HTTPException(
+            status_code=409, detail="Payment intent does not match requested artifact."
+        )
 
     if intent["status"] != "verified":
         raise HTTPException(status_code=402, detail="Payment required to unlock this job.")

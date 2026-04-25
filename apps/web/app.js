@@ -265,6 +265,71 @@ function escapeHtml(value) {
   });
 }
 
+function renderInlineMarkdown(value) {
+  let html = escapeHtml(value);
+  html = html.replace(/`([^`]+)`/g, (_match, code) => {
+    if (isExplorerTxHash(code)) {
+      return `<a class="chat-inline-code chat-tx" href="${escapeHtml(txUrl(code))}" target="_blank" rel="noreferrer"><code>${code}</code>${icon("link", 10)}</a>`;
+    }
+    return `<code>${code}</code>`;
+  });
+  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  return html;
+}
+
+function normalizeAgentMessage(value) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\s+(\d+)\.\s+(\*\*|`|[A-Z])/g, "\n$1. $2")
+    .replace(/\s+\*\s+(\*\*|`|[A-Z])/g, "\n* $1")
+    .trim();
+}
+
+function renderMarkdownMessage(value) {
+  const lines = normalizeAgentMessage(value)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const blocks = [];
+  let listType = null;
+  let listItems = [];
+
+  const flushList = () => {
+    if (!listType || listItems.length === 0) {
+      return;
+    }
+    blocks.push(`<${listType}>${listItems.map((item) => `<li>${item}</li>`).join("")}</${listType}>`);
+    listType = null;
+    listItems = [];
+  };
+
+  for (const line of lines) {
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    const unordered = line.match(/^[-*]\s+(.+)$/);
+    if (ordered) {
+      if (listType !== "ol") {
+        flushList();
+        listType = "ol";
+      }
+      listItems.push(renderInlineMarkdown(ordered[1]));
+      continue;
+    }
+    if (unordered) {
+      if (listType !== "ul") {
+        flushList();
+        listType = "ul";
+      }
+      listItems.push(renderInlineMarkdown(unordered[1]));
+      continue;
+    }
+    flushList();
+    blocks.push(`<p>${renderInlineMarkdown(line)}</p>`);
+  }
+  flushList();
+
+  return `<div class="chat-markdown">${blocks.join("")}</div>`;
+}
+
 function asNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
@@ -1500,6 +1565,31 @@ function summarizeAgentEvent(event) {
   return "completed";
 }
 
+function formatToolName(name) {
+  return String(name || "tool").replaceAll("_", " ");
+}
+
+function toolEventTone(event) {
+  const response = event?.response || {};
+  if (response.error) {
+    return "tool-error";
+  }
+  const status = String(
+    response.result?.status ||
+      response.payment?.status ||
+      response.payment?.settlement_status ||
+      response.result?.settlement_status ||
+      "",
+  ).toLowerCase();
+  if (["verified", "delivered", "settled", "complete", "completed"].some((value) => status.includes(value))) {
+    return "tool-success";
+  }
+  if (["pending", "checkout", "created"].some((value) => status.includes(value))) {
+    return "tool-pending";
+  }
+  return "tool-info";
+}
+
 function renderAgentConsole({ floating = false } = {}) {
   const history = state.market.agentHistory || [];
   const events = state.market.agentEvents || [];
@@ -1548,16 +1638,22 @@ function renderAgentConsole({ floating = false } = {}) {
                 .map((turn) => {
                   return `
                     <div class="chat-bubble ${turn.role === "user" ? "chat-user" : "chat-assistant"}">
-                      <span class="mono-s t3">${turn.role === "user" ? "You" : "Agent"}</span>
-                      <div>${escapeHtml(turn.text)}</div>
+                      <div class="chat-bubble-head">
+                        <span class="chat-speaker">${turn.role === "user" ? "You" : "Agent"}</span>
+                        ${turn.role === "assistant" ? `<span class="chat-model">Gemini</span>` : ""}
+                      </div>
+                      <div class="chat-content">${turn.role === "user" ? escapeHtml(turn.text) : renderMarkdownMessage(turn.text)}</div>
                     </div>
                   `;
                 })
                 .join("")
             : `
               <div class="chat-bubble chat-assistant">
-                <span class="mono-s t3">Agent</span>
-                <div>${escapeHtml(programmatic ? "I can buy one of the live artifacts for you end-to-end in the current mode." : "I can prepare the checkout and explain the manual settlement step in the current mode.")}</div>
+                <div class="chat-bubble-head">
+                  <span class="chat-speaker">Agent</span>
+                  <span class="chat-model">Gemini</span>
+                </div>
+                <div class="chat-content">${renderMarkdownMessage(programmatic ? "I can buy one of the live artifacts for you end-to-end in the current mode." : "I can prepare the checkout and explain the manual settlement step in the current mode.")}</div>
               </div>
             `
         }
@@ -1572,9 +1668,12 @@ function renderAgentConsole({ floating = false } = {}) {
                 .slice(-4)
                 .map((event) => {
                   return `
-                    <div class="tool-event">
-                      <span class="pill pill-blue">${escapeHtml(event.name)}</span>
-                      <span class="mono-s t2">${escapeHtml(summarizeAgentEvent(event))}</span>
+                    <div class="tool-event ${toolEventTone(event)}">
+                      <span class="tool-dot"></span>
+                      <div class="tool-event-body">
+                        <span class="tool-event-title">${escapeHtml(formatToolName(event.name))}</span>
+                        <span class="tool-event-summary">${renderInlineMarkdown(summarizeAgentEvent(event))}</span>
+                      </div>
                     </div>
                   `;
                 })

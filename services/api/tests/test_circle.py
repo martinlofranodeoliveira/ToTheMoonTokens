@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from tothemoon_api.circle import CircleDeveloperClient
 
@@ -79,6 +81,28 @@ def test_create_transfer_uses_wallet_address_and_token_address(circle_client):
         assert kwargs["json"]["entitySecretCiphertext"] == "ciphertext"
 
 
+def test_entity_secret_ciphertext_reuses_pre_encrypted_secret():
+    client = CircleDeveloperClient(
+        api_key="TEST_API_KEY",  # pragma: allowlist secret
+        entity_secret="already-encrypted-ciphertext",  # pragma: allowlist secret
+    )
+
+    assert client.entity_secret_ciphertext() == "already-encrypted-ciphertext"
+
+
+def test_entity_secret_ciphertext_encrypts_raw_hex_secret():
+    client = CircleDeveloperClient(
+        api_key="TEST_API_KEY",  # pragma: allowlist secret
+        entity_secret="a" * 64,  # pragma: allowlist secret
+    )
+
+    with patch.object(client, "_entity_public_key", return_value=_test_public_key_pem()):
+        ciphertext = client.entity_secret_ciphertext()
+
+    assert ciphertext
+    assert ciphertext != "a" * 64
+
+
 def test_get_transaction(circle_client):
     with patch("httpx.get") as mock_get:
         mock_response = MagicMock()
@@ -92,6 +116,15 @@ def test_get_transaction(circle_client):
 
         assert result["data"]["transaction"]["state"] == "COMPLETE"
         mock_get.assert_called_once()
+
+
+def _test_public_key_pem() -> str:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_key = private_key.public_key()
+    return public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode("ascii")
 
 
 def test_wait_for_transaction_polls_until_terminal(circle_client):

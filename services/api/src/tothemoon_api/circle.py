@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 import time
 import uuid
 from typing import Any, ClassVar
@@ -91,6 +92,9 @@ class CircleDeveloperClient:
         secret = self.entity_secret.strip()
         if not secret:
             raise RuntimeError("Missing Circle entity secret.")
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", secret):
+            self._entity_secret_ciphertext = secret
+            return self._entity_secret_ciphertext
         public_key = serialization.load_pem_public_key(self._entity_public_key().encode("utf-8"))
         ciphertext = public_key.encrypt(
             secret.encode("utf-8"),

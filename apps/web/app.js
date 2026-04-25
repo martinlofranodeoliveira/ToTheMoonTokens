@@ -83,12 +83,16 @@ const FALLBACK_SUMMARY = {
     settlement_network: "arc_testnet",
     wallet_provider: "circle_developer_controlled_wallets",
     wallet_mode: "manual_only",
+    settlement_auth_mode: "manual",
+    autonomous_payments_enabled: false,
     wallet_set_id: "e980936d-182e-50f6-bc6f-e54037777598",
     wallets_configured: 8,
     wallets_loaded: false,
     treasury_address: "0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f",
     arc_rpc_url: "https://rpc.testnet.arc.network",
     metamask_ready: true,
+    agent_chat_ready: false,
+    agent_model: null,
     latency_ms: 0,
     reconnect_count: 0,
     last_error: null,
@@ -98,6 +102,8 @@ const FALLBACK_SUMMARY = {
     can_submit_testnet_orders: false,
     can_submit_mainnet_orders: false,
     requires_manual_wallet_signature: true,
+    settlement_auth_mode: "manual",
+    autonomous_payments_enabled: false,
     reasons: [
       "Order submission is disabled. Hackathon scope is paid agent artifacts, not trading automation.",
     ],
@@ -223,10 +229,13 @@ const state = {
     route: "marketplace",
     modalArtifactId: null,
     creatingArtifactId: null,
+    payingOrderId: null,
     verifyingOrderId: null,
     unlockingOrderId: null,
     banner: null,
     selectedAgentId: "research_00",
+    agentComposer: "",
+    agentSending: false,
   },
 };
 
@@ -391,6 +400,22 @@ function renderTxReference(txHash, head = 10, tail = 6, label = "Arc explorer ha
   return `<span class="tx-pill" title="${escapeHtml(label)}">${text}</span>`;
 }
 
+function settlementAuthMode() {
+  return (
+    state.summary.connectors?.settlement_auth_mode ||
+    state.summary.guardrails?.settlement_auth_mode ||
+    "manual"
+  );
+}
+
+function isProgrammaticSettlement() {
+  return settlementAuthMode() === "programmatic";
+}
+
+function agentChatReady() {
+  return !!state.summary.connectors?.agent_chat_ready;
+}
+
 function formatArtifactType(value) {
   return String(value || "artifact").replaceAll("_", " ");
 }
@@ -491,6 +516,15 @@ function sanitizeOrder(order) {
   }
 
   const now = new Date().toISOString();
+  const rawStatus = String(order.status || "CHECKOUT_READY").toLowerCase();
+  let status = String(order.status || "CHECKOUT_READY");
+  if (rawStatus === "pending") {
+    status = "CHECKOUT_READY";
+  } else if (rawStatus === "verified") {
+    status = order.executed || order.download_url || order.downloadUrl ? "DELIVERED" : "SETTLED";
+  } else if (rawStatus === "failed") {
+    status = "FAILED";
+  }
   return {
     paymentId,
     artifactId: String(order.artifactId || order.artifact_id || ""),
@@ -500,15 +534,33 @@ function sanitizeOrder(order) {
     buyerAddress: String(order.buyerAddress || order.buyer_address || ""),
     depositAddress: String(order.depositAddress || order.deposit_address || ""),
     jobId: order.jobId ? String(order.jobId) : order.job_id ? String(order.job_id) : null,
-    status: String(order.status || "CHECKOUT_READY"),
-    settlementStatus: order.settlementStatus ? String(order.settlementStatus) : null,
+    status,
+    settlementStatus:
+      order.settlementStatus || order.settlement_status
+        ? String(order.settlementStatus || order.settlement_status)
+        : null,
     reason: order.reason ? String(order.reason) : null,
     txHash: String(order.txHash || order.tx_hash || ""),
-    downloadUrl: order.downloadUrl ? String(order.downloadUrl) : null,
-    executionMessage: order.executionMessage ? String(order.executionMessage) : null,
+    downloadUrl: order.downloadUrl || order.download_url ? String(order.downloadUrl || order.download_url) : null,
+    executionMessage:
+      order.executionMessage || order.execution_message
+        ? String(order.executionMessage || order.execution_message)
+        : null,
     createdAt: String(order.createdAt || order.created_at || now),
     updatedAt: String(order.updatedAt || order.updated_at || now),
   };
+}
+
+function sanitizeChatTurn(turn) {
+  if (!turn || typeof turn !== "object") {
+    return null;
+  }
+  const role = String(turn.role || "").toLowerCase();
+  const text = String(turn.text || "").trim();
+  if (!text || (role !== "user" && role !== "assistant")) {
+    return null;
+  }
+  return { role, text };
 }
 
 function loadMarketState() {
@@ -519,20 +571,28 @@ function loadMarketState() {
         buyerAddress: "",
         activeOrderId: null,
         orders: [],
+        agentHistory: [],
+        agentEvents: [],
       };
     }
     const parsed = JSON.parse(raw);
     const orders = (parsed.orders || []).map(sanitizeOrder).filter(Boolean);
+    const agentHistory = (parsed.agentHistory || []).map(sanitizeChatTurn).filter(Boolean);
+    const agentEvents = Array.isArray(parsed.agentEvents) ? parsed.agentEvents : [];
     return {
       buyerAddress: typeof parsed.buyerAddress === "string" ? parsed.buyerAddress : "",
       activeOrderId: typeof parsed.activeOrderId === "string" ? parsed.activeOrderId : null,
       orders,
+      agentHistory,
+      agentEvents,
     };
   } catch (_error) {
     return {
       buyerAddress: "",
       activeOrderId: null,
       orders: [],
+      agentHistory: [],
+      agentEvents: [],
     };
   }
 }
@@ -545,11 +605,19 @@ function persistMarketState() {
         buyerAddress: state.market.buyerAddress,
         activeOrderId: state.market.activeOrderId,
         orders: state.market.orders,
+        agentHistory: state.market.agentHistory,
+        agentEvents: state.market.agentEvents,
       }),
     );
   } catch (_error) {
     // Ignore persistence errors.
   }
+}
+
+function mergeRemoteOrders(orders) {
+  [...(orders || [])].reverse().forEach((order) => {
+    upsertOrder(order);
+  });
 }
 
 function getSortedOrders() {
@@ -792,7 +860,7 @@ function buildSettlements() {
 function orderStateLabel(order) {
   switch (order?.status) {
     case "CHECKOUT_READY":
-      return "Awaiting tx";
+      return isProgrammaticSettlement() ? "Ready to auto-pay" : "Awaiting tx";
     case "SETTLED":
       return "Settlement verified";
     case "DELIVERED":
@@ -1268,6 +1336,14 @@ function renderFilterColumn(listings) {
               <span class="mono-s t3">Wallets</span>
               <span class="mono-s">${escapeHtml(String(state.summary.circle.wallets_configured))} configured</span>
             </div>
+            <div class="row between">
+              <span class="mono-s t3">Settlement mode</span>
+              <span class="mono-s">${escapeHtml(settlementAuthMode())}</span>
+            </div>
+            <div class="row between">
+              <span class="mono-s t3">Agent chat</span>
+              <span class="mono-s">${agentChatReady() ? "ready" : "offline"}</span>
+            </div>
           </div>
         </div>
 
@@ -1347,6 +1423,7 @@ function renderListingCard(listing) {
 }
 
 function renderMainColumn(listings) {
+  const programmatic = isProgrammaticSettlement();
   return `
     <main class="col-main">
       ${renderBanner()}
@@ -1359,9 +1436,15 @@ function renderMainColumn(listings) {
           <button class="btn btn-ghost" style="height: 30px;" data-action="refresh-market">Refresh market</button>
         </div>
         <div class="t2" style="font-size: 13px;">
-          Real-Time Micro-Commerce Flow. Buyers request a priced artifact, fund treasury in USDC, paste the Arc tx hash, verify settlement, and unlock delivery without leaving the marketplace surface.
+          ${
+            programmatic
+              ? "Real-Time Micro-Commerce Flow. Buyers or the in-app agent create a priced checkout, the backend submits the Circle dev-controlled transfer, Arc verifies the tx hash, and the artifact unlocks on the same marketplace surface."
+              : "Real-Time Micro-Commerce Flow. Buyers request a priced artifact, fund treasury in USDC, paste the Arc tx hash, verify settlement, and unlock delivery without leaving the marketplace surface."
+          }
         </div>
       </div>
+
+      ${renderAgentConsole()}
 
       <div class="row between" style="margin-bottom: 16px;">
         <div class="sect-head" style="margin-bottom: 0;">
@@ -1390,6 +1473,137 @@ function renderMainColumn(listings) {
           `
       }
     </main>
+  `;
+}
+
+function summarizeAgentEvent(event) {
+  const response = event?.response || {};
+  if (response.error) {
+    return String(response.error);
+  }
+  if (response.message) {
+    return String(response.message);
+  }
+  if (response.result?.status) {
+    const txLabel = response.result.tx_hash ? ` · ${truncateHash(response.result.tx_hash, 8, 6)}` : "";
+    return `${response.result.status}${txLabel}`;
+  }
+  if (response.payment?.artifact_name) {
+    return `${response.payment.artifact_name} · ${response.payment.status}`;
+  }
+  if (Array.isArray(response.artifacts)) {
+    return `${response.artifacts.length} artifacts loaded`;
+  }
+  if (Array.isArray(response.orders)) {
+    return `${response.orders.length} tracked orders`;
+  }
+  return "completed";
+}
+
+function renderAgentConsole() {
+  const history = state.market.agentHistory || [];
+  const events = state.market.agentEvents || [];
+  const ready = agentChatReady();
+  const programmatic = isProgrammaticSettlement();
+  const intro = programmatic
+    ? "Ask the agent to buy an artifact and it will create the checkout, submit the Circle payment, and unlock delivery after Arc verification."
+    : "Ask the agent to prepare a checkout. Manual funding is still required in the current mode.";
+  const placeholder = programmatic
+    ? "Buy the Delivery Packet and unlock it."
+    : "Create a checkout for the Delivery Packet.";
+  const primaryPrompt = programmatic
+    ? "Buy the Delivery Packet and unlock it."
+    : "Create a checkout for the Delivery Packet.";
+  const secondaryPrompt = programmatic
+    ? "Buy the Review Bundle and unlock it."
+    : "Create a checkout for the Review Bundle.";
+
+  return `
+    <div class="card card-pad agent-console" style="margin-bottom: 18px;">
+      <div class="row between agent-console-head">
+        <div class="sect-head" style="margin-bottom: 0;">
+          <h3>Agent Console</h3>
+          <span class="live"><span class="dot"></span>${ready ? "Gemini live" : "offline"}</span>
+        </div>
+        <div class="row g8" style="align-items: center;">
+          <span class="pill ${programmatic ? "pill-green" : "pill-gold"}">${escapeHtml(settlementAuthMode())}</span>
+          ${
+            state.summary.connectors?.agent_model
+              ? `<span class="mono-s t3">${escapeHtml(state.summary.connectors.agent_model)}</span>`
+              : ""
+          }
+        </div>
+      </div>
+
+      <p class="section-copy" style="margin-top: 10px; margin-bottom: 14px;">${escapeHtml(intro)}</p>
+
+      <div class="chat-log">
+        ${
+          history.length
+            ? history
+                .slice(-8)
+                .map((turn) => {
+                  return `
+                    <div class="chat-bubble ${turn.role === "user" ? "chat-user" : "chat-assistant"}">
+                      <span class="mono-s t3">${turn.role === "user" ? "You" : "Agent"}</span>
+                      <div>${escapeHtml(turn.text)}</div>
+                    </div>
+                  `;
+                })
+                .join("")
+            : `
+              <div class="chat-bubble chat-assistant">
+                <span class="mono-s t3">Agent</span>
+                <div>${escapeHtml(programmatic ? "I can buy one of the live artifacts for you end-to-end in the current mode." : "I can prepare the checkout and explain the manual settlement step in the current mode.")}</div>
+              </div>
+            `
+        }
+      </div>
+
+      ${
+        events.length
+          ? `
+            <div class="tool-events">
+              <div class="mono-s t3" style="margin-bottom: 8px;">Last agent actions</div>
+              ${events
+                .slice(-4)
+                .map((event) => {
+                  return `
+                    <div class="tool-event">
+                      <span class="pill pill-blue">${escapeHtml(event.name)}</span>
+                      <span class="mono-s t2">${escapeHtml(summarizeAgentEvent(event))}</span>
+                    </div>
+                  `;
+                })
+                .join("")}
+            </div>
+          `
+          : ""
+      }
+
+      <div class="row g8" style="margin-top: 12px; flex-wrap: wrap;">
+        <button class="btn btn-ghost" data-action="agent-prompt" data-prompt="What artifacts can you buy right now?">What can you buy?</button>
+        <button class="btn btn-ghost" data-action="agent-prompt" data-prompt="${escapeHtml(primaryPrompt)}">Buy Delivery Packet</button>
+        <button class="btn btn-ghost" data-action="agent-prompt" data-prompt="${escapeHtml(secondaryPrompt)}">Buy Review Bundle</button>
+      </div>
+
+      <div class="row g8 agent-compose">
+        <textarea
+          id="agent-composer"
+          class="input agent-input"
+          rows="3"
+          data-field="agent-composer"
+          placeholder="${escapeHtml(placeholder)}"
+        >${escapeHtml(state.ui.agentComposer)}</textarea>
+        <button class="btn btn-primary" data-action="send-agent-message">${state.ui.agentSending ? "Thinking..." : "Send"}</button>
+      </div>
+
+      ${
+        ready
+          ? ""
+          : `<div class="banner warn" style="margin-top: 12px;">Set <code>GEMINI_API_KEY</code> to enable the in-app agent chat.</div>`
+      }
+    </div>
   `;
 }
 
@@ -1517,7 +1731,7 @@ function renderAgentsPage() {
         ? `
           <div class="col g8">
             <div class="row between"><span class="mono-s t3">Last checkout</span><span class="mono-s">${escapeHtml(getSortedOrders()[0]?.artifactName || "Awaiting first purchase")}</span></div>
-            <div class="row between"><span class="mono-s t3">Funding mode</span><span class="mono-s">Circle Console or Arc wallet</span></div>
+            <div class="row between"><span class="mono-s t3">Funding mode</span><span class="mono-s">${escapeHtml(isProgrammaticSettlement() ? "Circle dev-controlled backend" : "Circle Console or Arc wallet")}</span></div>
             <div class="row between"><span class="mono-s t3">Buyer address</span><span class="mono-s">${escapeHtml(truncateMiddle(selected.address, 8, 6))}</span></div>
           </div>
         `
@@ -1526,7 +1740,7 @@ function renderAgentsPage() {
             <div class="col g8">
               <div class="row between"><span class="mono-s t3">Verification step</span><span class="mono-s">Receipt + settlement proof</span></div>
               <div class="row between"><span class="mono-s t3">Demo jobs</span><span class="mono-s">${escapeHtml(String(state.demoJobs.length || 0))} tracked</span></div>
-              <div class="row between"><span class="mono-s t3">Unlock gate</span><span class="mono-s">Manual approval required</span></div>
+              <div class="row between"><span class="mono-s t3">Unlock gate</span><span class="mono-s">${escapeHtml(isProgrammaticSettlement() ? "Backend unlock after payment" : "Manual approval required")}</span></div>
             </div>
           `
           : `
@@ -1665,6 +1879,7 @@ function renderAgentsPage() {
             <div class="grid-2" style="gap: 10px;">
               <div class="col g4"><span class="mono-s t3">Track</span><span class="mono">${escapeHtml((state.summary.tracks || [])[0] || "Real-Time Micro-Commerce Flow")}</span></div>
               <div class="col g4"><span class="mono-s t3">Wallet mode</span><span class="mono">${escapeHtml(state.summary.connectors?.wallet_mode || "manual_only")}</span></div>
+              <div class="col g4"><span class="mono-s t3">Settlement auth</span><span class="mono">${escapeHtml(settlementAuthMode())}</span></div>
               <div class="col g4"><span class="mono-s t3">Treasury</span><span class="mono">${escapeHtml(truncateMiddle(state.summary.connectors?.treasury_address || state.summary.circle?.treasury_address || selected.address, 8, 6))}</span></div>
               <div class="col g4"><span class="mono-s t3">Batch throughput</span><span class="mono">${escapeHtml(formatNumber(proof.throughput_tx_per_min, 1))} tx/min</span></div>
             </div>
@@ -1683,6 +1898,7 @@ function renderArchitecturePage() {
   const summary = state.summary;
   const proof = summary.proof || FALLBACK_SUMMARY.proof;
   const connectors = summary.connectors || FALLBACK_SUMMARY.connectors;
+  const programmatic = isProgrammaticSettlement();
   const flowCards = [
     {
       eyebrow: "01 Quote",
@@ -1697,7 +1913,9 @@ function renderArchitecturePage() {
     {
       eyebrow: "03 Verify",
       title: "Arc settlement proof",
-      copy: "Buyer pastes the Arc tx hash and the API verifies the receipt before the artifact unlock path can advance.",
+      copy: programmatic
+        ? "The backend captures the Arc tx hash from Circle, then the API verifies the receipt before the artifact unlock path can advance."
+        : "Buyer pastes the Arc tx hash and the API verifies the receipt before the artifact unlock path can advance.",
     },
     {
       eyebrow: "04 Deliver",
@@ -1807,8 +2025,8 @@ function renderAboutPage() {
           <div class="sect-head"><h3>Judge click path</h3></div>
           <div class="col g8">
             <div class="row between"><span class="mono-s t3">1.</span><span class="mono-s">Open Marketplace and select an artifact.</span></div>
-            <div class="row between"><span class="mono-s t3">2.</span><span class="mono-s">Create checkout, fund treasury, paste tx hash.</span></div>
-            <div class="row between"><span class="mono-s t3">3.</span><span class="mono-s">Verify settlement and unlock the paid artifact.</span></div>
+            <div class="row between"><span class="mono-s t3">2.</span><span class="mono-s">${escapeHtml(isProgrammaticSettlement() ? "Create checkout, pay automatically, inspect tx hash." : "Create checkout, fund treasury, paste tx hash.")}</span></div>
+            <div class="row between"><span class="mono-s t3">3.</span><span class="mono-s">${escapeHtml(isProgrammaticSettlement() ? "Unlock the paid artifact after backend verification." : "Verify settlement and unlock the paid artifact.")}</span></div>
             <div class="row between"><span class="mono-s t3">4.</span><span class="mono-s">Inspect Agents and Architecture for onchain proof.</span></div>
           </div>
         </div>
@@ -1876,8 +2094,10 @@ function renderModal() {
 
   const selectedOrder = latestOrderForArtifact(artifact.id);
   const isCreating = state.ui.creatingArtifactId === artifact.id;
+  const isPaying = selectedOrder && state.ui.payingOrderId === selectedOrder.paymentId;
   const isVerifying = selectedOrder && state.ui.verifyingOrderId === selectedOrder.paymentId;
   const isUnlocking = selectedOrder && state.ui.unlockingOrderId === selectedOrder.paymentId;
+  const programmatic = isProgrammaticSettlement();
   const videoWallet = recommendedVideoWallet();
   const usingVideoWallet =
     !!videoWallet && state.market.buyerAddress.trim().toLowerCase() === videoWallet.address.toLowerCase();
@@ -1900,6 +2120,9 @@ function renderModal() {
       ? `<button class="btn btn-secondary" data-action="open-tx" data-tx-hash="${escapeHtml(selectedOrder.txHash)}">Open tx</button>`
       : `<button class="btn btn-secondary" data-action="copy-treasury" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy treasury</button>`;
     primaryAction = `<button class="btn btn-primary" data-action="copy-payment-id" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy payment ID</button>`;
+  } else if (programmatic) {
+    secondaryAction = `<button class="btn btn-secondary" data-action="focus-agent-console">Ask agent</button>`;
+    primaryAction = `<button class="btn btn-primary" data-action="pay-order" data-order-id="${escapeHtml(selectedOrder.paymentId)}">${isPaying ? "Submitting payment..." : "Pay automatically"}</button>`;
   } else {
     secondaryAction = `<button class="btn btn-secondary" data-action="copy-treasury" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy treasury</button>`;
     primaryAction = `<button class="btn btn-primary" data-action="verify-order" data-order-id="${escapeHtml(selectedOrder.paymentId)}">${isVerifying ? "Verifying..." : "Verify settlement"}</button>`;
@@ -1993,18 +2216,46 @@ function renderModal() {
                       <span class="mono-s">Circle destination</span>
                     </div>
                     <div class="mono-s" style="word-break: break-all; margin-bottom: 8px;">${escapeHtml(selectedOrder.depositAddress)}</div>
-                    <div class="col g6" style="margin-bottom: 8px;">
-                      <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Settlement tx hash</label>
-                      <input class="input mono-s" data-field="tx-hash" data-order-id="${escapeHtml(selectedOrder.paymentId)}" placeholder="0x..." value="${escapeHtml(selectedOrder.txHash)}" />
-                    </div>
-                    <div class="t2" style="font-size: 12px;">
-                      1. Create the checkout. 2. In Circle Console, send the exact amount above from the source wallet to the treasury route. 3. If the wallet detail page shows no send button, switch to Developer Controlled → Transactions and create the transfer there. 4. Paste the tx hash. 5. Verify and unlock.
-                    </div>
+                    ${
+                      programmatic
+                        ? `
+                          <div class="row between" style="margin-bottom: 8px;">
+                            <span class="mono-s t3">PAYMENT MODE</span>
+                            <span class="mono-s">Programmatic Circle transfer</span>
+                          </div>
+                          ${
+                            selectedOrder.txHash
+                              ? `
+                                <div class="col g6" style="margin-bottom: 8px;">
+                                  <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Settlement tx hash</label>
+                                  <input class="input mono-s" value="${escapeHtml(selectedOrder.txHash)}" readonly />
+                                </div>
+                              `
+                              : ""
+                          }
+                          <div class="t2" style="font-size: 12px;">
+                            Autonomous mode is active. Use Pay automatically or ask the agent to buy this artifact. The backend submits the Circle transfer, waits for COMPLETE, captures the Arc tx hash, and then you can unlock delivery.
+                          </div>
+                        `
+                        : `
+                          <div class="col g6" style="margin-bottom: 8px;">
+                            <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Settlement tx hash</label>
+                            <input class="input mono-s" data-field="tx-hash" data-order-id="${escapeHtml(selectedOrder.paymentId)}" placeholder="0x..." value="${escapeHtml(selectedOrder.txHash)}" />
+                          </div>
+                          <div class="t2" style="font-size: 12px;">
+                            1. Create the checkout. 2. In Circle Console, send the exact amount above from the source wallet to the treasury route. 3. If the wallet detail page shows no send button, switch to Developer Controlled → Transactions and create the transfer there. 4. Paste the tx hash. 5. Verify and unlock.
+                          </div>
+                        `
+                    }
                   </div>
                 `
                 : `
                   <div class="banner info">
-                    Create a checkout to receive the exact treasury route and Circle transfer instructions for this artifact.
+                    ${
+                      programmatic
+                        ? "Create a checkout to receive the treasury route, then use Pay automatically or the agent console to complete settlement."
+                        : "Create a checkout to receive the exact treasury route and Circle transfer instructions for this artifact."
+                    }
                   </div>
                 `
             }
@@ -2167,13 +2418,60 @@ async function createCheckout(artifactId) {
       ? `${humanizeWalletName(sourceName)} ${truncateMiddle(buyerAddress, 8, 6)}`
       : truncateMiddle(buyerAddress, 8, 6);
     showBanner(
-      `Checkout created. In Circle Console, send ${formatNumber(intent.amount_usd, 3)} USDC from ${sourceLabel} to the treasury route, then paste the tx hash.`,
+      isProgrammaticSettlement()
+        ? `Checkout created. Use Pay automatically or ask the agent to send ${formatNumber(intent.amount_usd, 3)} USDC from ${sourceLabel}.`
+        : `Checkout created. In Circle Console, send ${formatNumber(intent.amount_usd, 3)} USDC from ${sourceLabel} to the treasury route, then paste the tx hash.`,
       "info",
     );
   } catch (error) {
     showBanner(`Could not create checkout: ${error.message}`, "danger");
   } finally {
     state.ui.creatingArtifactId = null;
+    renderApp();
+  }
+}
+
+async function payOrder(orderId) {
+  const order = findOrderById(orderId);
+  if (!order) {
+    showBanner("Checkout not found.", "danger");
+    return;
+  }
+
+  state.ui.payingOrderId = orderId;
+  renderApp();
+
+  try {
+    const payment = await fetchJson("/api/payments/pay", {
+      method: "POST",
+      body: {
+        payment_id: order.paymentId,
+      },
+    });
+
+    patchOrder(orderId, {
+      status:
+        payment.status === "verified"
+          ? "SETTLED"
+          : payment.status === "failed"
+            ? "FAILED"
+            : "CHECKOUT_READY",
+      settlementStatus: payment.settlement_status || null,
+      reason: payment.reason || null,
+      txHash: payment.tx_hash || order.txHash,
+    });
+
+    await refreshDemoJobs();
+    renderApp();
+    if (payment.status === "verified") {
+      showBanner("Autonomous settlement complete. You can now unlock the artifact.", "info");
+    } else {
+      showBanner(`Autonomous settlement failed${payment.reason ? `: ${payment.reason}` : "."}`, "danger");
+    }
+  } catch (error) {
+    showBanner(`Could not submit programmatic payment: ${error.message}`, "danger");
+  } finally {
+    state.ui.payingOrderId = null;
     renderApp();
   }
 }
@@ -2279,6 +2577,56 @@ async function unlockOrder(orderId) {
   }
 }
 
+async function sendAgentMessage(message = state.ui.agentComposer.trim()) {
+  const text = String(message || "").trim();
+  if (!text) {
+    showBanner("Type a message for the agent first.", "warn");
+    return;
+  }
+  if (!agentChatReady()) {
+    showBanner("Agent chat is offline. Configure GEMINI_API_KEY on the backend first.", "warn");
+    return;
+  }
+
+  state.ui.agentSending = true;
+  renderApp();
+
+  try {
+    const response = await fetchJson("/api/agent/chat", {
+      method: "POST",
+      body: {
+        message: text,
+        history: state.market.agentHistory,
+      },
+    });
+
+    state.market.agentHistory = [...state.market.agentHistory, { role: "user", text }, { role: "assistant", text: response.reply }].slice(-12);
+    state.market.agentEvents = Array.isArray(response.events) ? response.events : [];
+    mergeRemoteOrders(response.orders || []);
+    persistMarketState();
+
+    await refreshDemoJobs();
+    state.ui.agentComposer = "";
+    renderApp();
+  } catch (error) {
+    showBanner(`Agent request failed: ${error.message}`, "danger");
+  } finally {
+    state.ui.agentSending = false;
+    renderApp();
+  }
+}
+
+function focusAgentConsole() {
+  closeModal();
+  window.setTimeout(() => {
+    const composer = document.getElementById("agent-composer");
+    if (composer && typeof composer.focus === "function") {
+      composer.focus();
+      composer.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, 0);
+}
+
 function openArtifact(artifactId) {
   state.ui.modalArtifactId = artifactId;
   const order = latestOrderForArtifact(artifactId);
@@ -2379,6 +2727,9 @@ function handleClick(event) {
     case "create-checkout":
       createCheckout(target.dataset.artifactId);
       return;
+    case "pay-order":
+      payOrder(target.dataset.orderId);
+      return;
     case "verify-order":
       verifyOrder(target.dataset.orderId);
       return;
@@ -2408,6 +2759,17 @@ function handleClick(event) {
     case "copy-payment-id":
       copyToClipboard(target.dataset.paymentId, "payment ID");
       return;
+    case "agent-prompt":
+      state.ui.agentComposer = target.dataset.prompt || "";
+      renderApp();
+      sendAgentMessage(target.dataset.prompt || "");
+      return;
+    case "send-agent-message":
+      sendAgentMessage();
+      return;
+    case "focus-agent-console":
+      focusAgentConsole();
+      return;
     case "open-docs":
       window.open(`${API_BASE_URL}/docs`, "_blank", "noopener,noreferrer");
       return;
@@ -2434,6 +2796,9 @@ function handleInput(event) {
     case "buyer-address":
       state.market.buyerAddress = target.value;
       persistMarketState();
+      return;
+    case "agent-composer":
+      state.ui.agentComposer = target.value;
       return;
     case "tx-hash":
       patchOrder(target.dataset.orderId, { txHash: target.value });

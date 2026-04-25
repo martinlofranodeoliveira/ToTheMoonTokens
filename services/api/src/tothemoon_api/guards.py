@@ -22,6 +22,12 @@ FORBIDDEN_SECRETS = [
 ]
 
 
+def gemini_configured(settings: Settings) -> bool:
+    return bool(
+        settings.gemini_api_key or (settings.gemini_use_vertexai and settings.gemini_vertex_project)
+    )
+
+
 def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> GuardrailStatus:
     reasons: list[str] = [
         "Order submission is disabled. Hackathon scope is paid agent artifacts, not trading automation."
@@ -40,9 +46,11 @@ def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> Guar
                 f"FORBIDDEN_SECRET: {secret} detectado. Segredos de carteira e keys reais sao bloqueados."
             )
 
-    if settings.wallet_mode != "manual_only":
+    if settings.wallet_mode == "disabled":
+        reasons.append("WALLET_MODE='disabled': Circle wallet actions are disabled.")
+    elif settings.wallet_mode == "custodial":
         reasons.append(
-            f"WALLET_MODE={settings.wallet_mode!r}: apenas 'manual_only' e aceito para qualquer fluxo de demo seguro."
+            "WALLET_MODE='custodial': Circle developer-controlled wallet route is available."
         )
 
     GUARDRAIL_EVALUATIONS_TOTAL.labels(
@@ -57,6 +65,8 @@ def evaluate_guardrails(settings: Settings, risk_tier: RiskTier = "low") -> Guar
         can_submit_testnet_orders=can_submit_testnet_orders,
         can_submit_mainnet_orders=can_submit_mainnet_orders,
         requires_manual_wallet_signature=settings.wallet_mode == "manual_only",
+        settlement_auth_mode=settings.settlement_auth_mode,
+        autonomous_payments_enabled=settings.autonomous_payments_enabled,
         reasons=reasons,
     )
 
@@ -66,12 +76,16 @@ def connector_status(settings: Settings) -> ConnectorStatus:
         settlement_network="arc_testnet",
         wallet_provider="circle_developer_controlled_wallets",
         wallet_mode=settings.wallet_mode,
+        settlement_auth_mode=settings.settlement_auth_mode,
+        autonomous_payments_enabled=settings.autonomous_payments_enabled,
         wallet_set_id=settings.circle_wallet_set_id or None,
         wallets_configured=len(circle_client.roles) if settings.circle_wallet_set_id else 0,
         wallets_loaded=circle_client.wallets_loaded,
         treasury_address=circle_client.get_wallet_address("TREASURY"),
         arc_rpc_url=settings.arc_testnet_rpc_url,
         metamask_ready=settings.wallet_mode == "manual_only",
+        agent_chat_ready=gemini_configured(settings),
+        agent_model=settings.gemini_model or None,
         latency_ms=connector_state.last_latency_ms or None,
         reconnect_count=connector_state.reconnect_count,
         last_error=connector_state.last_error,

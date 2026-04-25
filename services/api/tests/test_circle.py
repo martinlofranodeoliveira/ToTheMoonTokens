@@ -14,7 +14,10 @@ def circle_client():
 
 
 def test_create_wallet(circle_client):
-    with patch("httpx.post") as mock_post:
+    with (
+        patch.object(circle_client, "entity_secret_ciphertext", return_value="ciphertext"),
+        patch("httpx.post") as mock_post,
+    ):
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "data": {
@@ -30,6 +33,7 @@ def test_create_wallet(circle_client):
         mock_post.assert_called_once()
         _args, kwargs = mock_post.call_args
         assert "ARC-TESTNET" in kwargs["json"]["blockchains"]
+        assert kwargs["json"]["entitySecretCiphertext"] == "ciphertext"
 
 
 def test_fund_with_testnet_usdc(circle_client):
@@ -47,67 +51,70 @@ def test_fund_with_testnet_usdc(circle_client):
         assert kwargs["json"]["address"] == "0x123"
 
 
-def test_execute_smoke_transfer(circle_client):
-    with patch("httpx.post") as mock_post:
+def test_create_transfer_uses_wallet_address_and_token_address(circle_client):
+    with (
+        patch.object(circle_client, "entity_secret_ciphertext", return_value="ciphertext"),
+        patch("httpx.post") as mock_post,
+    ):
         mock_response = MagicMock()
         mock_response.json.return_value = {"data": {"id": "tx-123", "state": "INITIATED"}}
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
 
-        result = circle_client.execute_smoke_transfer(
-            wallet_id="wallet-123",
-            destination_address="0x456",
-            amount="10.0",
-            token_id="usdc-token-id",
+        result = circle_client.create_transfer(
+            wallet_address="0x456",
+            destination_address="0x789",
+            amount="0.001",
+            token_address="0x3600000000000000000000000000000000000000",
             idempotency_key="idemp-tx-1",
         )
 
         assert result["data"]["id"] == "tx-123"
         mock_post.assert_called_once()
         _args, kwargs = mock_post.call_args
-        assert kwargs["json"]["walletId"] == "wallet-123"
-        assert kwargs["json"]["destinationAddress"] == "0x456"
-        assert "entitySecretCiphertext" in kwargs["json"]
+        assert kwargs["json"]["walletAddress"] == "0x456"
+        assert kwargs["json"]["destinationAddress"] == "0x789"
+        assert kwargs["json"]["tokenAddress"] == "0x3600000000000000000000000000000000000000"
+        assert kwargs["json"]["feeLevel"] == "MEDIUM"
+        assert kwargs["json"]["entitySecretCiphertext"] == "ciphertext"
 
 
-def test_create_wallet_no_idempotency_key(circle_client):
-    with patch("httpx.post") as mock_post:
+def test_get_transaction(circle_client):
+    with patch("httpx.get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            "data": {
-                "wallets": [{"id": "wallet-124", "address": "0x124", "blockchain": "ARC-TESTNET"}]
-            }
+            "data": {"transaction": {"id": "tx-123", "state": "COMPLETE", "txHash": "0xmock"}}
         }
         mock_response.raise_for_status.return_value = None
-        mock_post.return_value = mock_response
+        mock_get.return_value = mock_response
 
-        result = circle_client.create_wallet(wallet_set_id="ws-124")
+        result = circle_client.get_transaction("tx-123")
 
-        assert result["data"]["wallets"][0]["id"] == "wallet-124"
-        mock_post.assert_called_once()
-        _args, kwargs = mock_post.call_args
-        assert "idempotencyKey" in kwargs["json"]
-        assert kwargs["json"]["idempotencyKey"] is not None
+        assert result["data"]["transaction"]["state"] == "COMPLETE"
+        mock_get.assert_called_once()
 
 
-def test_execute_smoke_transfer_no_idempotency_key():
-    client = CircleDeveloperClient(api_key="TEST_API_KEY", entity_secret="")
-    with patch("httpx.post") as mock_post:
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"data": {"id": "tx-124", "state": "INITIATED"}}
-        mock_response.raise_for_status.return_value = None
-        mock_post.return_value = mock_response
+def test_wait_for_transaction_polls_until_terminal(circle_client):
+    responses = [
+        {"data": {"transaction": {"id": "tx-123", "state": "INITIATED"}}},
+        {
+            "data": {
+                "transaction": {
+                    "id": "tx-123",
+                    "state": "COMPLETE",
+                    "txHash": "0xmocktransferhash",
+                }
+            }
+        },
+    ]
 
-        result = client.execute_smoke_transfer(
-            wallet_id="wallet-124",
-            destination_address="0x457",
-            amount="5.0",
-            token_id="usdc-token-id",
-        )
+    with (
+        patch.object(circle_client, "get_transaction", side_effect=responses) as mock_get,
+        patch("time.sleep") as mock_sleep,
+    ):
+        result = circle_client.wait_for_transaction("tx-123", timeout_s=5.0, poll_interval_s=0.01)
 
-        assert result["data"]["id"] == "tx-124"
-        mock_post.assert_called_once()
-        _args, kwargs = mock_post.call_args
-        assert "idempotencyKey" in kwargs["json"]
-        assert kwargs["json"]["idempotencyKey"] is not None
-        assert "entitySecretCiphertext" not in kwargs["json"]
+        assert result["state"] == "COMPLETE"
+        assert result["txHash"] == "0xmocktransferhash"
+        assert mock_get.call_count == 2
+        mock_sleep.assert_called_once()

@@ -106,6 +106,8 @@ class GuardrailStatus(BaseModel):
     can_submit_testnet_orders: bool
     can_submit_mainnet_orders: bool
     requires_manual_wallet_signature: bool
+    settlement_auth_mode: Literal["manual", "programmatic"] = "manual"
+    autonomous_payments_enabled: bool = False
     reasons: list[str]
 
 
@@ -113,12 +115,16 @@ class ConnectorStatus(BaseModel):
     settlement_network: str
     wallet_provider: str
     wallet_mode: str
+    settlement_auth_mode: Literal["manual", "programmatic"] = "manual"
+    autonomous_payments_enabled: bool = False
     wallet_set_id: str | None = None
     wallets_configured: int = 0
     wallets_loaded: bool = False
     treasury_address: str | None = None
     arc_rpc_url: str
     metamask_ready: bool
+    agent_chat_ready: bool = False
+    agent_model: str | None = None
     latency_ms: float | None = None
     reconnect_count: int = 0
     last_error: str | None = None
@@ -342,6 +348,40 @@ class PaymentVerificationResponse(BaseModel):
     reason: str | None = None
 
 
+class PaymentPayRequest(BaseModel):
+    payment_id: str
+
+
+class PaymentPayResponse(BaseModel):
+    payment_id: str
+    status: Literal["pending", "verified", "failed"]
+    settlement_status: str | None = None
+    tx_hash: str | None = None
+    circle_transaction_id: str | None = None
+    reason: str | None = None
+
+
+class PaymentIntentRecord(BaseModel):
+    payment_id: str
+    artifact_id: str
+    artifact_name: str
+    artifact_type: str
+    amount_usd: float
+    buyer_address: str
+    deposit_address: str
+    job_id: str | None = None
+    status: Literal["pending", "verified", "failed"]
+    settlement_status: str | None = None
+    reason: str | None = None
+    tx_hash: str | None = None
+    circle_transaction_id: str | None = None
+    executed: bool = False
+    download_url: str | None = None
+    execution_message: str | None = None
+    created_at: str
+    updated_at: str
+
+
 class JobExecutionRequest(BaseModel):
     artifact_id: str
     payment_id: str
@@ -352,3 +392,28 @@ class JobExecutionResponse(BaseModel):
     status: Literal["completed", "failed"]
     message: str
     download_url: str | None = None
+
+
+class AgentChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    text: str
+
+
+class AgentToolEvent(BaseModel):
+    id: str | None = None
+    name: str
+    args: dict[str, Any] = Field(default_factory=dict)
+    response: dict[str, Any] | None = None
+
+
+class AgentChatRequest(BaseModel):
+    message: str
+    history: list[AgentChatTurn] = Field(default_factory=list)
+
+
+class AgentChatResponse(BaseModel):
+    reply: str
+    events: list[AgentToolEvent] = Field(default_factory=list)
+    orders: list[PaymentIntentRecord] = Field(default_factory=list)
+    settlement_auth_mode: Literal["manual", "programmatic"] = "manual"
+    autonomous_payments_enabled: bool = False

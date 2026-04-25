@@ -1,11 +1,25 @@
 from fastapi.testclient import TestClient
 
+from tothemoon_api.circle import circle_client
+from tothemoon_api.demo_agent import clear_demo_jobs
 from tothemoon_api.main import app
+from tothemoon_api.payments import clear_payment_intents
 
 client = TestClient(app)
 
+SENDER = "0x00000000000000000000000000000000000000aa"
+TREASURY = "0x00000000000000000000000000000000000000bb"
 
-def test_payment_catalog_returns_items():
+
+def setup_function():
+    clear_payment_intents()
+    clear_demo_jobs()
+    circle_client.wallets_by_role = {}
+    circle_client.wallets_loaded = False
+
+
+def test_payment_catalog_returns_items(monkeypatch):
+    monkeypatch.setattr(circle_client, "ensure_wallets_loaded", lambda: None)
     response = client.get("/api/payments/catalog")
     assert response.status_code == 200
     payload = response.json()
@@ -14,8 +28,9 @@ def test_payment_catalog_returns_items():
     assert all(0 < item["price_usd"] <= 0.01 for item in payload)
 
 
-def test_payment_intent_creation_and_verification_flow():
-    # 1. Create intent
+def test_payment_intent_creation_and_verification_flow(monkeypatch):
+    monkeypatch.setattr(circle_client, "ensure_wallets_loaded", lambda: None)
+
     intent_response = client.post(
         "/api/payments/intent",
         json={"artifact_id": "artifact_review_bundle", "buyer_address": "0xBuyerAddress"},
@@ -26,7 +41,6 @@ def test_payment_intent_creation_and_verification_flow():
     assert intent_payload["amount_usd"] == 0.005
     payment_id = intent_payload["payment_id"]
 
-    # 2. Verify payment
     verify_response = client.post(
         "/api/payments/verify", json={"payment_id": payment_id, "tx_hash": "0xMockTransactionHash"}
     )
@@ -36,8 +50,9 @@ def test_payment_intent_creation_and_verification_flow():
     assert verify_payload["unlocked_artifact_id"] == "artifact_review_bundle"
 
 
-def test_payment_verification_fails_with_invalid_tx():
-    # 1. Create intent
+def test_payment_verification_fails_with_invalid_tx(monkeypatch):
+    monkeypatch.setattr(circle_client, "ensure_wallets_loaded", lambda: None)
+
     intent_response = client.post(
         "/api/payments/intent",
         json={"artifact_id": "artifact_market_intel_brief", "buyer_address": "0xBuyerAddress"},
@@ -45,7 +60,6 @@ def test_payment_verification_fails_with_invalid_tx():
     assert intent_response.status_code == 200
     payment_id = intent_response.json()["payment_id"]
 
-    # 2. Verify payment with invalid tx
     verify_response = client.post(
         "/api/payments/verify", json={"payment_id": payment_id, "tx_hash": "invalid_tx"}
     )
@@ -55,8 +69,9 @@ def test_payment_verification_fails_with_invalid_tx():
     assert verify_payload["unlocked_artifact_id"] is None
 
 
-def test_job_lifecycle_requires_payment():
-    # Attempt to execute without payment
+def test_job_lifecycle_requires_payment(monkeypatch):
+    monkeypatch.setattr(circle_client, "ensure_wallets_loaded", lambda: None)
+
     response = client.post(
         "/api/payments/execute",
         json={"artifact_id": "artifact_delivery_packet", "payment_id": "missing-payment"},
@@ -64,19 +79,16 @@ def test_job_lifecycle_requires_payment():
     assert response.status_code == 404
     assert "Payment intent not found" in response.json()["detail"]
 
-    # 1. Create intent
     intent_response = client.post(
         "/api/payments/intent",
         json={"artifact_id": "artifact_delivery_packet", "buyer_address": "0xBuyerAddress"},
     )
     payment_id = intent_response.json()["payment_id"]
 
-    # 2. Verify payment
     client.post(
         "/api/payments/verify", json={"payment_id": payment_id, "tx_hash": "0xMockTransactionHash"}
     )
 
-    # 3. Execute job after payment
     response = client.post(
         "/api/payments/execute",
         json={"artifact_id": "artifact_delivery_packet", "payment_id": payment_id},
@@ -85,7 +97,9 @@ def test_job_lifecycle_requires_payment():
     assert response.json()["status"] == "completed"
 
 
-def test_execute_requires_matching_payment_intent():
+def test_execute_requires_matching_payment_intent(monkeypatch):
+    monkeypatch.setattr(circle_client, "ensure_wallets_loaded", lambda: None)
+
     delivery_intent = client.post(
         "/api/payments/intent",
         json={"artifact_id": "artifact_delivery_packet", "buyer_address": "0xBuyerAddress"},
@@ -105,3 +119,57 @@ def test_execute_requires_matching_payment_intent():
     )
     assert response.status_code == 409
     assert "does not match requested artifact" in response.json()["detail"]
+
+
+def test_programmatic_payment_endpoint_verifies_and_marks_demo_job_paid(monkeypatch):
+    monkeypatch.setenv("AUTONOMOUS_PAYMENTS_ENABLED", "true")
+    monkeypatch.setenv("WALLET_MODE", "custodial")
+    monkeypatch.setenv("CIRCLE_API_KEY", "test-api-key")
+    monkeypatch.setenv("CIRCLE_ENTITY_SECRET", "test-entity-secret")
+    monkeypatch.setenv("CIRCLE_WALLET_SET_ID", "ws-123")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+
+    monkeypatch.setattr(circle_client, "ensure_wallets_loaded", lambda: None)
+    monkeypatch.setattr(
+        circle_client,
+        "create_transfer",
+        lambda **_kwargs: {"data": {"id": "tx-123", "state": "INITIATED"}},
+    )
+    monkeypatch.setattr(
+        circle_client,
+        "wait_for_transaction",
+        lambda *_args, **_kwargs: {
+            "id": "tx-123",
+            "state": "COMPLETE",
+            "txHash": "0xmockautopayhash",
+        },
+    )
+
+    circle_client.wallets_by_role = {"TREASURY": {"address": TREASURY}}
+    circle_client.wallets_loaded = True
+
+    job_response = client.post("/api/demo/jobs/request", json={"artifact_type": "delivery_packet"})
+    assert job_response.status_code == 200
+    job_id = job_response.json()["id"]
+
+    intent_response = client.post(
+        "/api/payments/intent",
+        json={
+            "artifact_id": "artifact_delivery_packet",
+            "buyer_address": SENDER,
+            "job_id": job_id,
+        },
+    )
+    assert intent_response.status_code == 200
+    payment_id = intent_response.json()["payment_id"]
+
+    pay_response = client.post("/api/payments/pay", json={"payment_id": payment_id})
+    assert pay_response.status_code == 200
+    pay_payload = pay_response.json()
+    assert pay_payload["status"] == "verified"
+    assert pay_payload["settlement_status"] == "SETTLED"
+    assert pay_payload["tx_hash"] == "0xmockautopayhash"
+
+    job_state = client.get(f"/api/demo/jobs/{job_id}")
+    assert job_state.status_code == 200
+    assert job_state.json()["state"] == "PAID"

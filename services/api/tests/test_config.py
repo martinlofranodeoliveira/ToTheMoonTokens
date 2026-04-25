@@ -52,6 +52,53 @@ def test_backtest_rate_limit_must_be_positive():
         settings.validate()
 
 
+def test_autonomous_payments_require_circle_and_gemini_config():
+    settings = Settings(
+        autonomous_payments_enabled=True,
+        wallet_mode="custodial",
+        circle_api_key="",
+        circle_entity_secret="",
+        circle_wallet_set_id="",
+        gemini_api_key="",
+    )
+    with pytest.raises(SettingsError) as exc:
+        settings.validate()
+    message = str(exc.value)
+    assert "CIRCLE_API_KEY" in message
+    assert "CIRCLE_ENTITY_SECRET" in message
+    assert "CIRCLE_WALLET_SET_ID" in message
+    assert "GEMINI_API_KEY" in message
+    assert "GEMINI_USE_VERTEXAI" in message
+
+
+def test_autonomous_payments_enable_programmatic_settlement_mode():
+    settings = Settings(
+        autonomous_payments_enabled=True,
+        wallet_mode="custodial",
+        circle_api_key="api-key",
+        circle_entity_secret="entity-secret",
+        circle_wallet_set_id="wallet-set",
+        gemini_api_key="gemini-key",
+    )
+    settings.validate()
+    assert settings.settlement_auth_mode == "programmatic"
+
+
+def test_autonomous_payments_can_use_vertexai_for_gemini():
+    settings = Settings(
+        autonomous_payments_enabled=True,
+        wallet_mode="custodial",
+        circle_api_key="api-key",
+        circle_entity_secret="entity-secret",
+        circle_wallet_set_id="wallet-set",
+        gemini_api_key="",
+        gemini_use_vertexai=True,
+        gemini_vertex_project="demo-project",
+    )
+    settings.validate()
+    assert settings.settlement_auth_mode == "programmatic"
+
+
 def test_multiple_errors_are_reported_together():
     settings = Settings(
         log_level="NOPE",

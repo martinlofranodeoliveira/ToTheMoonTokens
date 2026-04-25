@@ -6,13 +6,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .agent_chat import router as agent_router
 from .arc import ping_arc_network
 from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
 from .circle import circle_client
 from .config import get_settings
 from .demo_agent import router as demo_router
-from .guards import connector_status, evaluate_guardrails
+from .guards import connector_status, evaluate_guardrails, gemini_configured
 from .hackathon_summary import router as hackathon_router
 from .journal import (
     clear_journal,
@@ -99,6 +100,7 @@ app.add_middleware(
 )
 
 app.include_router(payments_router)
+app.include_router(agent_router)
 app.include_router(jobs_router)
 app.include_router(demo_router)
 app.include_router(reputation_router)
@@ -206,9 +208,13 @@ def health() -> dict[str, object]:
         "artifact_scope": "paid_agent_artifacts",
         "settlement_network": "arc_testnet",
         "wallet_provider": "circle_developer_controlled_wallets",
+        "settlement_auth_mode": settings.settlement_auth_mode,
+        "autonomous_payments_enabled": settings.autonomous_payments_enabled,
         "wallet_set_id": settings.circle_wallet_set_id or None,
         "orderSubmissionEnabled": False,
         "wallets_loaded": circle_client.wallets_loaded,
+        "agent_chat_ready": gemini_configured(settings),
+        "agent_model": settings.gemini_model or None,
         "latency_ms": connector_state.last_latency_ms,
         "reconnect_count": connector_state.reconnect_count,
         "last_error": connector_state.last_error,

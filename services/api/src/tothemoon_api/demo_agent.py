@@ -38,6 +38,26 @@ def clear_demo_jobs() -> None:
     _jobs.clear()
 
 
+def ensure_job_paid(job_id: str) -> DemoJob:
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    if job.state == "REQUESTED":
+        return pay_job(job_id)
+    return job
+
+
+def advance_job_to_delivered(job_id: str) -> DemoJob:
+    job = ensure_job_paid(job_id)
+    if job.state == "PAID":
+        job = execute_job(job_id)
+    if job.state == "REVIEW_PENDING":
+        job = review_job(job_id, approve=True)
+    if job.state == "REVIEWED":
+        job = deliver_job(job_id)
+    return job
+
+
 @router.get("", response_model=list[DemoJob])
 def list_demo_jobs():
     return list(_jobs.values())

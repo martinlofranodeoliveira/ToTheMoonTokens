@@ -158,6 +158,72 @@ h4 {
   border-color: var(--border-strong);
 }
 
+.agent-console-head {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.chat-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.chat-user {
+  margin-left: 36px;
+  background: rgba(48, 123, 246, 0.08);
+  border-color: rgba(48, 123, 246, 0.24);
+}
+
+.chat-assistant {
+  margin-right: 36px;
+}
+
+.tool-events {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.tool-event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tool-event:last-child {
+  border-bottom: none;
+}
+
+.agent-compose {
+  margin-top: 14px;
+  align-items: flex-end;
+}
+
+.agent-input {
+  min-height: 88px;
+  resize: vertical;
+  width: 100%;
+  font-family: inherit;
+}
+
 @media (max-width: 1100px) {
   .grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -217,5 +283,16 @@ h4 {
 
   .modal {
     max-width: calc(100vw - 24px);
+  }
+
+  .chat-user,
+  .chat-assistant {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .agent-compose {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

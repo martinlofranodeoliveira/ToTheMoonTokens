@@ -28,5 +28,7 @@ def test_hackathon_summary_exposes_judge_facing_proof(_mock_arc_health):
     assert payload["proof"]["sample_tx_hash"].startswith("0x")
     assert payload["circle"]["wallet_set_id"]
     assert payload["connectors"]["settlement_network"] == "arc_testnet"
+    assert payload["connectors"]["settlement_auth_mode"] in {"manual", "programmatic"}
+    assert "agent_chat_ready" in payload["connectors"]
     assert payload["margin"]["eth_l1_counterfactual_gas_usd"] > payload["proof"]["total_usdc_moved"]
     assert all(0 < item["price_usd"] <= 0.01 for item in payload["catalog"])

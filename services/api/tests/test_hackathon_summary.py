@@ -38,3 +38,29 @@ def test_hackathon_summary_exposes_judge_facing_proof(_mock_arc_health):
     assert "agent_chat_ready" in payload["connectors"]
     assert payload["margin"]["eth_l1_counterfactual_gas_usd"] > payload["proof"]["total_usdc_moved"]
     assert all(0 < item["price_usd"] <= 0.01 for item in payload["catalog"])
+
+
+@patch(
+    "tothemoon_api.hackathon_summary.ping_arc_network",
+    return_value={
+        "status": "online",
+        "chain_id": 5042002,
+        "url": "https://rpc.testnet.arc.network",
+    },
+)
+def test_hackathon_summary_uses_packaged_full_evidence_when_repo_file_missing(
+    _mock_arc_health,
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setattr("tothemoon_api.hackathon_summary._ROOT_DIR", tmp_path)
+
+    response = client.get("/api/hackathon/summary")
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["proof"]["transactions_total"] == 63
+    assert payload["proof"]["transactions_listed"] == 63
+    assert len(payload["transactions"]) == 63
+    assert payload["transactions"][0]["seq"] == 63
+    assert payload["transactions"][-1]["seq"] == 1

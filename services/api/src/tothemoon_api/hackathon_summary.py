@@ -15,6 +15,7 @@ from .guards import connector_status, evaluate_guardrails
 from .payments import get_catalog
 
 router = APIRouter(prefix="/api/hackathon", tags=["hackathon"])
+_PACKAGED_EVIDENCE_PATH = Path(__file__).with_name("data") / "nanopayments-batch-2026-04-23.json"
 
 _FALLBACK_SUMMARY = {
     "total_attempted": 63,
@@ -92,7 +93,9 @@ _TRACKS = [
 def _latest_evidence_path() -> Path | None:
     evidence_dir = _ROOT_DIR / "ops" / "evidence"
     candidates = sorted(evidence_dir.glob("nanopayments-batch-*.json"))
-    return candidates[-1] if candidates else None
+    if candidates:
+        return candidates[-1]
+    return _PACKAGED_EVIDENCE_PATH if _PACKAGED_EVIDENCE_PATH.exists() else None
 
 
 def _load_latest_evidence() -> tuple[Path | None, dict[str, Any] | None]:
@@ -171,6 +174,15 @@ def _public_transaction(tx: dict[str, Any]) -> dict[str, Any]:
     return public
 
 
+def _evidence_file_label(evidence_path: Path | None) -> str:
+    if evidence_path is None:
+        return "repo-fallback"
+    try:
+        return str(evidence_path.relative_to(_ROOT_DIR))
+    except ValueError:
+        return str(evidence_path)
+
+
 @router.get("/summary")
 def get_hackathon_summary() -> dict[str, Any]:
     settings = get_settings()
@@ -219,11 +231,7 @@ def get_hackathon_summary() -> dict[str, Any]:
         "ok": True,
         "project": "TTM Agent Market",
         "tracks": _TRACKS,
-        "evidence_file": (
-            str(evidence_path.relative_to(_ROOT_DIR))
-            if evidence_path is not None
-            else "repo-fallback"
-        ),
+        "evidence_file": _evidence_file_label(evidence_path),
         "proof": {
             "wallet_set_id": wallet_set_id,
             "generated_at": generated_at,

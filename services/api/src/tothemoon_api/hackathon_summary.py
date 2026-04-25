@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from .arc import ping_arc_network
 from .arc_adapter import get_arc_jobs
+from .circle import circle_client
 from .config import _ROOT_DIR, get_settings
 from .demo_agent import list_demo_jobs
 from .guards import connector_status, evaluate_guardrails
@@ -70,6 +71,17 @@ _FALLBACK_TRANSACTIONS = [
     },
 ]
 
+_FALLBACK_WALLETS = [
+    {"name": "research_00", "address": "0xde618b260763a606e0380150d1338364f5ff3139"},
+    {"name": "research_01", "address": "0x9a2b38ec283d3a51faa3095f0c0708c1b225462a"},
+    {"name": "research_02", "address": "0x95140a42f10eb10551e076ed8d9a2ad8dcdb968d"},
+    {"name": "research_03", "address": "0xbcdb0012b84dc6158c50b1e353b1627d2d4af8aa"},
+    {"name": "consumer_01", "address": "0x28c83e915c791131678286977a42c6fe95da9a42"},
+    {"name": "consumer_02", "address": "0xa82aa51fd19476a1dc37759b0fc41770f4a238d8"},
+    {"name": "auditor", "address": "0x0201fdaa7b7298f351d8bc58cb045abe7089bb01"},
+    {"name": "treasury", "address": "0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f"},
+]
+
 _TRACKS = [
     "Agent-to-Agent Payment Loop",
     "Per-API Monetization Engine",
@@ -97,8 +109,18 @@ def _load_latest_evidence() -> tuple[Path | None, dict[str, Any] | None]:
 
 
 def _wallet_inventory(evidence: dict[str, Any] | None) -> list[dict[str, str]]:
+    if circle_client.wallets_loaded and circle_client.wallets_by_role:
+        live_wallets: list[dict[str, str]] = []
+        for role, wallet in circle_client.wallets_by_role.items():
+            name = role.strip().lower()
+            address = str(wallet.get("address", "")).strip()
+            if name and address:
+                live_wallets.append({"name": name, "address": address})
+        if live_wallets:
+            return live_wallets
+
     if not evidence:
-        return []
+        return [wallet.copy() for wallet in _FALLBACK_WALLETS]
 
     wallets: list[dict[str, str]] = []
     source = evidence.get("source")
@@ -117,7 +139,7 @@ def _wallet_inventory(evidence: dict[str, Any] | None) -> list[dict[str, str]]:
             address = str(item.get("address", "")).strip()
             if name and address:
                 wallets.append({"name": name, "address": address})
-    return wallets
+    return wallets or [wallet.copy() for wallet in _FALLBACK_WALLETS]
 
 
 def _margin_snapshot(total_attempted: int, total_usdc_moved: float) -> dict[str, Any]:
@@ -179,9 +201,9 @@ def get_hackathon_summary() -> dict[str, Any]:
         else (settings.circle_wallet_set_id or None)
     )
     latest_transactions = list(reversed(transactions[-8:])) if transactions else []
-    treasury_address = next(
+    treasury_address = connectors.treasury_address or next(
         (wallet["address"] for wallet in wallets if wallet["name"] == "treasury"),
-        connectors.treasury_address,
+        None,
     )
 
     return {

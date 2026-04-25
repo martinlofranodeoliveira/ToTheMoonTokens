@@ -1,5 +1,16 @@
 const DEFAULT_API_BASE_URL = "";
 const STORAGE_KEY = "ttm-marketplace-state-v3";
+const VIDEO_SOURCE_WALLET = "research_03";
+const FALLBACK_WALLETS = [
+  { name: "research_00", address: "0xde618b260763a606e0380150d1338364f5ff3139" },
+  { name: "research_01", address: "0x9a2b38ec283d3a51faa3095f0c0708c1b225462a" },
+  { name: "research_02", address: "0x95140a42f10eb10551e076ed8d9a2ad8dcdb968d" },
+  { name: "research_03", address: "0xbcdb0012b84dc6158c50b1e353b1627d2d4af8aa" },
+  { name: "consumer_01", address: "0x28c83e915c791131678286977a42c6fe95da9a42" },
+  { name: "consumer_02", address: "0xa82aa51fd19476a1dc37759b0fc41770f4a238d8" },
+  { name: "auditor", address: "0x0201fdaa7b7298f351d8bc58cb045abe7089bb01" },
+  { name: "treasury", address: "0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f" },
+];
 
 let refreshTimer = null;
 let bannerTimer = null;
@@ -65,8 +76,8 @@ const FALLBACK_SUMMARY = {
     wallet_set_id: "e980936d-182e-50f6-bc6f-e54037777598",
     wallets_configured: 8,
     wallets_loaded: false,
-    treasury_address: null,
-    wallets: [],
+    treasury_address: "0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f",
+    wallets: FALLBACK_WALLETS,
   },
   connectors: {
     settlement_network: "arc_testnet",
@@ -75,7 +86,7 @@ const FALLBACK_SUMMARY = {
     wallet_set_id: "e980936d-182e-50f6-bc6f-e54037777598",
     wallets_configured: 8,
     wallets_loaded: false,
-    treasury_address: null,
+    treasury_address: "0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f",
     arc_rpc_url: "https://rpc.testnet.arc.network",
     metamask_ready: true,
     latency_ms: 0,
@@ -329,6 +340,55 @@ function truncateMiddle(value, head = 8, tail = 6) {
     return text;
   }
   return `${text.slice(0, head)}...${text.slice(-tail)}`;
+}
+
+function humanizeWalletName(value) {
+  return String(value || "buyer wallet").replaceAll("_", " ");
+}
+
+function walletInventory() {
+  const wallets = Array.isArray(state.summary.circle?.wallets) ? state.summary.circle.wallets : [];
+  return wallets.length ? wallets : FALLBACK_WALLETS;
+}
+
+function findWalletByName(name) {
+  const target = String(name || "").trim().toLowerCase();
+  if (!target) {
+    return null;
+  }
+  return (
+    walletInventory().find((wallet) => String(wallet.name || "").trim().toLowerCase() === target) || null
+  );
+}
+
+function walletNameForAddress(address) {
+  const normalized = String(address || "").trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  const wallet = walletInventory().find(
+    (entry) => String(entry.address || "").trim().toLowerCase() === normalized,
+  );
+  return wallet?.name || null;
+}
+
+function recommendedVideoWallet() {
+  return findWalletByName(VIDEO_SOURCE_WALLET) || findWalletByName("research_00") || null;
+}
+
+function isExplorerTxHash(txHash) {
+  return /^0x[a-fA-F0-9]{64}$/.test(String(txHash || "").trim());
+}
+
+function renderTxReference(txHash, head = 10, tail = 6, label = "Arc explorer hash") {
+  if (!txHash) {
+    return "";
+  }
+  const text = escapeHtml(truncateHash(txHash, head, tail));
+  if (isExplorerTxHash(txHash)) {
+    return `<a class="tx-pill" href="${escapeHtml(txUrl(txHash))}" target="_blank" rel="noreferrer">${text} ${icon("link", 10)}</a>`;
+  }
+  return `<span class="tx-pill" title="${escapeHtml(label)}">${text}</span>`;
 }
 
 function formatArtifactType(value) {
@@ -597,9 +657,17 @@ async function copyToClipboard(value, label) {
     return;
   }
   try {
+    if (!window.isSecureContext || !navigator.clipboard?.writeText) {
+      throw new Error("Clipboard API unavailable");
+    }
     await navigator.clipboard.writeText(value);
     showBanner(`${label} copied to clipboard.`, "info");
   } catch (_error) {
+    if (typeof window.prompt === "function") {
+      window.prompt(`Copy the ${label} below:`, value);
+      showBanner(`Clipboard access failed. Copy the ${label} from the prompt.`, "warn");
+      return;
+    }
     showBanner(`Clipboard access failed. Copy the ${label} manually.`, "warn");
   }
 }
@@ -682,7 +750,7 @@ function getFilteredListings() {
 
 function buildSettlements() {
   const local = getSortedOrders()
-    .filter((order) => order.txHash)
+    .filter((order) => isExplorerTxHash(order.txHash))
     .map((order) => {
       const listing = buildListings().find((item) => item.id === order.artifactId);
       return {
@@ -840,10 +908,8 @@ function roleLabel(role) {
   );
 }
 
-function getWalletAddress(index, fallbackId) {
-  const wallets = Array.isArray(state.summary.circle?.wallets) ? state.summary.circle.wallets : [];
-  const wallet = wallets[index];
-  return wallet?.address || syntheticAddressFor(fallbackId);
+function getWalletAddress(name, fallbackId) {
+  return findWalletByName(name)?.address || syntheticAddressFor(fallbackId || name);
 }
 
 function buildAgentModels() {
@@ -855,13 +921,13 @@ function buildAgentModels() {
   const treasuryAddress =
     state.summary.circle?.treasury_address ||
     state.summary.connectors?.treasury_address ||
-    getWalletAddress(0, "treasury");
+    getWalletAddress("treasury", "treasury");
 
   return [
     {
       id: "research_00",
       role: "research",
-      address: getWalletAddress(1, "research_00"),
+      address: getWalletAddress("research_00", "research_00"),
       balance: 0.214 + totalMoved / 3,
       reputation: 96,
       txCount: transactions.filter((tx) => tx.from === "research_00" || tx.to === "research_00").length || 26,
@@ -874,7 +940,7 @@ function buildAgentModels() {
     {
       id: "research_03",
       role: "research",
-      address: getWalletAddress(2, "research_03"),
+      address: getWalletAddress("research_03", "research_03"),
       balance: 0.181,
       reputation: 89,
       txCount: transactions.filter((tx) => tx.from === "research_03" || tx.to === "research_03").length || 18,
@@ -887,7 +953,7 @@ function buildAgentModels() {
     {
       id: "auditor",
       role: "auditor",
-      address: getWalletAddress(3, "auditor"),
+      address: getWalletAddress("auditor", "auditor"),
       balance: 0.119,
       reputation: 92,
       txCount: transactions.filter((tx) => tx.from === "auditor" || tx.to === "auditor").length || 12,
@@ -900,7 +966,7 @@ function buildAgentModels() {
     {
       id: buyerLabel,
       role: "consumer",
-      address: buyerWallet || getWalletAddress(4, "consumer_01"),
+      address: buyerWallet || getWalletAddress("consumer_01", "consumer_01"),
       balance: 1.247,
       reputation: 74,
       txCount: getSortedOrders().length || 7,
@@ -1221,7 +1287,7 @@ function renderFilterColumn(listings) {
                   <div class="mono-s">${escapeHtml(truncateMiddle(activeOrder.depositAddress, 10, 6))}</div>
                   ${
                     activeOrder.txHash
-                      ? `<a class="tx-pill" href="${escapeHtml(txUrl(activeOrder.txHash))}" target="_blank" rel="noreferrer">${escapeHtml(truncateHash(activeOrder.txHash, 10, 6))} ${icon("link", 10)}</a>`
+                      ? renderTxReference(activeOrder.txHash, 10, 6, "Settlement receipt")
                       : `<div class="mono-s t2">Awaiting buyer tx hash.</div>`
                   }
                   <button class="btn btn-secondary" style="width: 100%; justify-content: center;" data-select-order="${escapeHtml(activeOrder.paymentId)}">
@@ -1337,10 +1403,7 @@ function renderSettlementItem(item) {
       </div>
       <div class="meta">
         <div class="amt">+${escapeHtml(formatNumber(item.amount, 3))} USDC</div>
-        <a class="tx-pill" href="${escapeHtml(txUrl(item.hash))}" target="_blank" rel="noreferrer">
-          <span>${escapeHtml(truncateHash(item.hash, 10, 6))}</span>
-          ${icon("link", 10)}
-        </a>
+        ${renderTxReference(item.hash, 10, 6, "Settlement reference")}
       </div>
       <div class="ts">${escapeHtml(item.agoLabel)}</div>
     </div>
@@ -1584,7 +1647,7 @@ function renderAgentsPage() {
                     <span class="pill ${escapeHtml(activity.pill)}" style="font-size: 10px; min-width: 108px; justify-content: center;">${escapeHtml(activity.label)}</span>
                     <span class="mono-s t2" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(activity.description)}</span>
                     <span class="mono-s" style="color: var(--circle-green);">${escapeHtml(activity.amount)}</span>
-                    ${activity.hash ? `<a class="tx-pill" href="${escapeHtml(txUrl(activity.hash))}" target="_blank" rel="noreferrer">${escapeHtml(truncateHash(activity.hash, 8, 6))} ${icon("link", 10)}</a>` : ""}
+                    ${activity.hash ? renderTxReference(activity.hash, 8, 6, "Activity reference") : ""}
                     <span class="mono-s t3" style="min-width: 56px; text-align: right;">${escapeHtml(activity.ago)}</span>
                   </div>
                 `;
@@ -1815,6 +1878,12 @@ function renderModal() {
   const isCreating = state.ui.creatingArtifactId === artifact.id;
   const isVerifying = selectedOrder && state.ui.verifyingOrderId === selectedOrder.paymentId;
   const isUnlocking = selectedOrder && state.ui.unlockingOrderId === selectedOrder.paymentId;
+  const videoWallet = recommendedVideoWallet();
+  const usingVideoWallet =
+    !!videoWallet && state.market.buyerAddress.trim().toLowerCase() === videoWallet.address.toLowerCase();
+  const selectedBuyerName = selectedOrder ? walletNameForAddress(selectedOrder.buyerAddress) : null;
+  const selectedBuyerLabel = selectedBuyerName ? humanizeWalletName(selectedBuyerName) : "custom buyer";
+  const canOpenExplorer = selectedOrder ? isExplorerTxHash(selectedOrder.txHash) : false;
 
   let primaryAction = "";
   let secondaryAction = `<button class="btn btn-ghost" data-action="close-modal">Close</button>`;
@@ -1822,10 +1891,14 @@ function renderModal() {
   if (!selectedOrder) {
     primaryAction = `<button class="btn btn-primary" data-action="create-checkout" data-artifact-id="${escapeHtml(artifact.id)}">${isCreating ? "Creating checkout..." : `Pay ${escapeHtml(formatNumber(artifact.price_usd, 3))} USDC`}</button>`;
   } else if (selectedOrder.status === "SETTLED") {
-    secondaryAction = `<button class="btn btn-secondary" data-action="open-tx" data-tx-hash="${escapeHtml(selectedOrder.txHash)}">Open tx</button>`;
+    secondaryAction = canOpenExplorer
+      ? `<button class="btn btn-secondary" data-action="open-tx" data-tx-hash="${escapeHtml(selectedOrder.txHash)}">Open tx</button>`
+      : `<button class="btn btn-secondary" data-action="copy-treasury" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy treasury</button>`;
     primaryAction = `<button class="btn btn-primary" data-action="unlock-order" data-order-id="${escapeHtml(selectedOrder.paymentId)}">${isUnlocking ? "Unlocking..." : "Unlock artifact"}</button>`;
   } else if (selectedOrder.status === "DELIVERED") {
-    secondaryAction = `<button class="btn btn-secondary" data-action="open-tx" data-tx-hash="${escapeHtml(selectedOrder.txHash)}">Open tx</button>`;
+    secondaryAction = canOpenExplorer
+      ? `<button class="btn btn-secondary" data-action="open-tx" data-tx-hash="${escapeHtml(selectedOrder.txHash)}">Open tx</button>`
+      : `<button class="btn btn-secondary" data-action="copy-treasury" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy treasury</button>`;
     primaryAction = `<button class="btn btn-primary" data-action="copy-payment-id" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy payment ID</button>`;
   } else {
     secondaryAction = `<button class="btn btn-secondary" data-action="copy-treasury" data-payment-id="${escapeHtml(selectedOrder.paymentId)}">Copy treasury</button>`;
@@ -1879,6 +1952,26 @@ function renderModal() {
             </div>
 
             ${
+              videoWallet
+                ? `
+                  <div class="card card-pad" style="padding: 14px;">
+                    <div class="row between" style="align-items: flex-start; gap: 12px;">
+                      <div class="col g4" style="flex: 1;">
+                        <span class="mono-s t3">Live video wallet</span>
+                        <span class="mono-s">${escapeHtml(humanizeWalletName(videoWallet.name))}</span>
+                        <span class="mono-s" style="word-break: break-all;">${escapeHtml(videoWallet.address)}</span>
+                      </div>
+                      <button class="btn btn-secondary" data-action="use-video-wallet">${usingVideoWallet ? "Using video wallet" : "Use video wallet"}</button>
+                    </div>
+                    <div class="t2" style="font-size: 12px; margin-top: 8px;">
+                      Recommended source for the live Circle Console checkout. It is already funded in the public demo wallet set.
+                    </div>
+                  </div>
+                `
+                : ""
+            }
+
+            ${
               selectedOrder
                 ? `
                   <div class="card card-pad" style="padding: 14px;">
@@ -1887,21 +1980,31 @@ function renderModal() {
                       <span class="mono-s">${escapeHtml(truncateMiddle(selectedOrder.paymentId, 10, 8))}</span>
                     </div>
                     <div class="row between" style="margin-bottom: 8px;">
-                      <span class="mono-s t3">TREASURY</span>
-                      <span class="mono-s">${escapeHtml(truncateMiddle(selectedOrder.depositAddress, 12, 8))}</span>
+                      <span class="mono-s t3">SOURCE</span>
+                      <span class="mono-s">${escapeHtml(selectedBuyerLabel)}</span>
                     </div>
+                    <div class="mono-s" style="word-break: break-all; margin-bottom: 8px;">${escapeHtml(selectedOrder.buyerAddress)}</div>
+                    <div class="row between" style="margin-bottom: 8px;">
+                      <span class="mono-s t3">NETWORK</span>
+                      <span class="mono-s">Arc Testnet · ${escapeHtml(formatNumber(selectedOrder.amountUsd, 3))} USDC</span>
+                    </div>
+                    <div class="row between" style="margin-bottom: 8px;">
+                      <span class="mono-s t3">TREASURY ROUTE</span>
+                      <span class="mono-s">Circle destination</span>
+                    </div>
+                    <div class="mono-s" style="word-break: break-all; margin-bottom: 8px;">${escapeHtml(selectedOrder.depositAddress)}</div>
                     <div class="col g6" style="margin-bottom: 8px;">
                       <label class="mono-s t3" style="text-transform: uppercase; letter-spacing: 0.08em;">Settlement tx hash</label>
                       <input class="input mono-s" data-field="tx-hash" data-order-id="${escapeHtml(selectedOrder.paymentId)}" placeholder="0x..." value="${escapeHtml(selectedOrder.txHash)}" />
                     </div>
                     <div class="t2" style="font-size: 12px;">
-                      1. Create the payment intent. 2. Send the exact amount to treasury from Circle Console or another Arc-compatible wallet. 3. Paste the tx hash. 4. Verify and unlock.
+                      1. Create the checkout. 2. In Circle Console, send the exact amount above from the source wallet to the treasury route. 3. If the wallet detail page shows no send button, switch to Developer Controlled → Transactions and create the transfer there. 4. Paste the tx hash. 5. Verify and unlock.
                     </div>
                   </div>
                 `
                 : `
                   <div class="banner info">
-                    Create a checkout to receive a payment ID and a live treasury address for this artifact.
+                    Create a checkout to receive the exact treasury route and Circle transfer instructions for this artifact.
                   </div>
                 `
             }
@@ -1918,11 +2021,7 @@ function renderModal() {
                   <div class="card card-pad" style="border-color: rgba(17, 217, 139, 0.3); background: rgba(17, 217, 139, 0.04);">
                     <div class="row between" style="margin-bottom: 10px;">
                       <span class="row g6" style="color: var(--circle-green);">${icon("check", 14)} Delivered</span>
-                      ${
-                        selectedOrder.txHash
-                          ? `<a class="tx-pill" href="${escapeHtml(txUrl(selectedOrder.txHash))}" target="_blank" rel="noreferrer">${escapeHtml(truncateHash(selectedOrder.txHash, 10, 6))} ${icon("link", 10)}</a>`
-                          : ""
-                      }
+                      ${selectedOrder.txHash ? renderTxReference(selectedOrder.txHash, 10, 6, "Delivery settlement reference") : ""}
                     </div>
                     <pre class="json">{
   "artifact_id": "${escapeHtml(selectedOrder.artifactId)}",
@@ -2063,7 +2162,14 @@ async function createCheckout(artifactId) {
 
     await refreshDemoJobs();
     renderApp();
-    showBanner(`Checkout created for ${artifact.name}. Fund treasury and paste the tx hash.`, "info");
+    const sourceName = walletNameForAddress(buyerAddress);
+    const sourceLabel = sourceName
+      ? `${humanizeWalletName(sourceName)} ${truncateMiddle(buyerAddress, 8, 6)}`
+      : truncateMiddle(buyerAddress, 8, 6);
+    showBanner(
+      `Checkout created. In Circle Console, send ${formatNumber(intent.amount_usd, 3)} USDC from ${sourceLabel} to the treasury route, then paste the tx hash.`,
+      "info",
+    );
   } catch (error) {
     showBanner(`Could not create checkout: ${error.message}`, "danger");
   } finally {
@@ -2284,6 +2390,18 @@ function handleClick(event) {
       copyToClipboard(order?.depositAddress, "treasury address");
       return;
     }
+    case "use-video-wallet": {
+      const wallet = recommendedVideoWallet();
+      if (!wallet) {
+        showBanner("No funded video wallet is available in the current proof data.", "warn");
+        return;
+      }
+      state.market.buyerAddress = wallet.address;
+      persistMarketState();
+      renderApp();
+      showBanner(`Buyer wallet set to ${humanizeWalletName(wallet.name)} for the live Circle checkout.`, "info");
+      return;
+    }
     case "open-tx":
       window.open(txUrl(target.dataset.txHash), "_blank", "noopener,noreferrer");
       return;
@@ -2348,6 +2466,18 @@ function handleChange(event) {
   }
 }
 
+function ensureBuyerWalletPreset() {
+  if (state.market.buyerAddress.trim()) {
+    return;
+  }
+  const wallet = recommendedVideoWallet();
+  if (!wallet) {
+    return;
+  }
+  state.market.buyerAddress = wallet.address;
+  persistMarketState();
+}
+
 document.addEventListener("click", handleClick);
 document.addEventListener("input", handleInput);
 document.addEventListener("change", handleChange);
@@ -2360,6 +2490,7 @@ if (!window.location.hash) {
   window.location.hash = "marketplace";
 }
 
+ensureBuyerWalletPreset();
 renderApp();
 loadBoard()
   .then(startAutoRefresh)

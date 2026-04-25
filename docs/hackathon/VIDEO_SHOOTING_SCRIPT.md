@@ -76,10 +76,10 @@ Before recording, open these tabs in order (you'll switch between them):
 **This is the critical scene — it satisfies the brief's explicit "transaction executed via the Circle Developer Console" requirement.**
 
 - Switch to tab 4: Circle Console → Wallets → Developer Controlled → Wallets
-- Click on wallet **research_00** (source, address `0xbcdb0012b84dc6158c50b1e353b1627d2d4af8aa`)
-- Click **Send Transaction** (or equivalent button in the Console UI)
+- Use the funded buyer wallet **research_03** (source, address `0xbcdb0012b84dc6158c50b1e353b1627d2d4af8aa`)
+- Click **Send Transaction**. If the wallet detail page does not show the action, switch to **Developer Controlled → Transactions** and create the transfer there with the same source wallet.
 - Fill the form:
-  - **Destination address:** `0x9a2b38ec283d3a51faa3095f0c0708c1b225462a` (treasury wallet)
+  - **Destination address:** `0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f` (treasury wallet)
   - **Amount:** `0.001`
   - **Token:** USDC
   - **Blockchain:** Arc Testnet
@@ -87,7 +87,7 @@ Before recording, open these tabs in order (you'll switch between them):
 - Click **Send / Confirm**
 - Wait for the transaction to appear with status `INITIATED` → `SENT` → `COMPLETE`
 - When `COMPLETE`, hover/click on the transaction row and **copy the tx hash** (you will paste it in Scene E)
-- **Narration segment 10** (30s, longer): *"Now a live transaction executed through the Circle Developer Console. We pick research zero zero as the source, treasury as the destination, amount zero point zero zero one USDC, and settle on Arc Testnet. The Console signs, submits, and confirms. The transaction hash appears right here. This is exactly the integration flow the hackathon asked us to demonstrate."*
+- **Narration segment 10** (30s, longer): *"Now a live transaction executed through the Circle Developer Console. We pick the funded buyer wallet as the source, treasury as the destination, amount zero point zero zero one USDC, and settle on Arc Testnet. The Console signs, submits, and confirms. The transaction hash appears right here. This is exactly the integration flow the hackathon asked us to demonstrate."*
 - Screen capture: 30 seconds
 
 **If the Console live flow takes longer than 30s on your connection, either:** (a) trim in the editor to 30s, (b) pre-record a rehearsal run, or (c) use the already-completed batch as reference and manually copy any of the 63 hashes from `TRANSACTION_LOG.md` if the Console tx stalls during recording.
@@ -130,7 +130,7 @@ Before recording, open these tabs in order (you'll switch between them):
 - [ ] Services on VM are green: `curl http://34.56.193.221/health` returns 200
 - [ ] Pitch site loads fast: `curl -o /dev/null -w "%{time_total}s\n" http://34.56.193.221/`
 - [ ] Circle Developer Console is logged in on tab 4
-- [ ] Source wallet has balance: check `research_00` has ≥ 0.01 USDC for the demo tx (we left ~19.9 USDC after the batch — plenty)
+- [ ] Source wallet has balance: check `research_03` has ≥ 0.01 USDC for the demo tx
 - [ ] OBS is configured for 1920×1080 @ 30fps, audio source disabled (we'll overlay narration)
 - [ ] Chrome is in clean profile (no extensions that add UI chrome to captures; disable ad blockers for the session)
 - [ ] Mic is muted (if narrating later in post-production)

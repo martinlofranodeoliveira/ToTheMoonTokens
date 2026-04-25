@@ -79,7 +79,7 @@ See `docs/hackathon/VIDEO_SHOOTING_SCRIPT.md` for the scene-by-scene shooting gu
 
 ## Segment 10 — 2:15 to 2:45 (Circle Developer Console — brief-critical, 30s)
 
-> Now a live transaction, executed directly through the Circle Developer Console. We pick research zero zero as the source, treasury as the destination, amount zero point zero zero one USDC, blockchain Arc Testnet. The Console signs it, submits it, and confirms it. The transaction hash appears right here. This is exactly the end-to-end integration flow the hackathon asked us to demonstrate — through the Console, not a custom script.
+> Now a live transaction, executed directly through the Circle Developer Console. We pick the funded buyer wallet as the source, treasury as the destination, amount zero point zero zero one USDC, blockchain Arc Testnet. The Console signs it, submits it, and confirms it. The transaction hash appears right here. This is exactly the end-to-end integration flow the hackathon asked us to demonstrate — through the Console, not a custom script.
 
 ---
 

@@ -43,12 +43,13 @@ make demo-stop
    ```json
    {
      "artifact_id": "artifact_review_bundle",
-     "buyer_address": "0xBuyerAddress"
+     "buyer_address": "0xbcdb0012b84dc6158c50b1e353b1627d2d4af8aa"
    }
    ```
+   Para o video, use essa buyer wallet financiada (`research_03`) no marketplace e no Circle Console.
 5. Rode `POST /api/payments/verify` com o `payment_id` retornado e:
-   - real: `0x6fc13745bd3b5137034ccfb2ebb177e8cd5cab2895befd7e2eaa426f4d7679a4`
-   - fallback local: `0xMockTransactionHash`
+   - video / demo publico: cole o tx hash real retornado pelo Circle Console
+   - fallback local offline apenas: `0xMockTransactionHash`
 6. Rode `POST /api/payments/execute` com:
    ```json
    {
@@ -67,6 +68,8 @@ make demo-stop
    - checkout desk com payment intent
    - live settlements
    - active orders
+   - buyer wallet `research_03`
+   - treasury route `0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f`
 
 ## O que dizer explicitamente
 

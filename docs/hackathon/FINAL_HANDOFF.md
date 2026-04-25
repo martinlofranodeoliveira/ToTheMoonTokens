@@ -1,15 +1,22 @@
 # Final Handoff
 
 Este documento junta o que voce precisa para gravar o video e submeter sem
-reabrir o repositório para descobrir caminhos.
+reabrir o repositorio para descobrir caminhos.
 
 ## Estado final
 
 - o runtime do jurado **nao precisa de Nexus**
-- o caminho principal e `request -> payment -> settlement -> review -> delivery`
-- a prova onchain atual e:
-  - tx hash: `0x6fc13745bd3b5137034ccfb2ebb177e8cd5cab2895befd7e2eaa426f4d7679a4`
-  - explorer: `https://testnet.arcscan.app/tx/0x6fc13745bd3b5137034ccfb2ebb177e8cd5cab2895befd7e2eaa426f4d7679a4`
+- Part 1 do video ja gravado pode ser reaproveitado
+- Part 2 deve ser regravado com o chat flutuante em `/ops/`
+- o caminho principal e `Gemini chat -> checkout -> Circle payment -> Arc settlement -> review -> delivery`
+- deploy publico:
+  - pitch: `http://34.56.193.221/`
+  - marketplace/chat: `http://34.56.193.221/ops/`
+  - health: `http://34.56.193.221/health`
+- prova onchain:
+  - para o video final, use o tx hash fresco retornado pelo chat
+  - sample validado: `0xf94442055fe5d2a95064c4f11bd09a16696011b3dfb3ebdb89c9277b79b28837`
+  - explorer sample: `https://testnet.arcscan.app/tx/0xf94442055fe5d2a95064c4f11bd09a16696011b3dfb3ebdb89c9277b79b28837`
 
 ## Boot local sem Nexus
 
@@ -22,10 +29,10 @@ make demo-start
 make demo-status
 ```
 
-### URLs do demo
+### URLs do demo local
 
 - Swagger UI: `http://127.0.0.1:8010/docs`
-- marketplace ao vivo: `http://127.0.0.1:4173`
+- marketplace: `http://127.0.0.1:4173`
 - pitch site: `http://127.0.0.1:4174`
 
 ### Encerrar
@@ -34,58 +41,47 @@ make demo-status
 make demo-stop
 ```
 
-## Roteiro de 90 segundos
+## Roteiro final de gravacao
 
-1. Abra o pitch site em `:4174` e mostre o framing do produto.
-2. Abra a Swagger UI em `:8010/docs`.
-3. Rode `GET /api/payments/catalog`.
-4. Rode `POST /api/payments/intent` com:
-   ```json
-   {
-     "artifact_id": "artifact_review_bundle",
-     "buyer_address": "0xbcdb0012b84dc6158c50b1e353b1627d2d4af8aa"
-   }
+1. Reaproveite o Part 1 ja gravado (`apps/pitch/pitch-video.html`, 90s).
+2. Regrave apenas o Part 2.
+3. Abra `http://34.56.193.221/ops/` e de `Ctrl+F5`.
+4. Clique no botao flutuante de chat no canto inferior direito.
+5. Envie:
+   ```text
+   What artifacts can you buy right now?
    ```
-   Para o video, use essa buyer wallet financiada (`research_03`) no marketplace e no Circle Console.
-5. Rode `POST /api/payments/verify` com o `payment_id` retornado e:
-   - video / demo publico: cole o tx hash real retornado pelo Circle Console
-   - fallback local offline apenas: `0xMockTransactionHash`
-6. Rode `POST /api/payments/execute` com:
-   ```json
-   {
-     "artifact_id": "artifact_review_bundle",
-     "payment_id": "<payment_id retornado no intent>"
-   }
+6. Depois envie:
+   ```text
+   Buy the Delivery Packet and unlock it.
    ```
-7. Rode o fluxo demo curto:
-   - `POST /api/demo/jobs/request`
-   - `POST /api/demo/jobs/{id}/pay`
-   - `POST /api/demo/jobs/{id}/execute`
-   - `POST /api/demo/jobs/{id}/review?approve=true`
-   - `POST /api/demo/jobs/{id}/deliver`
-8. Abra o marketplace em `:4173`, clique em refresh e mostre:
-   - catalogo de artefatos
-   - checkout desk com payment intent
-   - live settlements
-   - active orders
-   - buyer wallet `research_03`
-   - treasury route `0x80a2ab194e34c50e7d5ba836dbc40b9733559c2f`
+7. Mostre o rastro de ferramentas no chat:
+   - catalogo
+   - checkout
+   - Circle payment
+   - Arc settlement verification
+   - artifact unlock
+8. Copie ou deixe visivel o tx hash retornado pelo chat.
+9. Mostre a transacao correspondente no Circle Console, se ela aparecer sem expor dados privados.
+10. Cole o tx hash no `https://testnet.arcscan.app` e mostre status de sucesso.
 
 ## O que dizer explicitamente
 
 - "Nexus foi usado para construir e validar o sistema, mas o demo que o jurado roda localmente nao precisa iniciar Nexus."
 - "O produto nao e live trading. E um marketplace de artefatos pagos para machine work."
+- "Gemini e a interface compradora; Circle executa o pagamento; Arc fornece o recibo verificavel."
 - "A entrega fica bloqueada ate settlement e review."
 - "O tx hash em Arc testnet e a ancora onchain do walkthrough."
 
 ## Shot list para screenshots
 
 - pitch site hero
-- catalogo de artefatos / pricing
-- Swagger UI com `POST /api/payments/intent`
+- marketplace `/ops/` com botao flutuante de chat
+- chat aberto com prompts e tool events
+- chat mostrando artifact unlocked e tx hash
+- Circle Console com a transacao, se seguro mostrar
 - Arcscan com o tx hash real
-- Swagger UI com `POST /api/payments/verify`
-- marketplace `apps/web`
+- health endpoint mostrando `programmatic` e `agent_chat_ready`
 
 ## Arquivos para colar no formulario
 
@@ -93,6 +89,8 @@ make demo-stop
 - deck: `docs/hackathon/pitch-deck.md`
 - demo script: `docs/hackathon/demo-script.md`
 - Q&A: `docs/hackathon/q-and-a.md`
+- roteiro de video: `docs/hackathon/VIDEO_SHOOTING_SCRIPT.md`
+- narracao: `docs/hackathon/narration-script.md`
 - arquitetura: `docs/ARCHITECTURE.md`
 - feedback Circle: `docs/CIRCLE_FEEDBACK.md`
 

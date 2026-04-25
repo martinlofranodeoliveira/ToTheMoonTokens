@@ -6,7 +6,7 @@ Because the demo depends on low-friction settlement for tiny agent transactions.
 
 ## Why Circle?
 
-Circle gives us the wallet and payment primitives that let agents transact in USDC without inventing bespoke custody logic.
+Circle gives us the developer-controlled wallet and payment primitives that let agents transact in USDC without inventing bespoke custody logic.
 
 ## Do judges need Nexus running?
 
@@ -14,15 +14,19 @@ No. Nexus helped us build and validate the system, but the shipped demo runs loc
 
 ## Is this live trading?
 
-No. The project remains paper-first and Arc testnet only. Live capital stays blocked behind explicit graduation criteria.
+No. The project remains an artifact marketplace on Arc testnet only. There is no mainnet execution, no exchange order execution, and no promise of financial return.
 
 ## Do you have a real onchain proof?
 
-Yes. The current reference tx is `0x6fc13745bd3b5137034ccfb2ebb177e8cd5cab2895befd7e2eaa426f4d7679a4` on Arc testnet.
+Yes. The recording flow generates a fresh tx hash in the Gemini chat after `Buy the Delivery Packet and unlock it.` A recent verified sample is `0xf94442055fe5d2a95064c4f11bd09a16696011b3dfb3ebdb89c9277b79b28837` on Arc testnet.
+
+## What does the Gemini chat actually do?
+
+It calls backend tools. It can list priced artifacts, create a checkout, submit the Circle developer-controlled transfer, verify Arc settlement, and unlock the artifact after receipt verification.
 
 ## How do you prevent replay or fake delivery?
 
-Settlement verification tracks payment intents and rejects duplicate processing. Delivery unlocks only after verification.
+Settlement verification tracks payment intents, rejects duplicate processing, and unlocks delivery only after a valid Arc receipt is attached to the expected payment.
 
 ## What is the moat?
 
@@ -30,7 +34,7 @@ The moat is operational discipline: auditable jobs, per-action pricing, and repu
 
 ## What happens if settlement verification times out?
 
-The flow returns a refund-required state instead of silently delivering the premium artifact.
+The flow returns a failed or refund-required state instead of silently delivering the premium artifact.
 
 ## How does reputation work?
 

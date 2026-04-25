@@ -28,10 +28,10 @@ That is a strong fit for what already exists here:
   - settlement audits
   - runtime evidence artifacts
 - the current system already has:
-  - strong paper-mode guardrails
+  - strong testnet/no-trading guardrails
   - live monitoring
   - review/evidence patterns
-  - a real dashboard to evolve into the hackathon demo
+  - a real marketplace and Gemini chat surface for the hackathon demo
 
 ## Project positioning
 
@@ -49,20 +49,21 @@ Pitch it as:
 
 ### Core demo
 
-1. A user requests a paid artifact:
+1. A user opens the floating Gemini chat and asks what artifacts can be bought:
    - delivery packet
    - review bundle
    - market report
    - settlement memo
-2. The system presents the action cost in USDC.
-3. Payment is authorized through the Circle-powered flow.
-4. The API opens or reserves the job record.
-5. The correct room of agents executes the work.
+2. Gemini selects an artifact and creates a priced checkout.
+3. The backend submits a Circle developer-controlled wallet transfer.
+4. Arc settlement is verified by tx hash.
+5. The API opens or reserves the job record.
 6. Review agents validate the result.
 7. The final artifact is unlocked only after payment + review.
 8. The UI shows:
    - payment status
    - job status
+   - Gemini tool events
    - assigned room / agent lineage
    - delivery artifact
    - audit trail
@@ -81,10 +82,11 @@ The buyer is purchasing **agent outputs** such as:
 
 All outputs remain:
 
-- paper-only
 - evidence-backed
 - non-custodial
+- Arc-testnet only
 - non-mainnet-executing
+- unrelated to live trading
 
 ## Scope freeze for the 5-day hackathon
 
@@ -122,7 +124,7 @@ Where the user:
 
 - selects an artifact
 - sees the price
-- initiates payment
+- initiates payment through Gemini or the checkout UI
 - tracks progress
 - downloads the result
 
@@ -132,6 +134,7 @@ Responsible for:
 
 - defining billable actions
 - issuing payment requirements
+- submitting Circle developer-controlled wallet transfers in programmatic mode
 - verifying payment completion
 - unlocking the job after valid payment
 
@@ -183,24 +186,25 @@ Avoid:
 - "guaranteed alpha"
 - "self-managing hedge fund"
 
-## What the judges should see in 90 seconds
+## What the judges should see in the final demo
 
 1. A premium landing/dashboard explaining the system.
-2. A user selects `Review Bundle + Delivery Packet`.
-3. The UI shows a USDC price.
-4. Payment is initiated/verified.
-5. The job appears in the local lifecycle/API state.
-6. Agents work in parallel.
-7. Review completes.
-8. Delivery becomes available.
-9. The final report is shown with status/evidence.
+2. A floating Gemini chat on the live marketplace.
+3. Gemini lists priced artifacts.
+4. Gemini buys the Delivery Packet.
+5. The backend creates checkout, submits Circle payment, verifies Arc settlement, and unlocks delivery.
+6. The chat shows tool events and the resulting tx hash.
+7. Circle Console shows the developer-controlled wallet transfer.
+8. Arcscan verifies the same hash onchain.
 
 ## Technical build priorities
 
 ### Highest priority
 
 - paid job lifecycle
+- autonomous Gemini buyer flow
 - payment verification
+- Circle transfer submission
 - simple but credible UI
 - visible auditability
 - one strong end-to-end demo path
@@ -219,7 +223,7 @@ Avoid:
 
 ## Ground rules for every agent
 
-- stay in paper/test mode only
+- stay in Arc testnet mode only
 - do not add live trading or mainnet execution
 - optimize for demo clarity, not architectural perfection
 - prefer reusable adapters over big refactors

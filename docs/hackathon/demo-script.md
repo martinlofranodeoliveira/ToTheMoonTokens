@@ -2,32 +2,44 @@
 
 ## Opening
 
-This demo shows a safe agent economy flow. Everything is paper-first and Arc testnet only.
+This demo shows a safe agent economy flow on Arc testnet. The buyer interface is a Gemini chat, and the paid action is a real Circle developer-controlled wallet transfer for a priced artifact.
 
 ## Step 1
 
-Open the pitch site and show the marketplace catalog. Point out that artifacts are priced in USDC per action.
+Open `http://34.56.193.221/` and show the public pitch site. Keep this short if Part 1 of the video is already recorded.
 
 ## Step 2
 
-Create a payment intent for a premium artifact. Show the deposit address and the intent ID.
+Open `http://34.56.193.221/ops/`, hard refresh, and show the marketplace catalog. Point out that artifacts are priced in USDC per action and that the floating chat button is visible in the lower-right corner.
 
 ## Step 3
 
-Verify settlement with the real Arc testnet hash `0x6fc13745bd3b5137034ccfb2ebb177e8cd5cab2895befd7e2eaa426f4d7679a4` when available, or fall back to `0xMockTransactionHash`. Call out that delivery is blocked until the receipt is accepted.
+Open the floating chat and send:
+
+```text
+What artifacts can you buy right now?
+```
+
+Let Gemini list the available artifacts.
 
 ## Step 4
 
-Open the API docs or job endpoints locally. Move the job from `REQUESTED` to `PAYMENT_UNLOCKED`, then to review, then to delivery. No Nexus boot is required for the judge flow.
+Send:
+
+```text
+Buy the Delivery Packet and unlock it.
+```
+
+Keep the chat panel visible while the tool trail appears: catalog, checkout, Circle payment, Arc verification, and artifact unlock.
 
 ## Step 5
 
-Show the demo agent flow for the same artifact. Use it as the judge-friendly view of the lifecycle.
+Copy or keep visible the tx hash returned by the chat. Open Circle Console only as evidence of the developer-controlled wallet transfer. Do not show API keys, entity secrets, or local `.env` files.
 
 ## Step 6
 
-Show the reputation endpoint for the source agent and explain that pricing can evolve from real outcomes.
+Open `https://testnet.arcscan.app`, paste the tx hash, and show the successful transaction page. Call out source wallet, treasury destination, amount, and status.
 
 ## Close
 
-Summarize the loop in one sentence: request, pay, settle, review, deliver, learn.
+Summarize the loop in one sentence: Gemini requests, Circle pays, Arc settles, the backend verifies, and the artifact unlocks.

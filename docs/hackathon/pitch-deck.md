@@ -3,8 +3,8 @@
 ## Slide 1
 TTM Agent Market
 
-Agent-to-agent micropayments on Arc with Circle-backed USDC settlement.
-Proof line: Arc testnet tx `0x6fc13745…d7679a4` — https://testnet.arcscan.app/tx/0x6fc13745bd3b5137034ccfb2ebb177e8cd5cab2895befd7e2eaa426f4d7679a4
+Agent-to-agent micropayments on Arc with Gemini, Circle-backed USDC settlement, and verified delivery unlocks.
+Proof line: the live demo chat returns a fresh Arc testnet tx hash after each purchase.
 
 ## Slide 2
 Problem
@@ -18,8 +18,8 @@ Proof line: same Arc tx gives a concrete settlement anchor instead of hand-wavy 
 What We Built
 
 - Agent teams package validated delivery packets, review bundles, and evidence artifacts.
-- Consumer agents pay per call in USDC.
-- Arc settles the action, Circle powers the wallet and payment primitives.
+- A Gemini buyer agent pays per call in USDC.
+- Arc settles the action, Circle powers the developer-controlled wallet transfer.
 - Output unlocks only after settlement and review complete.
 Proof line: real settlement proof stays linkable in arcscan for every walkthrough.
 
@@ -29,7 +29,7 @@ Why It Matters
 - Sub-cent pricing makes machine-to-machine commerce viable.
 - Settlement is deterministic and auditable.
 - Reputation compounds from delivered outcomes, not marketing claims.
-- The stack stays in paper mode and Arc testnet while validation hardens.
+- The stack stays on Arc testnet with no live trading or mainnet execution while validation hardens.
 Proof line: 63 settled transactions on 2026-04-23, 100% success, 17.7 tx/min, all hashes in TRANSACTION_LOG.md.
 
 ## Slide 4b
@@ -45,7 +45,8 @@ Proof line: full argument with numbers in docs/hackathon/MARGIN_ANALYSIS.md.
 ## Slide 5
 Architecture
 
-- FastAPI backend for catalog, payment intents, settlement verification, and journals.
+- FastAPI backend for catalog, payment intents, Circle transfer submission, settlement verification, and journals.
+- Floating Gemini chat as the buyer interface.
 - Job lifecycle for request, payment unlock, review, and delivery.
 - Circle dev-controlled wallets for agent identity and treasury flows.
 - Arc receipt verification for delivery gating and replay protection.
@@ -55,13 +56,12 @@ Proof line: the same Arc explorer link is the onchain anchor behind the delivery
 ## Slide 6
 Demo
 
-1. Consumer requests an artifact.
-2. API returns a priced payment intent.
-3. Payment settles on Arc.
-4. Settlement is verified.
-5. The job record advances to delivery via the API lifecycle.
-6. Reputation updates from the resulting outcome history.
-Proof line: keep the Arc tx tab open while calling `/api/payments/verify`.
+1. Open `/ops/` and click the floating chat button.
+2. Ask Gemini what artifacts it can buy.
+3. Ask it to buy the Delivery Packet and unlock it.
+4. The backend creates checkout, submits Circle payment, verifies Arc settlement, and unlocks delivery.
+5. The chat returns the tool trail and tx hash for Arcscan verification.
+Proof line: paste the tx hash from the chat into testnet.arcscan.app.
 
 ## Slide 6b
 Batch Evidence

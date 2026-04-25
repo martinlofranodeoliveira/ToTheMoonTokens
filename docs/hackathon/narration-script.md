@@ -1,7 +1,8 @@
-# 90-second demo narration — for ElevenLabs
+# Submission video narration — for ElevenLabs
 
-Drop each segment into ElevenLabs separately (or paste all 6 as one block — your call).
-Total: ~240 words, ~90 seconds at natural pace.
+Drop each segment into ElevenLabs separately, or paste all 11 segments as one block.
+Part 1 is still the already-recorded 90-second pitch. Part 2 is the new live demo with the floating Gemini chat.
+Total target: about 3:30 at a natural pace.
 
 ---
 
@@ -51,41 +52,41 @@ Settings: **Stability 35%, Similarity 75%, Style 20%, Speaker Boost ON**. These 
 
 ---
 
-## Part 2 — Live functional demo (1:30 – 3:00)
+## Part 2 — Live functional demo (1:30 – 3:30)
 
-Segments 7–11 narrate the live screen capture showing the deployed VM, the judge-facing API, a real Circle Developer Console transaction, and Arc Block Explorer verification.
+Segments 7–11 narrate the live screen capture showing the deployed VM, the floating Gemini agent chat, a real Circle Developer Controlled Wallet payment, Circle Console evidence, and Arc Block Explorer verification.
 
 See `docs/hackathon/VIDEO_SHOOTING_SCRIPT.md` for the scene-by-scene shooting guide.
 
 ---
 
-## Segment 7 — 1:30 to 1:45 (Live deployed pitch site)
+## Segment 7 — 1:30 to 1:42 (Live deployed pitch site)
 
-> Here is the live deployment. The pitch site runs at three four dot five six dot one nine three dot two two one — served by Caddy, backed by the same Arc and Circle stack you just saw. Public. Online. Testable right now.
-
----
-
-## Segment 8 — 1:45 to 2:00 (Live marketplace)
-
-> This is the live marketplace. Buyers can open a checkout, pay per artifact, verify the transaction on Arc, and unlock delivery. Behind that commerce flow sit sixty-three settled transfers, one hundred percent success, and a gas counterfactual on Ethereum L one that would be five hundred times the value moved.
+> Here is the live deployment. The pitch site runs at three four dot five six dot one nine three dot two two one, served by Caddy and backed by the same Arc and Circle stack you just saw.
 
 ---
 
-## Segment 9 — 2:00 to 2:15 (Judge-facing API endpoint)
+## Segment 8 — 1:42 to 2:00 (Live marketplace)
 
-> Every claim in the pitch is backed by a single endpoint. Slash api slash hackathon slash summary. Project. Tracks. Proof. Margin. Catalog. Transactions. One JSON payload. One source of truth.
-
----
-
-## Segment 10 — 2:15 to 2:45 (Circle Developer Console — brief-critical, 30s)
-
-> Now a live transaction, executed directly through the Circle Developer Console. We pick the funded buyer wallet as the source, treasury as the destination, amount zero point zero zero one USDC, blockchain Arc Testnet. The Console signs it, submits it, and confirms it. The transaction hash appears right here. This is exactly the end-to-end integration flow the hackathon asked us to demonstrate — through the Console, not a custom script.
+> This is the live marketplace. Buyers can inspect pricing, proof, active orders, wallet routes, and the gas counterfactual. But the main interaction is now this floating Gemini agent chat, which can buy and unlock artifacts from the same page.
 
 ---
 
-## Segment 11 — 2:45 to 3:00 (Arc Block Explorer verification — brief-critical)
+## Segment 9 — 2:00 to 2:55 (Floating Gemini agent purchase)
 
-> And here it is onchain, on the Arc Block Explorer. Anyone, any time, can verify at testnet dot arcscan dot app. Hackathon brief satisfied end to end. Real agents. Real economics. Live.
+> The chat is not decorative. First, Gemini reads the live catalog and explains what it can buy. Then we ask it to buy the Delivery Packet and unlock it. The agent calls backend tools, creates the checkout, submits a Circle developer-controlled wallet transfer, waits for Arc settlement, verifies the receipt, and unlocks the artifact. This is the product loop in one place: an AI agent buying machine work with a real sub-cent USDC payment.
+
+---
+
+## Segment 10 — 2:55 to 3:12 (Circle Console evidence)
+
+> Here is the same payment inside Circle. The funded buyer wallet sends zero point zero zero one USDC to treasury on Arc Testnet. Circle handles the developer-controlled wallet operation, and the app uses that payment as the delivery gate.
+
+---
+
+## Segment 11 — 3:12 to 3:30 (Arc Block Explorer verification)
+
+> And here it is onchain, on the Arc Block Explorer. Anyone can verify the hash, source, destination, and successful settlement at testnet dot arcscan dot app. Real agents, real economics, live.
 
 ---
 
@@ -105,18 +106,19 @@ If a specific word sounds off, use **phoneme override** in ElevenLabs (e.g., `/�
 
 ---
 
-## After you have the 6 audio files
+## After you have the audio files
 
 **Option A — concat in any video editor:**
-Drop the video (screen-recorded MP4) and the 6 audio clips on the timeline. Align each audio segment to the start of its slide (0s, 15s, 30s, 45s, 60s, 75s). Export at 1080p.
+Drop the video clips and the 11 audio clips on the timeline. Align segments 1–6 to the pitch slides, then align segments 7–11 to the Part 2 scene starts from `VIDEO_SHOOTING_SCRIPT.md`. Export at 1080p.
 
 **Option B — concat audio first, then overlay once:**
 ```
 ffmpeg -i seg1.mp3 -i seg2.mp3 -i seg3.mp3 -i seg4.mp3 -i seg5.mp3 -i seg6.mp3 \
-  -filter_complex "[0:a][1:a][2:a][3:a][4:a][5:a]concat=n=6:v=0:a=1[out]" \
+  -i seg7.mp3 -i seg8.mp3 -i seg9.mp3 -i seg10.mp3 -i seg11.mp3 \
+  -filter_complex "[0:a][1:a][2:a][3:a][4:a][5:a][6:a][7:a][8:a][9:a][10:a]concat=n=11:v=0:a=1[out]" \
   -map "[out]" narration.mp3
 ```
-Then drop `narration.mp3` on the video timeline once — it aligns automatically because each segment is exactly 15s.
+Then drop `narration.mp3` on the video timeline once and trim scene video lengths to the narration.
 
 **Option C — one-shot:**
-Paste all 6 segments in ElevenLabs as a single input, separated by blank lines. Get one 90s MP3. Same result, less fiddling.
+Paste all 11 segments in ElevenLabs as a single input, separated by blank lines. This is the simplest path for the final submission cut.

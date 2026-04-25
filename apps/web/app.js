@@ -1639,6 +1639,49 @@ function renderAgentProofCard() {
   `;
 }
 
+function latestAgentListedArtifacts() {
+  const events = state.market.agentEvents || [];
+  for (const event of [...events].reverse()) {
+    if (event?.name !== "list_artifacts") {
+      continue;
+    }
+    const artifacts = event?.response?.artifacts;
+    if (Array.isArray(artifacts) && artifacts.length > 0) {
+      return artifacts;
+    }
+  }
+  return [];
+}
+
+function renderAgentArtifactChoices() {
+  const artifacts = latestAgentListedArtifacts();
+  if (!artifacts.length) {
+    return "";
+  }
+  return `
+    <div class="agent-artifact-choices">
+      <span class="agent-choice-label">Select artifact to purchase</span>
+      <div class="agent-choice-grid">
+        ${artifacts
+          .map((artifact) => {
+            return `
+              <button
+                class="agent-choice"
+                data-action="agent-buy-artifact"
+                data-artifact-id="${escapeHtml(artifact.id)}"
+                data-artifact-name="${escapeHtml(artifact.name)}"
+              >
+                <span>${escapeHtml(artifact.name)}</span>
+                <strong>${escapeHtml(formatNumber(artifact.price_usd, 3))} USDC</strong>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
 function formatToolName(name) {
   return String(name || "tool").replaceAll("_", " ");
 }
@@ -1691,17 +1734,11 @@ function renderAgentConsole({ floating = false } = {}) {
   const ready = agentChatReady();
   const programmatic = isProgrammaticSettlement();
   const intro = programmatic
-    ? "Ask the agent to buy an artifact and it will create the checkout, submit the Circle payment, and unlock delivery after Arc verification."
+    ? "Ask the agent what it can buy, then select a listed artifact to create checkout, submit Circle payment, and unlock delivery after Arc verification."
     : "Ask the agent to prepare a checkout. Manual funding is still required in the current mode.";
   const placeholder = programmatic
-    ? "Buy the Delivery Packet and unlock it."
+    ? "What artifacts can you buy right now?"
     : "Create a checkout for the Delivery Packet.";
-  const primaryPrompt = programmatic
-    ? "Buy the Delivery Packet and unlock it."
-    : "Create a checkout for the Delivery Packet.";
-  const secondaryPrompt = programmatic
-    ? "Buy the Review Bundle and unlock it."
-    : "Create a checkout for the Review Bundle.";
   const outerClass = floating ? "agent-console agent-console-panel" : "card card-pad agent-console";
   const outerStyle = floating ? "" : ' style="margin-bottom: 18px;"';
 
@@ -1754,6 +1791,8 @@ function renderAgentConsole({ floating = false } = {}) {
         }
       </div>
 
+      ${renderAgentArtifactChoices()}
+
       ${renderAgentProofCard()}
 
       ${
@@ -1782,8 +1821,6 @@ function renderAgentConsole({ floating = false } = {}) {
 
       <div class="row g8" style="margin-top: 12px; flex-wrap: wrap;">
         <button class="btn btn-ghost" data-action="agent-prompt" data-prompt="What artifacts can you buy right now?">What can you buy?</button>
-        <button class="btn btn-ghost" data-action="agent-prompt" data-prompt="${escapeHtml(primaryPrompt)}">Buy Delivery Packet</button>
-        <button class="btn btn-ghost" data-action="agent-prompt" data-prompt="${escapeHtml(secondaryPrompt)}">Buy Review Bundle</button>
       </div>
 
       <div class="row g8 agent-compose">
@@ -2798,7 +2835,7 @@ async function unlockOrder(orderId) {
   }
 }
 
-async function sendAgentMessage(message = state.ui.agentComposer.trim()) {
+async function sendAgentMessage(message = state.ui.agentComposer.trim(), options = {}) {
   const text = String(message || "").trim();
   if (!text) {
     showBanner("Type a message for the agent first.", "warn");
@@ -2814,12 +2851,16 @@ async function sendAgentMessage(message = state.ui.agentComposer.trim()) {
   renderApp();
 
   try {
+    const body = {
+      message: text,
+      history: state.market.agentHistory,
+    };
+    if (options.authorizedArtifactId) {
+      body.authorized_artifact_id = options.authorizedArtifactId;
+    }
     const response = await fetchJson("/api/agent/chat", {
       method: "POST",
-      body: {
-        message: text,
-        history: state.market.agentHistory,
-      },
+      body,
     });
 
     state.market.agentHistory = [...state.market.agentHistory, { role: "user", text }, { role: "assistant", text: response.reply }].slice(-12);
@@ -2989,6 +3030,25 @@ function handleClick(event) {
       renderApp();
       sendAgentMessage(target.dataset.prompt || "");
       return;
+    case "agent-buy-artifact": {
+      const artifactId = target.dataset.artifactId || "";
+      const artifacts = latestAgentListedArtifacts();
+      const artifact =
+        artifacts.find((candidate) => candidate.id === artifactId) ||
+        (state.summary.catalog || []).find((candidate) => candidate.id === artifactId);
+      if (!artifact) {
+        showBanner("List artifacts before selecting one to buy.", "warn");
+        return;
+      }
+      const artifactName = artifact.name || target.dataset.artifactName || artifactId;
+      state.ui.agentChatOpen = true;
+      state.ui.agentComposer = "";
+      renderApp();
+      sendAgentMessage(`Buy the ${artifactName} and unlock it.`, {
+        authorizedArtifactId: artifactId,
+      });
+      return;
+    }
     case "send-agent-message":
       sendAgentMessage();
       return;

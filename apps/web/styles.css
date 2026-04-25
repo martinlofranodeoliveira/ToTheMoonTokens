@@ -432,6 +432,64 @@ h4 {
   padding: 0 11px;
 }
 
+.agent-artifact-choices {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.agent-choice-label {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.agent-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.agent-choice {
+  min-height: 58px;
+  padding: 10px;
+  border: 1px solid rgba(48, 123, 246, 0.22);
+  border-radius: 8px;
+  background: rgba(48, 123, 246, 0.08);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.agent-choice:hover {
+  border-color: rgba(48, 123, 246, 0.46);
+  background: rgba(48, 123, 246, 0.14);
+}
+
+.agent-choice span {
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.agent-choice strong {
+  color: var(--circle-green);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .tool-events {
   margin-top: 12px;
   padding-top: 12px;
@@ -589,6 +647,10 @@ h4 {
   .agent-compose {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .agent-choice-grid {
+    grid-template-columns: 1fr;
   }
 
   .floating-agent-chat {

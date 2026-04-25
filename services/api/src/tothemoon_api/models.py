@@ -409,6 +409,7 @@ class AgentToolEvent(BaseModel):
 class AgentChatRequest(BaseModel):
     message: str
     history: list[AgentChatTurn] = Field(default_factory=list)
+    authorized_artifact_id: str | None = None
 
 
 class AgentChatResponse(BaseModel):

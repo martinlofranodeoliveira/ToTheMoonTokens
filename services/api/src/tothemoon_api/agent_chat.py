@@ -56,12 +56,22 @@ class GeminiMarketplaceAgent:
             return buyer_address
         return self.settings.demo_buyer_wallet_role
 
-    def _system_instruction(self) -> str:
+    def _system_instruction(self, authorized_artifact_id: str | None = None) -> str:
         mode = self.settings.settlement_auth_mode
+        purchase_scope = (
+            f"The UI selected artifact id is {authorized_artifact_id}. "
+            "You may only create checkout, pay, and unlock that selected artifact. "
+            if authorized_artifact_id
+            else (
+                "No artifact has been selected in the UI for purchase. "
+                "Do not create checkout, pay, or unlock. Only list artifacts or explain the catalog. "
+            )
+        )
         return (
             "You are the buyer-side marketplace agent for TTM Agent Market. "
             "Keep answers concise and operational. "
             "The marketplace only sells paid artifacts settled in USDC on Arc testnet. "
+            f"{purchase_scope}"
             f"The active settlement authorization mode is {mode}. "
             "When the user wants to buy something, first identify the artifact from the catalog, "
             "then create a checkout. "
@@ -109,7 +119,14 @@ class GeminiMarketplaceAgent:
             "delivered": bool(record.download_url),
         }
 
-    def _dispatch_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
+    def _dispatch_tool(
+        self,
+        name: str,
+        args: dict[str, Any],
+        *,
+        authorized_artifact_id: str | None = None,
+        authorized_payment_ids: set[str] | None = None,
+    ) -> dict[str, Any]:
         tools = {
             "list_artifacts": self.list_artifacts,
             "list_orders": self.list_orders,
@@ -120,8 +137,33 @@ class GeminiMarketplaceAgent:
         tool = tools.get(name)
         if not tool:
             return {"error": f"Unknown tool: {name}"}
+        if name == "create_checkout":
+            artifact_id = str(args.get("artifact_id") or "")
+            if not authorized_artifact_id:
+                return {
+                    "error": "Purchase blocked. Select an artifact in the UI before checkout.",
+                }
+            if artifact_id != authorized_artifact_id:
+                return {
+                    "error": (
+                        "Purchase blocked. The checkout artifact does not match the selected artifact."
+                    )
+                }
+        if name in {"pay_artifact", "unlock_artifact"}:
+            payment_id = str(args.get("payment_id") or "")
+            if not authorized_artifact_id or payment_id not in (authorized_payment_ids or set()):
+                return {
+                    "error": (
+                        "Payment blocked. Select an artifact in the UI and create its checkout first."
+                    )
+                }
         try:
-            return tool(**args)
+            result = tool(**args)
+            if name == "create_checkout" and authorized_payment_ids is not None:
+                payment_id = result.get("payment", {}).get("payment_id")
+                if payment_id:
+                    authorized_payment_ids.add(str(payment_id))
+            return result
         except HTTPException as exc:
             detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
             return {"error": detail, "status_code": exc.status_code}
@@ -130,6 +172,8 @@ class GeminiMarketplaceAgent:
             return {"error": str(exc)}
 
     def respond(self, request: AgentChatRequest) -> AgentChatResponse:
+        authorized_artifact_id = request.authorized_artifact_id
+        authorized_payment_ids: set[str] = set()
         contents: list[types.Content] = [
             _as_content("user" if turn.role == "user" else "model", turn.text)
             for turn in request.history
@@ -138,7 +182,7 @@ class GeminiMarketplaceAgent:
 
         events: list[AgentToolEvent] = []
         config = types.GenerateContentConfig(
-            system_instruction=self._system_instruction(),
+            system_instruction=self._system_instruction(authorized_artifact_id),
             tools=[
                 self.list_artifacts,
                 self.list_orders,
@@ -177,7 +221,12 @@ class GeminiMarketplaceAgent:
             for call in function_calls:
                 name = call.name or "unknown_tool"
                 args = dict(call.args or {})
-                result = self._dispatch_tool(name, args)
+                result = self._dispatch_tool(
+                    name,
+                    args,
+                    authorized_artifact_id=authorized_artifact_id,
+                    authorized_payment_ids=authorized_payment_ids,
+                )
                 events.append(
                     AgentToolEvent(
                         id=call.id or None,

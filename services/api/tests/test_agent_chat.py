@@ -139,6 +139,67 @@ def test_gemini_agent_runs_manual_tool_call_loop(monkeypatch):
     assert calls[0]["config"].automatic_function_calling.disable is True
 
 
+def test_gemini_agent_blocks_purchase_without_ui_selection(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+
+    calls = []
+
+    class FakeModels:
+        def generate_content(self, *, model, contents, config):
+            calls.append(
+                {
+                    "model": model,
+                    "contents": contents,
+                    "config": config,
+                }
+            )
+            if len(calls) == 1:
+                return SimpleNamespace(
+                    function_calls=[
+                        types.FunctionCall(
+                            id="call-1",
+                            name="create_checkout",
+                            args={"artifact_id": "artifact_delivery_packet"},
+                        )
+                    ],
+                    candidates=[
+                        SimpleNamespace(
+                            content=types.Content(
+                                role="model",
+                                parts=[
+                                    types.Part.from_function_call(
+                                        name="create_checkout",
+                                        args={"artifact_id": "artifact_delivery_packet"},
+                                    )
+                                ],
+                            )
+                        )
+                    ],
+                    text=None,
+                )
+            return SimpleNamespace(
+                function_calls=[],
+                candidates=[],
+                text="Select an artifact in the UI before I create checkout.",
+            )
+
+    class FakeClient:
+        def __init__(self, api_key):
+            assert api_key == "test-gemini-key"
+            self.models = FakeModels()
+
+    monkeypatch.setattr("tothemoon_api.agent_chat.genai.Client", FakeClient)
+
+    agent = GeminiMarketplaceAgent(settings=get_settings())
+    response = agent.respond(AgentChatRequest(message="Buy the delivery packet", history=[]))
+
+    assert response.reply == "Select an artifact in the UI before I create checkout."
+    assert response.events[0].name == "create_checkout"
+    assert "Purchase blocked" in response.events[0].response["error"]
+    assert response.orders == []
+    assert "No artifact has been selected" in calls[0]["config"].system_instruction
+
+
 def test_gemini_agent_can_use_vertexai(monkeypatch):
     created = {}
 

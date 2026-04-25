@@ -97,7 +97,7 @@ class CircleDeveloperClient:
             return self._entity_secret_ciphertext
         public_key = serialization.load_pem_public_key(self._entity_public_key().encode("utf-8"))
         ciphertext = public_key.encrypt(
-            secret.encode("utf-8"),
+            bytes.fromhex(secret),
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),

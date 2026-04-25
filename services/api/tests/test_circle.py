@@ -90,7 +90,7 @@ def test_entity_secret_ciphertext_reuses_pre_encrypted_secret():
     assert client.entity_secret_ciphertext() == "already-encrypted-ciphertext"
 
 
-def test_entity_secret_ciphertext_encrypts_raw_hex_secret():
+def test_entity_secret_ciphertext_encrypts_raw_hex_secret_with_fresh_ciphertext():
     client = CircleDeveloperClient(
         api_key="TEST_API_KEY",  # pragma: allowlist secret
         entity_secret="a" * 64,  # pragma: allowlist secret
@@ -98,9 +98,13 @@ def test_entity_secret_ciphertext_encrypts_raw_hex_secret():
 
     with patch.object(client, "_entity_public_key", return_value=_test_public_key_pem()):
         ciphertext = client.entity_secret_ciphertext()
+        second_ciphertext = client.entity_secret_ciphertext()
 
     assert ciphertext
     assert ciphertext != "a" * 64
+    assert second_ciphertext
+    assert second_ciphertext != "a" * 64
+    assert second_ciphertext != ciphertext
 
 
 def test_get_transaction(circle_client):

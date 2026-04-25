@@ -28,7 +28,6 @@ class CircleDeveloperClient:
         self.wallets_by_role: dict[str, dict[str, Any]] = {}
         self.wallets_loaded = False
         self._public_key_pem: str | None = None
-        self._entity_secret_ciphertext: str | None = None
         self.roles = [
             "RESEARCH_00",
             "RESEARCH_01",
@@ -87,14 +86,11 @@ class CircleDeveloperClient:
         return self._public_key_pem
 
     def entity_secret_ciphertext(self) -> str:
-        if self._entity_secret_ciphertext:
-            return self._entity_secret_ciphertext
         secret = self.entity_secret.strip()
         if not secret:
             raise RuntimeError("Missing Circle entity secret.")
         if not re.fullmatch(r"[0-9a-fA-F]{64}", secret):
-            self._entity_secret_ciphertext = secret
-            return self._entity_secret_ciphertext
+            return secret
         public_key = serialization.load_pem_public_key(self._entity_public_key().encode("utf-8"))
         ciphertext = public_key.encrypt(
             bytes.fromhex(secret),
@@ -104,8 +100,7 @@ class CircleDeveloperClient:
                 label=None,
             ),
         )
-        self._entity_secret_ciphertext = base64.b64encode(ciphertext).decode("ascii")
-        return self._entity_secret_ciphertext
+        return base64.b64encode(ciphertext).decode("ascii")
 
     def load_wallets(self) -> None:
         """Load wallets from the configured wallet set and map them to demo roles."""

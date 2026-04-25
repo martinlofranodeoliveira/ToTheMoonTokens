@@ -163,6 +163,14 @@ def _margin_snapshot(total_attempted: int, total_usdc_moved: float) -> dict[str,
     }
 
 
+def _public_transaction(tx: dict[str, Any]) -> dict[str, Any]:
+    public = dict(tx)
+    tx_hash = str(public.get("tx_hash") or "").strip()
+    if tx_hash:
+        public["explorer_url"] = f"https://testnet.arcscan.app/tx/{tx_hash}"
+    return public
+
+
 @router.get("/summary")
 def get_hackathon_summary() -> dict[str, Any]:
     settings = get_settings()
@@ -200,7 +208,8 @@ def get_hackathon_summary() -> dict[str, Any]:
         if isinstance(evidence, dict) and evidence.get("wallet_set_id")
         else (settings.circle_wallet_set_id or None)
     )
-    latest_transactions = list(reversed(transactions[-8:])) if transactions else []
+    all_transactions = [_public_transaction(tx) for tx in reversed(transactions)] if transactions else []
+    latest_transactions = all_transactions[:8]
     treasury_address = connectors.treasury_address or next(
         (wallet["address"] for wallet in wallets if wallet["name"] == "treasury"),
         None,
@@ -229,6 +238,7 @@ def get_hackathon_summary() -> dict[str, Any]:
             "throughput_tx_per_min": float(summary.get("throughput_tx_per_min", 0.0)),
             "total_usdc_moved": total_usdc_moved,
             "amount_per_tx_usdc": float(summary.get("amount_per_tx_usdc", 0.0)),
+            "transactions_listed": len(all_transactions),
             "sample_tx_hash": latest_transactions[0]["tx_hash"] if latest_transactions else None,
             "explorer_base_url": "https://testnet.arcscan.app",
         },
@@ -245,6 +255,7 @@ def get_hackathon_summary() -> dict[str, Any]:
         "connectors": connectors.model_dump(mode="json"),
         "catalog": [item.model_dump(mode="json") for item in get_catalog()],
         "demo_jobs": [job.model_dump(mode="json") for job in list_demo_jobs()],
-        "transactions": latest_transactions,
+        "transactions": all_transactions,
+        "latest_transactions": latest_transactions,
         "arc_jobs": [job.model_dump(mode="json") for job in get_arc_jobs(limit=5)],
     }

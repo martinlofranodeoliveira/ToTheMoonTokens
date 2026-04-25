@@ -163,6 +163,87 @@ h4 {
   gap: 12px;
 }
 
+.floating-agent-chat {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.floating-agent-chat > * {
+  pointer-events: auto;
+}
+
+.floating-agent-button {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(48, 123, 246, 0.5);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--arc-blue), #1f6f5b);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.floating-agent-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.floating-agent-status {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--circle-green);
+}
+
+.floating-agent-status.has-activity {
+  box-shadow: 0 0 0 4px rgba(50, 198, 128, 0.18);
+}
+
+.agent-console-panel {
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(690px, calc(100vh - 110px));
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-elevated);
+}
+
+.floating-agent-close {
+  height: 30px;
+  padding: 0 8px;
+}
+
+.agent-console-panel .chat-log {
+  max-height: min(310px, calc(100vh - 390px));
+  min-height: 150px;
+}
+
+.agent-console-panel .tool-events {
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+.agent-console-panel .agent-input {
+  min-height: 76px;
+}
+
 .chat-log {
   display: flex;
   flex-direction: column;
@@ -294,5 +375,26 @@ h4 {
   .agent-compose {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .floating-agent-chat {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+  }
+
+  .floating-agent-button {
+    width: 52px;
+    height: 52px;
+  }
+
+  .agent-console-panel {
+    width: 100%;
+    max-height: calc(100vh - 88px);
+    padding: 16px;
+  }
+
+  .agent-console-panel .chat-log {
+    max-height: 260px;
   }
 }

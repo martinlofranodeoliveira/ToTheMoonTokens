@@ -235,6 +235,7 @@ const state = {
     banner: null,
     selectedAgentId: "research_00",
     agentComposer: "",
+    agentChatOpen: false,
     agentSending: false,
   },
 };
@@ -500,6 +501,8 @@ function icon(name, size = 14) {
       return `<svg ${common}><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>`;
     case "check":
       return `<svg ${common}><path d="M20 6 9 17l-5-5"></path></svg>`;
+    case "chat":
+      return `<svg ${common}><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path><path d="M8 9h8"></path><path d="M8 13h5"></path></svg>`;
     default:
       return "";
   }
@@ -1443,9 +1446,6 @@ function renderMainColumn(listings) {
           }
         </div>
       </div>
-
-      ${renderAgentConsole()}
-
       <div class="row between" style="margin-bottom: 16px;">
         <div class="sect-head" style="margin-bottom: 0;">
           <h3>Live artifacts</h3>
@@ -1500,7 +1500,7 @@ function summarizeAgentEvent(event) {
   return "completed";
 }
 
-function renderAgentConsole() {
+function renderAgentConsole({ floating = false } = {}) {
   const history = state.market.agentHistory || [];
   const events = state.market.agentEvents || [];
   const ready = agentChatReady();
@@ -1517,12 +1517,14 @@ function renderAgentConsole() {
   const secondaryPrompt = programmatic
     ? "Buy the Review Bundle and unlock it."
     : "Create a checkout for the Review Bundle.";
+  const outerClass = floating ? "agent-console agent-console-panel" : "card card-pad agent-console";
+  const outerStyle = floating ? "" : ' style="margin-bottom: 18px;"';
 
   return `
-    <div class="card card-pad agent-console" style="margin-bottom: 18px;">
+    <div class="${outerClass}"${outerStyle}>
       <div class="row between agent-console-head">
         <div class="sect-head" style="margin-bottom: 0;">
-          <h3>Agent Console</h3>
+          <h3>Agent chat</h3>
           <span class="live"><span class="dot"></span>${ready ? "Gemini live" : "offline"}</span>
         </div>
         <div class="row g8" style="align-items: center;">
@@ -1532,6 +1534,7 @@ function renderAgentConsole() {
               ? `<span class="mono-s t3">${escapeHtml(state.summary.connectors.agent_model)}</span>`
               : ""
           }
+          ${floating ? `<button class="btn btn-ghost floating-agent-close" data-action="close-agent-chat" aria-label="Close agent chat">${icon("x", 14)}</button>` : ""}
         </div>
       </div>
 
@@ -1603,6 +1606,27 @@ function renderAgentConsole() {
           ? ""
           : `<div class="banner warn" style="margin-top: 12px;">Set <code>GEMINI_API_KEY</code> to enable the in-app agent chat.</div>`
       }
+    </div>
+  `;
+}
+
+function renderFloatingAgentChat() {
+  const open = state.ui.agentChatOpen;
+  const ready = agentChatReady();
+  const hasActivity = (state.market.agentHistory || []).length > 0 || (state.market.agentEvents || []).length > 0;
+
+  return `
+    <div class="floating-agent-chat ${open ? "is-open" : ""}">
+      ${open ? renderAgentConsole({ floating: true }) : ""}
+      <button
+        class="floating-agent-button"
+        data-action="toggle-agent-chat"
+        aria-label="${open ? "Close agent chat" : "Open agent chat"}"
+        aria-expanded="${open ? "true" : "false"}"
+      >
+        ${icon(open ? "x" : "chat", 22)}
+        ${ready ? `<span class="floating-agent-status ${hasActivity ? "has-activity" : ""}"></span>` : ""}
+      </button>
     </div>
   `;
 }
@@ -2321,6 +2345,7 @@ function renderApp() {
       ${renderTopNav()}
       ${page}
       ${route === "marketplace" ? renderModal() : ""}
+      ${renderFloatingAgentChat()}
     </div>
   `;
 }
@@ -2588,6 +2613,7 @@ async function sendAgentMessage(message = state.ui.agentComposer.trim()) {
     return;
   }
 
+  state.ui.agentChatOpen = true;
   state.ui.agentSending = true;
   renderApp();
 
@@ -2617,7 +2643,9 @@ async function sendAgentMessage(message = state.ui.agentComposer.trim()) {
 }
 
 function focusAgentConsole() {
-  closeModal();
+  state.ui.modalArtifactId = null;
+  state.ui.agentChatOpen = true;
+  renderApp();
   window.setTimeout(() => {
     const composer = document.getElementById("agent-composer");
     if (composer && typeof composer.focus === "function") {
@@ -2760,6 +2788,7 @@ function handleClick(event) {
       copyToClipboard(target.dataset.paymentId, "payment ID");
       return;
     case "agent-prompt":
+      state.ui.agentChatOpen = true;
       state.ui.agentComposer = target.dataset.prompt || "";
       renderApp();
       sendAgentMessage(target.dataset.prompt || "");
@@ -2769,6 +2798,17 @@ function handleClick(event) {
       return;
     case "focus-agent-console":
       focusAgentConsole();
+      return;
+    case "toggle-agent-chat":
+      state.ui.agentChatOpen = !state.ui.agentChatOpen;
+      renderApp();
+      if (state.ui.agentChatOpen) {
+        focusAgentConsole();
+      }
+      return;
+    case "close-agent-chat":
+      state.ui.agentChatOpen = false;
+      renderApp();
       return;
     case "open-docs":
       window.open(`${API_BASE_URL}/docs`, "_blank", "noopener,noreferrer");

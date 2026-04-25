@@ -1,5 +1,5 @@
 const DEFAULT_API_BASE_URL = "";
-const STORAGE_KEY = "ttm-marketplace-state-v3";
+const STORAGE_KEY = "ttm-marketplace-state-v4";
 const VIDEO_SOURCE_WALLET = "research_03";
 const FALLBACK_WALLETS = [
   { name: "research_00", address: "0xde618b260763a606e0380150d1338364f5ff3139" },

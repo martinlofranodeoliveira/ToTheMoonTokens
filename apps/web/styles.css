@@ -364,6 +364,74 @@ h4 {
   border-color: rgba(48, 123, 246, 0.4);
 }
 
+.agent-proof-card {
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid rgba(17, 217, 139, 0.28);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(17, 217, 139, 0.12), rgba(17, 217, 139, 0.04)),
+    var(--surface-2);
+  box-shadow: 0 0 0 1px rgba(17, 217, 139, 0.04) inset;
+}
+
+.agent-proof-main {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.agent-proof-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #04110b;
+  background: var(--circle-green);
+  box-shadow: 0 0 0 5px rgba(17, 217, 139, 0.14);
+}
+
+.agent-proof-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.agent-proof-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--circle-green);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.agent-proof-copy strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.agent-proof-hash {
+  display: flex;
+  min-width: 0;
+}
+
+.agent-proof-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.agent-proof-actions .btn {
+  height: 34px;
+  padding: 0 11px;
+}
+
 .tool-events {
   margin-top: 12px;
   padding-top: 12px;
@@ -429,6 +497,14 @@ h4 {
   color: var(--text-2);
   font-size: 12px;
   line-height: 1.35;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.tool-event-proof {
+  display: inline-flex;
 }
 
 .agent-compose {

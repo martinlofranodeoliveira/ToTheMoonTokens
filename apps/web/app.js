@@ -1565,8 +1565,107 @@ function summarizeAgentEvent(event) {
   return "completed";
 }
 
+function txHashFromAgentEvent(event) {
+  const response = event?.response || {};
+  const candidates = [
+    response.result?.tx_hash,
+    response.result?.txHash,
+    response.payment?.tx_hash,
+    response.payment?.txHash,
+    response.payment?.result?.tx_hash,
+    response.payment?.result?.txHash,
+  ];
+  return candidates.find((candidate) => isExplorerTxHash(candidate)) || null;
+}
+
+function latestAgentProof() {
+  const events = state.market.agentEvents || [];
+  for (const event of [...events].reverse()) {
+    const txHash = txHashFromAgentEvent(event);
+    if (txHash) {
+      const response = event?.response || {};
+      return {
+        artifactName:
+          response.payment?.artifact_name ||
+          response.payment?.artifactName ||
+          getSortedOrders().find((order) => order.txHash === txHash)?.artifactName ||
+          "Paid artifact",
+        paymentId:
+          response.payment?.payment_id ||
+          response.payment?.paymentId ||
+          getSortedOrders().find((order) => order.txHash === txHash)?.paymentId ||
+          null,
+        downloadUrl:
+          response.payment?.download_url ||
+          response.payment?.downloadUrl ||
+          getSortedOrders().find((order) => order.txHash === txHash)?.downloadUrl ||
+          null,
+        txHash,
+      };
+    }
+  }
+  const order = getSortedOrders().find((candidate) => isExplorerTxHash(candidate.txHash));
+  if (!order) {
+    return null;
+  }
+  return {
+    artifactName: order.artifactName || "Paid artifact",
+    paymentId: order.paymentId || null,
+    downloadUrl: order.downloadUrl || null,
+    txHash: order.txHash,
+  };
+}
+
+function renderAgentProofCard() {
+  const proof = latestAgentProof();
+  if (!proof) {
+    return "";
+  }
+  return `
+    <div class="agent-proof-card">
+      <div class="agent-proof-main">
+        <div class="agent-proof-icon">${icon("check", 16)}</div>
+        <div class="agent-proof-copy">
+          <span class="agent-proof-label">Arc settlement proof</span>
+          <strong>${escapeHtml(proof.artifactName)} unlocked</strong>
+          <span class="agent-proof-hash">${renderTxReference(proof.txHash, 10, 8, "Verified Arc transaction")}</span>
+        </div>
+      </div>
+      <div class="agent-proof-actions">
+        <button class="btn btn-primary" data-action="open-tx" data-tx-hash="${escapeHtml(proof.txHash)}">${icon("link", 13)} Open Arcscan</button>
+        ${
+          proof.downloadUrl
+            ? `<a class="btn btn-secondary" href="${escapeHtml(proof.downloadUrl)}" target="_blank" rel="noreferrer">Download artifact</a>`
+            : ""
+        }
+      </div>
+    </div>
+  `;
+}
+
 function formatToolName(name) {
   return String(name || "tool").replaceAll("_", " ");
+}
+
+function renderAgentEventSummary(event) {
+  const response = event?.response || {};
+  if (response.error) {
+    return renderInlineMarkdown(response.error);
+  }
+  const txHash = txHashFromAgentEvent(event);
+  if (response.result?.status) {
+    return `
+      <span>${escapeHtml(response.result.status)}</span>
+      ${txHash ? `<span class="tool-event-proof">${renderTxReference(txHash, 8, 6, "Tool transaction")}</span>` : ""}
+    `;
+  }
+  if (response.payment?.artifact_name) {
+    return `
+      <span>${escapeHtml(response.payment.artifact_name)} · ${escapeHtml(response.payment.status || "completed")}</span>
+      ${txHash ? `<span class="tool-event-proof">${renderTxReference(txHash, 8, 6, "Tool transaction")}</span>` : ""}
+    `;
+  }
+  return renderInlineMarkdown(summarizeAgentEvent(event));
 }
 
 function toolEventTone(event) {
@@ -1659,6 +1758,8 @@ function renderAgentConsole({ floating = false } = {}) {
         }
       </div>
 
+      ${renderAgentProofCard()}
+
       ${
         events.length
           ? `
@@ -1672,7 +1773,7 @@ function renderAgentConsole({ floating = false } = {}) {
                       <span class="tool-dot"></span>
                       <div class="tool-event-body">
                         <span class="tool-event-title">${escapeHtml(formatToolName(event.name))}</span>
-                        <span class="tool-event-summary">${renderInlineMarkdown(summarizeAgentEvent(event))}</span>
+                        <span class="tool-event-summary">${renderAgentEventSummary(event)}</span>
                       </div>
                     </div>
                   `;

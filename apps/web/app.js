@@ -1,5 +1,5 @@
 const DEFAULT_API_BASE_URL = "";
-const STORAGE_KEY = "ttm-marketplace-state-v4";
+const STORAGE_KEY = "ttm-marketplace-state-v5";
 const VIDEO_SOURCE_WALLET = "research_03";
 const FALLBACK_WALLETS = [
   { name: "research_00", address: "0xde618b260763a606e0380150d1338364f5ff3139" },
@@ -1581,39 +1581,35 @@ function txHashFromAgentEvent(event) {
 function latestAgentProof() {
   const events = state.market.agentEvents || [];
   for (const event of [...events].reverse()) {
+    const toolName = String(event?.name || "");
+    if (toolName !== "pay_artifact" && toolName !== "unlock_artifact") {
+      continue;
+    }
     const txHash = txHashFromAgentEvent(event);
     if (txHash) {
       const response = event?.response || {};
+      const matchingOrder = getSortedOrders().find((order) => order.txHash === txHash);
       return {
         artifactName:
           response.payment?.artifact_name ||
           response.payment?.artifactName ||
-          getSortedOrders().find((order) => order.txHash === txHash)?.artifactName ||
+          matchingOrder?.artifactName ||
           "Paid artifact",
         paymentId:
           response.payment?.payment_id ||
           response.payment?.paymentId ||
-          getSortedOrders().find((order) => order.txHash === txHash)?.paymentId ||
+          matchingOrder?.paymentId ||
           null,
         downloadUrl:
           response.payment?.download_url ||
           response.payment?.downloadUrl ||
-          getSortedOrders().find((order) => order.txHash === txHash)?.downloadUrl ||
+          matchingOrder?.downloadUrl ||
           null,
         txHash,
       };
     }
   }
-  const order = getSortedOrders().find((candidate) => isExplorerTxHash(candidate.txHash));
-  if (!order) {
-    return null;
-  }
-  return {
-    artifactName: order.artifactName || "Paid artifact",
-    paymentId: order.paymentId || null,
-    downloadUrl: order.downloadUrl || null,
-    txHash: order.txHash,
-  };
+  return null;
 }
 
 function renderAgentProofCard() {

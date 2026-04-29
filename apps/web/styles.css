@@ -97,3 +97,32 @@
     border-radius: 4px;
     font-family: monospace;
 }
+
+/* Toast Notification System */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 1000;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-success {
+    background-color: #4ade80;
+    color: #064e3b;
+}
+
+.toast-error {
+    background-color: #ef4444;
+}

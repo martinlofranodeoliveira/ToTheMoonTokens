@@ -1,4 +1,4 @@
-import time
+import asyncio
 from typing import List, Dict
 
 class MarketScanner:
@@ -6,13 +6,13 @@ class MarketScanner:
         self.rpc_url = rpc_url
         print(f"Initialized MarketScanner with RPC: {self.rpc_url}")
 
-    def scan_new_pairs(self) -> List[Dict]:
+    async def scan_new_pairs(self) -> List[Dict]:
         """
         Simulates scanning the market for new token pairs.
         In a real scenario, this would query a DEX or an API like DexScreener.
         """
         print("Scanning market for new pairs...")
-        time.sleep(1) # Simulate network delay
+        await asyncio.sleep(1) # Simulate network delay
         
         # Mock data
         mock_tokens = [
@@ -37,10 +37,14 @@ class MarketScanner:
         
         return promising_addresses
 
-if __name__ == "__main__":
+async def scan_market() -> List[str]:
     scanner = MarketScanner()
-    new_pairs = scanner.scan_new_pairs()
-    print(f"Found {len(new_pairs)} new pairs.")
-    
-    promising_tokens = scanner.filter_promising_tokens(new_pairs)
+    new_pairs = await scanner.scan_new_pairs()
+    return scanner.filter_promising_tokens(new_pairs)
+
+async def main_cli():
+    promising_tokens = await scan_market()
     print(f"Promising tokens based on criteria: {promising_tokens}")
+
+if __name__ == "__main__":
+    asyncio.run(main_cli())

@@ -14,6 +14,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // API URL based on config or default localhost
     const API_BASE = window.API_URL || 'http://127.0.0.1:8010/api/v1';
 
+    // Toast Notification System
+    const showToast = (msg, type = 'success') => {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        
+        // Trigger reflow for transition
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    // Helper for async/await delays
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
     // Generate API Key
     genKeyBtn.addEventListener('click', () => {
         const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -22,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
             key += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         apiKeyDisplay.value = key;
-        alert("New API Key generated. Update your bots!");
+        showToast("New API Key generated. Update your bots!", "success");
     });
 
     // Run Token Audit & Simulation (Calling Phase 1 & 2 APIs)
@@ -41,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (auditData.security.is_honeypot) {
                 simResultBox.innerHTML += `<br>=> Simulation aborted due to security risk.`;
+                showToast("Simulation aborted due to security risk.", "error");
                 return;
             }
 
@@ -61,9 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
             simResultBox.innerHTML += `<br>=> Fees Paid: $${simData.fees_paid.toFixed(2)}`;
             simResultBox.innerHTML += `<br>=> Net Simulated Position: $${simData.net_amount.toFixed(2)}`;
             
+            showToast("Simulation completed successfully!", "success");
         } catch (error) {
-            simResultBox.innerHTML += `<br><span style="color: red;">Error: Could not connect to API. Is it running?</span>`;
-            console.error(error);
+            showToast("Could not connect to API. Is it running?", "error");
         } finally {
             runSimBtn.disabled = false;
             runSimBtn.innerText = "Run Token Audit & Simulation";
@@ -71,19 +91,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Subscribe (Mocking Circle Checkout Flow)
-    subscribeBtn.addEventListener('click', () => {
+    subscribeBtn.addEventListener('click', async () => {
         subscribeBtn.disabled = true;
         subscribeBtn.innerText = "Processing USDC Payment...";
         checkoutStatus.classList.remove('hidden');
         checkoutStatus.innerHTML = "Generating Circle checkout session...";
         
-        // Simulating the delay of a blockchain transaction
-        setTimeout(() => {
+        try {
+            // Simulating the delay of a blockchain transaction
+            await sleep(1500);
             checkoutStatus.innerHTML += "<br>=> Waiting for Arc Testnet settlement verification...";
-            setTimeout(() => {
-                checkoutStatus.innerHTML += "<br>=> <span style='color: #4ade80;'>Payment Verified! Account upgraded to Pro Tier.</span>";
-                subscribeBtn.innerText = "Subscribed";
-            }, 2000);
-        }, 1500);
+            
+            await sleep(2000);
+            checkoutStatus.innerHTML += "<br>=> <span style='color: #4ade80;'>Payment Verified! Account upgraded to Pro Tier.</span>";
+            subscribeBtn.innerText = "Subscribed";
+            showToast("Payment Verified! Account upgraded to Pro Tier.", "success");
+        } catch (error) {
+            showToast("Payment failed to process.", "error");
+            subscribeBtn.disabled = false;
+            subscribeBtn.innerText = "Subscribe";
+        }
     });
 });

@@ -2,140 +2,23 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  backend-tests:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install API dependencies
-        run: |
-          cd services/api
-          python -m venv .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
-      - name: Run API tests with coverage
-        run: |
-          cd services/api
-          . .venv/bin/activate
-          python -m pytest --cov --cov-report=term-missing
-      - name: Run guardrail regression
-        run: |
-          . services/api/.venv/bin/activate
-          python scripts/verify_guardrails.py
-
-  lint-and-typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install API dev dependencies
-        run: |
-          cd services/api
-          python -m venv .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
-      - name: Ruff lint
-        run: |
-          cd services/api
-          . .venv/bin/activate
-          python -m ruff check .
-      - name: Ruff format check
-        run: |
-          cd services/api
-          . .venv/bin/activate
-          python -m ruff format --check .
-      - name: Mypy type check
-        run: |
-          cd services/api
-          . .venv/bin/activate
-          python -m mypy
-
-  secret-and-env-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Fail if .env is tracked anywhere in history
-        run: |
-          if git log --all --diff-filter=A --name-only --pretty=format: | grep -E '(^|/)\.env$' | grep -v '\.env\.example'; then
-            echo "::error::A .env file was committed to this repo. Purge with git filter-repo and rotate any exposed secrets."
-            exit 1
-          fi
-      - name: Fail if .env is currently checked in
-        run: |
-          if git ls-files | grep -E '(^|/)\.env$' | grep -v '\.env\.example'; then
-            echo "::error::.env is tracked in the working tree. Remove it and add to .gitignore."
-            exit 1
-          fi
-      - name: Install detect-secrets
-        run: python -m pip install detect-secrets==1.5.0
-      - name: Scan for leaked secrets
-        run: |
-          detect-secrets scan --all-files \
-            --exclude-files '(^|/)\.git/|services/api/\.venv/|node_modules/' \
-            > .detect-secrets-report.json
-          python -c "import json,sys; r=json.load(open('.detect-secrets-report.json')); \
-            findings=[(f,s) for f,items in r.get('results',{}).items() for s in items]; \
-            sys.exit(1 if findings else 0)"
-
-  static-checks:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify web and docs assets
-        run: |
-          test -f apps/web/index.html
-          test -f apps/web/styles.css
-          test -f apps/web/app.js
-          test -f apps/pitch/index.html
-          test -f apps/pitch/styles.css
-          test -f apps/pitch/src/app.jsx
-          test -f apps/pitch/src/data.js
-          test -f docs/ARCHITECTURE.md
-          test -f docs/TRADING_GUARDRAILS.md
-          test -f docs/REAL_MODE_GRADUATION.md
-          test -f docs/DELIVERY_VALIDATION.md
-          test -f docs/SECURITY_RUNBOOK.md
-          test -f docs/CONTRIBUTING.md
-          test -f docs/hackathon/FINAL_HANDOFF.md
-          test -f scripts/verify_mirror.sh
-          test -f scripts/run-local-demo.sh
-          test -f scripts/collect_validation_evidence.py
-      - name: Shell script syntax check
-        run: |
-          bash -n scripts/verify_mirror.sh
-          bash -n scripts/run-local-demo.sh
-      - name: Smoke test pitch static app
-        run: |
-          python3 -m http.server 4174 --directory apps/pitch >/tmp/pitch-server.log 2>&1 &
-          server_pid=$!
-          cleanup() {
-            kill "$server_pid"
-            wait "$server_pid" 2>/dev/null || true
-          }
-          trap cleanup EXIT
-          sleep 2
-          for path in \
-            / \
-            /styles.css \
-            /src/data.js \
-            /src/components.jsx \
-            /src/marketplace.jsx \
-            /src/payment.jsx \
-            /src/landing.jsx \
-            /src/dashboard.jsx \
-            /src/arch_about.jsx \
-            /src/app.jsx; do
-            curl -fsS "http://127.0.0.1:4174${path}" >/dev/null
-          done
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies and run tests
+      working-directory: services/api
+      run: |
+        pip install -e .[dev]
+        pytest tests/

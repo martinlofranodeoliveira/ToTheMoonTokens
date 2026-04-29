@@ -106,6 +106,7 @@ app.include_router(demo_router)
 app.include_router(reputation_router)
 app.include_router(settlements_router)
 app.include_router(hackathon_router)
+app.include_router(tokens_router)
 app.include_router(simulate_router)
 
 log.info(
@@ -449,4 +450,6 @@ def create_arc_job(event: NexusTaskEvent):
 @app.get("/api/arc/jobs", response_model=list[ArcJobProof])
 def list_arc_jobs(limit: int = 20):
     return get_arc_jobs(limit=limit)
+mit=limit)
+mit)
 mit=limit)

@@ -1,22 +1,69 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="ttm-api-base-url" content="" />
-    <meta name="theme-color" content="#0B0D10" />
-    <title>TTM Agent Market — Marketplace</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div id="app-root"></div>
-    <script src="./config.js"></script>
-    <script src="./app.js"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTM Agent Market - SaaS Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">TTM SaaS <span>Automated Venture Capital</span></div>
+        <nav>
+            <a href="#dashboard" class="active">Dashboard</a>
+            <a href="#api-keys">API Keys</a>
+            <a href="#billing">Billing</a>
+        </nav>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="saas-section">
+            <h2>Bot Simulation Performance</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Simulated Balance</h3>
+                    <p class="value" id="sim-balance">$10,000.00</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Win Rate</h3>
+                    <p class="value" id="win-rate">68.5%</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Trades Simulated</h3>
+                    <p class="value" id="total-trades">1,240</p>
+                </div>
+            </div>
+            <div class="action-panel">
+                <button id="run-simulation-btn" class="primary-btn">Run Token Audit & Simulation</button>
+                <div id="simulation-result" class="hidden result-box"></div>
+            </div>
+        </section>
+
+        <!-- API Keys Section -->
+        <section id="api-keys" class="saas-section">
+            <h2>API Key Management</h2>
+            <p>Use this key to authenticate your AI trading bot against our Paper Trading Engine.</p>
+            <div class="api-key-box">
+                <input type="text" id="api-key-display" value="ttm_sk_mock_8f92a1b4c..." readonly>
+                <button id="generate-key-btn" class="secondary-btn">Generate New Key</button>
+            </div>
+        </section>
+
+        <!-- Billing Section (Using existing Circle logic) -->
+        <section id="billing" class="saas-section">
+            <h2>Premium Subscription</h2>
+            <p>Unlock unlimited paper trading simulations and advanced honeypot detection.</p>
+            <div class="pricing-card">
+                <h3>Pro Tier</h3>
+                <p class="price">$50 USDC / month</p>
+                <button id="subscribe-btn" class="primary-btn">Pay with Circle (USDC)</button>
+            </div>
+            <div id="checkout-status" class="hidden result-box"></div>
+        </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
 </html>

@@ -15,6 +15,28 @@
     color: #eee;
 }
 
+.auth-panel {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.auth-panel input {
+    min-width: 0;
+    padding: 0.75rem;
+    background: #111;
+    border: 1px solid #444;
+    color: #eee;
+    border-radius: 4px;
+}
+
+.status-text {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -48,7 +70,8 @@
     margin-top: 1rem;
 }
 
-.api-key-box input {
+.api-key-box input,
+.api-key-row {
     flex: 1;
     padding: 0.75rem;
     background: #111;
@@ -56,6 +79,30 @@
     color: #4ade80;
     font-family: monospace;
     border-radius: 4px;
+}
+
+.api-keys-list {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.api-key-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.api-key-details {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.api-key-details span {
+    color: #aaa;
+    font-family: monospace;
+    font-size: 0.85rem;
 }
 
 .primary-btn, .secondary-btn {
@@ -125,4 +172,14 @@
 
 .toast-error {
     background-color: #ef4444;
+}
+
+@media (max-width: 720px) {
+    .auth-panel,
+    .api-key-box,
+    .api-key-row {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
 }

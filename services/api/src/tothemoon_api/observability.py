@@ -70,6 +70,7 @@ SECURITY_HEADERS: dict[str, str] = {
 
 
 _CONFIGURED = False
+_RUNTIME_OBSERVABILITY_CONFIGURED = False
 
 
 def configure_logging() -> None:
@@ -102,6 +103,96 @@ def configure_logging() -> None:
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     configure_logging()
     return structlog.get_logger(name or "tothemoon_api")
+
+
+def _parse_otlp_headers(raw: str) -> dict[str, str]:
+    headers: dict[str, str] = {}
+    for part in raw.split(","):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        key = key.strip()
+        if key:
+            headers[key] = value.strip()
+    return headers
+
+
+def bind_trace_context(**attrs: object) -> None:
+    clean_attrs = {key: value for key, value in attrs.items() if value is not None}
+    if not clean_attrs:
+        return
+    structlog.contextvars.bind_contextvars(**clean_attrs)
+    try:
+        from opentelemetry import trace
+
+        span = trace.get_current_span()
+        if span and span.is_recording():
+            for key, value in clean_attrs.items():
+                attr_value = value if isinstance(value, str | bool | int | float) else str(value)
+                span.set_attribute(f"ttm.{key}", attr_value)
+    except Exception:
+        return
+
+
+def configure_runtime_observability(app: Any, settings: object) -> None:
+    """Wire optional tracing and error reporting.
+
+    The integrations are intentionally opt-in: local/test environments should not
+    need an OTLP collector or a Sentry DSN just to import the FastAPI app.
+    """
+
+    global _RUNTIME_OBSERVABILITY_CONFIGURED
+    if _RUNTIME_OBSERVABILITY_CONFIGURED:
+        return
+    _RUNTIME_OBSERVABILITY_CONFIGURED = True
+
+    log = get_logger(__name__)
+    sentry_dsn = str(getattr(settings, "sentry_dsn", "") or "")
+    if sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.fastapi import FastApiIntegration
+        except ImportError:
+            log.warning("sentry_unavailable")
+        else:
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                environment=str(getattr(settings, "sentry_environment", "") or "local"),
+                traces_sample_rate=float(getattr(settings, "sentry_traces_sample_rate", 0.0)),
+                integrations=[FastApiIntegration()],
+            )
+            log.info("sentry_configured")
+
+    otlp_endpoint = str(getattr(settings, "otel_exporter_otlp_endpoint", "") or "")
+    if not otlp_endpoint:
+        return
+    try:
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    except ImportError:
+        log.warning("opentelemetry_unavailable")
+        return
+
+    provider = TracerProvider(
+        resource=Resource.create(
+            {
+                "service.name": str(getattr(settings, "otel_service_name", "") or "tothemoontokens-api"),
+                "deployment.environment": str(getattr(settings, "app_env", "") or "local"),
+            }
+        )
+    )
+    exporter = OTLPSpanExporter(
+        endpoint=otlp_endpoint,
+        headers=_parse_otlp_headers(str(getattr(settings, "otel_exporter_otlp_headers", "") or "")),
+    )
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+    trace.set_tracer_provider(provider)
+    FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
+    log.info("opentelemetry_configured", endpoint=otlp_endpoint)
 
 
 HTTP_REQUESTS_TOTAL = Counter(

@@ -12,7 +12,9 @@ from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
 from .circle import circle_client
 from .config import get_settings
+from .database import init_db
 from .demo_agent import router as demo_router
+from .external.health import get_provider_health
 from .guards import connector_status, evaluate_guardrails, gemini_configured
 from .hackathon_summary import router as hackathon_router
 from .journal import (
@@ -52,20 +54,28 @@ from .observability import (
     RequestIdMiddleware,
     SecurityHeadersMiddleware,
     configure_logging,
+    configure_runtime_observability,
     enforce_rate_limit,
     get_logger,
     metrics_response,
 )
 from .payments import router as payments_router
 from .reputation import router as reputation_router
+from .routers.billing import router as billing_router
+from .routers.copilot import router as copilot_router
+from .routers.nanopayments import router as nanopayments_router
+from .routers.saas import router as saas_router
+from .routers.tokens import router as tokens_router
 from .scalp import validate_scalp_setup
 from .settlement import router as settlements_router
+from .simulate import router as simulate_router
 from .strategies import strategy_catalog
 
 configure_logging()
 log = get_logger(__name__)
 
 settings = get_settings()
+init_db()
 
 
 @asynccontextmanager
@@ -86,6 +96,8 @@ app = FastAPI(
     ),
 )
 
+configure_runtime_observability(app, settings)
+
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(RequestIdMiddleware)
@@ -94,7 +106,7 @@ app.add_middleware(
     allow_origins=settings.cors_allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-Request-ID"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Request-ID"],
     expose_headers=["X-Request-ID"],
     max_age=600,
 )
@@ -106,6 +118,10 @@ app.include_router(demo_router)
 app.include_router(reputation_router)
 app.include_router(settlements_router)
 app.include_router(hackathon_router)
+app.include_router(saas_router)
+app.include_router(billing_router)
+app.include_router(copilot_router)
+app.include_router(nanopayments_router)
 app.include_router(tokens_router)
 app.include_router(simulate_router)
 
@@ -227,6 +243,11 @@ def health() -> dict[str, object]:
             "sample_count": 0,
             "public_exposure": False,
         },
+        "providers": get_provider_health(),
+        "observability": {
+            "sentry": bool(settings.sentry_dsn),
+            "otlp": bool(settings.otel_exporter_otlp_endpoint),
+        },
     }
 
 
@@ -247,6 +268,13 @@ def ready() -> dict[str, object]:
 @app.get("/metrics")
 def metrics():
     return metrics_response()
+
+
+@app.get("/api/_test/raise", include_in_schema=False)
+def raise_observability_test_error():
+    if settings.app_env == "production" and not settings.observability_test_raise_enabled:
+        raise HTTPException(status_code=404, detail="Not found")
+    raise RuntimeError("observability test exception")
 
 
 @app.get("/api/strategies")
@@ -450,6 +478,3 @@ def create_arc_job(event: NexusTaskEvent):
 @app.get("/api/arc/jobs", response_model=list[ArcJobProof])
 def list_arc_jobs(limit: int = 20):
     return get_arc_jobs(limit=limit)
-mit=limit)
-mit)
-mit=limit)

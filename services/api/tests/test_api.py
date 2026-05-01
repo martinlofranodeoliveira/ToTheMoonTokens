@@ -16,6 +16,9 @@ def test_health_endpoint_exposes_paper_mode_by_default():
     assert payload["mode"] == "paper"
     assert payload["orderSubmissionEnabled"] is False
     assert "market_connector" in payload
+    assert {"goplus", "honeypotis", "tokensniffer", "dexscreener", "birdeye"} <= set(
+        payload["providers"]
+    )
 
 
 def test_dashboard_includes_guardrails_and_metrics():

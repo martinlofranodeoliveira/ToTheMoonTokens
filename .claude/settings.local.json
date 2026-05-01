@@ -1,8 +1,18 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(find services/api/src -type f -name \"*.py\" -exec wc -l {} \\\\;)",
+      "Bash(grep -v \":0$\")",
+      "Bash(find services/api/tests -name \"test_*.py\" -exec grep -c \"^def test_\\\\|^async def test_\" {} +)",
+      "Bash(awk -F: '{s+=$2} END {print \"Total testes:\", s}')"
+    ]
+  },
   "mcpServers": {
     "arc-docs": {
       "command": "http",
-      "args": ["https://docs.arc.network/mcp"]
+      "args": [
+        "https://docs.arc.network/mcp"
+      ]
     }
   }
 }

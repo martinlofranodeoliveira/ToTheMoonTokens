@@ -1,4 +1,43 @@
-from tothemoon_api.simulation import OrderRequest, OrderResponse, TradeSide, simulate_trade
+from decimal import Decimal
+
+import pytest
+from fastapi import HTTPException
+
+from tothemoon_api.db_models import ApiKey, Membership, Organization, Plan, SimulatedTrade, User
+from tothemoon_api.simulation import (
+    OrderRequest,
+    TradeSide,
+    close_position,
+    simulate_trade,
+)
+
+
+def _api_key(db_session) -> ApiKey:
+    plan = Plan(
+        code="test-plan",
+        name="Test",
+        monthly_request_limit=1000,
+        monthly_token_audit_limit=100,
+        active_api_key_limit=10,
+    )
+    user = User(email="simulation@example.com", password_hash="hashed")
+    db_session.add_all([plan, user])
+    db_session.flush()
+    org = Organization(name="Simulation Org", plan_id=plan.id)
+    db_session.add(org)
+    db_session.flush()
+    api_key = ApiKey(
+        user_id=user.id,
+        org_id=org.id,
+        name="simulation",
+        prefix="ttm_sk_live_",
+        key_hash="hashed-key",
+    )
+    db_session.add_all([Membership(user_id=user.id, org_id=org.id, role="owner"), api_key])
+    db_session.commit()
+    db_session.refresh(api_key)
+    return api_key
+
 
 def test_order_request_validation():
     req = OrderRequest(token_address="0xABC", amount=100.0, side=TradeSide.BUY)
@@ -6,14 +45,71 @@ def test_order_request_validation():
     assert req.amount == 100.0
     assert req.side == "BUY"
 
-def test_simulate_trade_applies_fees_and_slippage():
-    # Hardcoded base price: $1.00 for testing
-    # Hardcoded fee: $2.00 per trade
-    # Slippage: 1% penalty on amount
+
+def test_buy_records_open_trade(db_session):
+    api_key = _api_key(db_session)
     req = OrderRequest(token_address="0xTEST", amount=100.0, side=TradeSide.BUY)
-    response = simulate_trade(req)
-    
+    response = simulate_trade(req, api_key=api_key, db=db_session)
+
     assert response.status == "SUCCESS"
-    assert response.executed_price == 1.01  # 1% slippage added to buy
-    assert response.fees_paid == 2.0
-    assert response.net_amount == 98.0
+    assert response.trade_id is not None
+    assert response.executed_price == 1.05525
+    assert response.fees_paid == 8.0
+    assert response.net_amount == 92.0
+
+    trade = db_session.query(SimulatedTrade).filter_by(id=response.trade_id).one()
+    assert trade.org_id == api_key.org_id
+    assert trade.status == "OPEN"
+    assert trade.side == "BUY"
+
+
+def test_honeypot_blocks_buy(db_session):
+    api_key = _api_key(db_session)
+    req = OrderRequest(token_address="0xSCAM", amount=100.0, side=TradeSide.BUY)
+
+    with pytest.raises(HTTPException) as exc:
+        simulate_trade(req, api_key=api_key, db=db_session)
+
+    assert exc.value.status_code == 409
+
+
+def test_sell_closes_position_and_computes_pnl(db_session, monkeypatch):
+    api_key = _api_key(db_session)
+
+    monkeypatch.setattr(
+        "tothemoon_api.simulation.get_token_market_data",
+        lambda token: {"token_address": token, "price": 1.0, "chain": "solana"},
+    )
+    opened = simulate_trade(
+        OrderRequest(token_address="0xGAIN", amount=100.0, side=TradeSide.BUY),
+        api_key=api_key,
+        db=db_session,
+    )
+    trade = db_session.query(SimulatedTrade).filter_by(id=opened.trade_id).one()
+
+    monkeypatch.setattr(
+        "tothemoon_api.simulation.get_token_market_data",
+        lambda token: {"token_address": token, "price": 1.2, "chain": "solana"},
+    )
+    closed = close_position(trade)
+    db_session.commit()
+
+    assert closed.status == "SUCCESS"
+    assert closed.realized_pnl_usd is not None
+    assert closed.realized_pnl_usd > 0
+    assert trade.status == "CLOSED"
+    assert trade.exit_price is not None
+    assert trade.realized_pnl_usd == Decimal(str(closed.realized_pnl_usd))
+
+
+def test_chain_specific_slippage_applied(monkeypatch):
+    monkeypatch.setattr(
+        "tothemoon_api.simulation.get_token_market_data",
+        lambda token: {"token_address": token, "price": 1.0, "chain": "base"},
+    )
+    req = OrderRequest(token_address="0xBASE", amount=100.0, side=TradeSide.BUY)
+
+    response = simulate_trade(req)
+
+    assert response.executed_price == 1.003
+    assert response.fees_paid == 0.4

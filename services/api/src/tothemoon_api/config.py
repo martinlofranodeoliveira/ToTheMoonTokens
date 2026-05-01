@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -71,6 +72,34 @@ class Settings(BaseSettings):
     gemini_use_vertexai: bool = Field(False, alias="GEMINI_USE_VERTEXAI")
     gemini_vertex_project: str = Field("", alias="GEMINI_VERTEX_PROJECT")
     gemini_vertex_location: str = Field("us-central1", alias="GEMINI_VERTEX_LOCATION")
+    database_url: str = Field("sqlite:///./saas.db", alias="DATABASE_URL")
+    jwt_secret: str = Field("", alias="JWT_SECRET")
+    jwt_algorithm: str = Field("HS256", alias="JWT_ALGORITHM")
+    jwt_expires_minutes: int = Field(60, alias="JWT_EXPIRES_MINUTES")
+    stripe_webhook_secret: str = Field("whsec_dev_secret", alias="STRIPE_WEBHOOK_SECRET")
+    stripe_checkout_base_url: str = Field(
+        "https://checkout.stripe.com/c/pay/cs_test_ttm",
+        alias="STRIPE_CHECKOUT_BASE_URL",
+    )
+    x402_payment_address: str = Field(
+        "0x0000000000000000000000000000000000000000",
+        alias="X402_PAYMENT_ADDRESS",
+    )
+    redis_url: str = Field("", alias="REDIS_URL")
+    external_http_timeout_s: float = Field(5.0, alias="EXTERNAL_HTTP_TIMEOUT_S")
+    goplus_api_key: str = Field("", alias="GOPLUS_API_KEY")
+    tokensniffer_api_key: str = Field("", alias="TOKENSNIFFER_API_KEY")
+    birdeye_api_key: str = Field("", alias="BIRDEYE_API_KEY")
+    otel_service_name: str = Field("tothemoontokens-api", alias="OTEL_SERVICE_NAME")
+    otel_exporter_otlp_endpoint: str = Field("", alias="OTEL_EXPORTER_OTLP_ENDPOINT")
+    otel_exporter_otlp_headers: str = Field("", alias="OTEL_EXPORTER_OTLP_HEADERS")
+    sentry_dsn: str = Field("", alias="SENTRY_DSN")
+    sentry_environment: str = Field("", alias="SENTRY_ENVIRONMENT")
+    sentry_traces_sample_rate: float = Field(0.0, alias="SENTRY_TRACES_SAMPLE_RATE")
+    observability_test_raise_enabled: bool = Field(
+        False,
+        alias="OBSERVABILITY_TEST_RAISE_ENABLED",
+    )
 
     model_config = SettingsConfigDict(
         env_file=(str(_ROOT_DIR / ".env"), str(_ROOT_DIR / ".env.hackathon")),
@@ -92,7 +121,7 @@ class Settings(BaseSettings):
         return v
 
     @property
-    def settlement_auth_mode(self) -> str:
+    def settlement_auth_mode(self) -> Literal["manual", "programmatic"]:
         return "programmatic" if self.autonomous_payments_enabled else "manual"
 
     @property
@@ -165,8 +194,20 @@ class Settings(BaseSettings):
                 "MARKETPLACE_SETTLEMENT_TIMEOUT_S must be > 0, "
                 f"got {self.marketplace_settlement_timeout_s}"
             )
+        if float(self.external_http_timeout_s) <= 0:
+            errors.append(
+                "EXTERNAL_HTTP_TIMEOUT_S must be > 0, "
+                f"got {self.external_http_timeout_s}"
+            )
+        if not 0 <= float(self.sentry_traces_sample_rate) <= 1:
+            errors.append(
+                "SENTRY_TRACES_SAMPLE_RATE must be between 0 and 1, "
+                f"got {self.sentry_traces_sample_rate}"
+            )
         if self.app_env == "production" and self.allow_mainnet_trading:
             errors.append("ALLOW_MAINNET_TRADING=true is forbidden in production by project policy")
+        if self.app_env == "production" and (not self.jwt_secret or len(self.jwt_secret) < 32):
+            errors.append("JWT_SECRET >= 32 chars is required in production")
         if errors:
             raise SettingsError("\n".join(errors))
 
@@ -195,4 +236,23 @@ def get_settings() -> Settings:
         or os.getenv("GCLOUD_PROJECT", "").strip()
     )
     settings.gemini_vertex_location = settings.gemini_vertex_location.strip() or "us-central1"
+    settings.database_url = settings.database_url.strip()
+    settings.jwt_secret = settings.jwt_secret.strip()
+    settings.jwt_algorithm = settings.jwt_algorithm.strip() or "HS256"
+    settings.jwt_expires_minutes = int(settings.jwt_expires_minutes)
+    settings.stripe_webhook_secret = settings.stripe_webhook_secret.strip()
+    settings.stripe_checkout_base_url = settings.stripe_checkout_base_url.strip()
+    settings.x402_payment_address = settings.x402_payment_address.strip()
+    settings.redis_url = settings.redis_url.strip()
+    settings.external_http_timeout_s = float(settings.external_http_timeout_s)
+    settings.goplus_api_key = settings.goplus_api_key.strip()
+    settings.tokensniffer_api_key = settings.tokensniffer_api_key.strip()
+    settings.birdeye_api_key = settings.birdeye_api_key.strip()
+    settings.otel_service_name = settings.otel_service_name.strip() or "tothemoontokens-api"
+    settings.otel_exporter_otlp_endpoint = settings.otel_exporter_otlp_endpoint.strip()
+    settings.otel_exporter_otlp_headers = settings.otel_exporter_otlp_headers.strip()
+    settings.sentry_dsn = settings.sentry_dsn.strip()
+    settings.sentry_environment = settings.sentry_environment.strip() or settings.app_env
+    settings.sentry_traces_sample_rate = float(settings.sentry_traces_sample_rate)
+    settings.observability_test_raise_enabled = bool(settings.observability_test_raise_enabled)
     return settings

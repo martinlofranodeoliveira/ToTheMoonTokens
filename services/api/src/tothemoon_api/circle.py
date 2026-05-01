@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 import httpx
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
 from .config import get_settings
 
@@ -92,6 +93,8 @@ class CircleDeveloperClient:
         if not re.fullmatch(r"[0-9a-fA-F]{64}", secret):
             return secret
         public_key = serialization.load_pem_public_key(self._entity_public_key().encode("utf-8"))
+        if not isinstance(public_key, RSAPublicKey):
+            raise RuntimeError("Circle entity public key must be RSA.")
         ciphertext = public_key.encrypt(
             bytes.fromhex(secret),
             padding.OAEP(

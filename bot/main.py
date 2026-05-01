@@ -1,57 +1,112 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
-import aiohttp
-from scanner import scan_market
+import logging
+
+import httpx
 from auditor import is_token_safe
-from trader import execute_paper_trade
+from scanner import scan_market
+from trader import create_copilot_proposal
 
-async def analyze_and_trade(session: aiohttp.ClientSession, token: str, api_key: str):
-    print(f"\n--- Analyzing Token: {token} ---")
-    
-    # 2. Audit Token
-    print(f"[{token}] Auditing for honeypot and rugpull risks...")
-    is_safe = await is_token_safe(session, token)
-    
-    if is_safe:
-        print(f"✅ [{token}] Passed the security audit. Safe to trade.")
-        
-        # 3. Trade and Manage Risk
-        print(f"[{token}] Executing Paper Trade on TTM SaaS...")
-        await execute_paper_trade(session, token, api_key, amount=100.0)
-    else:
-        print(f"🚨 [{token}] SCAM ALERT: Failed the security audit. Skipping trade.")
-    
-    print(f"--- Finished Token: {token} ---")
+logger = logging.getLogger(__name__)
 
-async def async_main():
-    parser = argparse.ArgumentParser(description="TTM Autonomous Venture Capital Bot")
-    parser.add_argument("--api-key", required=True, help="API Key for TTM SaaS")
+
+async def analyze_and_propose(
+    client: httpx.AsyncClient,
+    token: dict[str, object],
+    *,
+    api_key: str,
+    amount_usd: float,
+    mode: str,
+) -> dict[str, object] | None:
+    address = str(token["address"])
+    safe = await is_token_safe(client, address, api_key=api_key)
+    if not safe:
+        logger.info("token_skipped", extra={"token_address": address})
+        return None
+    proposal = await create_copilot_proposal(
+        client,
+        api_key=api_key,
+        token=token,
+        amount_usd=amount_usd,
+        mode=mode,
+    )
+    return proposal
+
+
+async def run_once(
+    *,
+    api_key: str,
+    api_base_url: str,
+    query: str,
+    amount_usd: float,
+    limit: int,
+    mode: str,
+    min_volume: float = 100_000,
+    min_momentum: float = 5.0,
+    min_liquidity: float = 50_000,
+) -> list[dict[str, object]]:
+    tokens = await scan_market(
+        query=query,
+        limit=limit,
+        min_volume=min_volume,
+        min_momentum=min_momentum,
+        min_liquidity=min_liquidity,
+    )
+    proposals: list[dict[str, object]] = []
+    async with httpx.AsyncClient(base_url=api_base_url, timeout=30) as client:
+        for token in tokens:
+            try:
+                proposal = await analyze_and_propose(
+                    client,
+                    token,
+                    api_key=api_key,
+                    amount_usd=amount_usd,
+                    mode=mode,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "proposal_failed",
+                    extra={"token_address": token.get("address"), "error": str(exc)},
+                )
+                continue
+            if proposal is not None:
+                proposals.append(proposal)
+    return proposals
+
+
+async def async_main() -> None:
+    parser = argparse.ArgumentParser(description="TTM copilot market scanner job")
+    parser.add_argument("--api-key", required=True, help="TTM SaaS API key")
+    parser.add_argument("--api-base-url", default="http://127.0.0.1:8010")
+    parser.add_argument("--query", default="USDC")
+    parser.add_argument("--amount", type=float, default=100.0)
+    parser.add_argument("--limit", type=int, default=10)
+    parser.add_argument("--mode", choices=["paper", "real"], default="paper")
+    parser.add_argument("--min-volume", type=float, default=100_000)
+    parser.add_argument("--min-momentum", type=float, default=5.0)
+    parser.add_argument("--min-liquidity", type=float, default=50_000)
     args = parser.parse_args()
 
-    print("🚀 Starting TTM Autonomous Trading Bot...")
-    print("========================================")
+    proposals = await run_once(
+        api_key=args.api_key,
+        api_base_url=args.api_base_url,
+        query=args.query,
+        amount_usd=args.amount,
+        limit=args.limit,
+        mode=args.mode,
+        min_volume=args.min_volume,
+        min_momentum=args.min_momentum,
+        min_liquidity=args.min_liquidity,
+    )
+    print(f"Created {len(proposals)} copilot proposals.")
 
-    # 1. Scan Market
-    print("[1/3] Scanning the market for new opportunities...")
-    promising_tokens = await scan_market()
-    print(f"Found {len(promising_tokens)} promising tokens: {promising_tokens}\n")
 
-    print("[2/3] & [3/3] Analyzing and Trading concurrently...")
-    async with aiohttp.ClientSession() as session:
-        # Analyze and trade all promising tokens concurrently
-        tasks = [
-            analyze_and_trade(session, token, args.api_key)
-            for token in promising_tokens
-        ]
-        
-        # Run all tasks concurrently
-        await asyncio.gather(*tasks)
-
-    print("\n========================================")
-    print("Bot cycle complete.")
-
-def main():
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(async_main())
+
 
 if __name__ == "__main__":
     main()

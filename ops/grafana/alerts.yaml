@@ -1,0 +1,58 @@
+groups:
+  - name: ttm-saas-observability
+    interval: 1m
+    rules:
+      - alert: TtmApiP95LatencyHigh
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, path)) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: tothemoontokens-api
+        annotations:
+          summary: API p95 latency is above 1s
+          description: Route {{ $labels.path }} has p95 latency above 1s for 5 minutes.
+          notify: pagerduty,discord
+
+      - alert: TtmApiErrorRateHigh
+        expr: sum(rate(http_requests_total{status=~"5.."}[2m])) / clamp_min(sum(rate(http_requests_total[2m])), 1) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          service: tothemoontokens-api
+        annotations:
+          summary: API 5xx error rate is above 1 percent
+          description: 5xx responses exceeded 1 percent of traffic for 2 minutes.
+          notify: pagerduty,discord
+
+      - alert: TtmDiskUsageHigh
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: Disk usage is above 80 percent
+          description: Disk usage on {{ $labels.instance }} {{ $labels.mountpoint }} is above 80 percent.
+          notify: pagerduty,discord
+
+      - alert: TtmScannerQueueLagHigh
+        expr: scanner_queue_lag_seconds > 60
+        for: 5m
+        labels:
+          severity: warning
+          service: ttm-bot
+        annotations:
+          summary: Scanner queue lag is above 60 seconds
+          description: The autonomous scanner queue has lagged for more than 5 minutes.
+          notify: pagerduty,discord
+
+      - alert: TtmFailedPaymentsHigh
+        expr: increase(payment_failures_total[10m]) > 3
+        for: 0m
+        labels:
+          severity: critical
+          service: billing
+        annotations:
+          summary: Failed payments exceeded threshold
+          description: More than 3 payment failures were recorded in 10 minutes.
+          notify: pagerduty,discord

@@ -20,6 +20,12 @@
         <!-- Dashboard Section -->
         <section id="dashboard" class="saas-section">
             <h2>Bot Simulation Performance</h2>
+            <div class="auth-panel">
+                <input type="email" id="email-input" placeholder="email@company.com" autocomplete="email">
+                <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
+                <button id="login-btn" class="secondary-btn">Login</button>
+                <span id="auth-status" class="status-text">Signed out</span>
+            </div>
             <div class="metrics-grid">
                 <div class="metric-card">
                     <h3>Simulated Balance</h3>
@@ -43,11 +49,14 @@
         <!-- API Keys Section -->
         <section id="api-keys" class="saas-section">
             <h2>API Key Management</h2>
-            <p>Use this key to authenticate your AI trading bot against our Paper Trading Engine.</p>
             <div class="api-key-box">
-                <input type="text" id="api-key-display" value="ttm_sk_mock_8f92a1b4c..." readonly>
-                <button id="generate-key-btn" class="secondary-btn">Generate New Key</button>
+                <input type="text" id="api-key-name" value="default">
+                <button id="generate-key-btn" class="secondary-btn">Create API Key</button>
             </div>
+            <div class="api-key-box">
+                <input type="text" id="api-key-display" placeholder="New key appears once after creation" readonly>
+            </div>
+            <div id="api-keys-list" class="api-keys-list"></div>
         </section>
 
         <!-- Billing Section (Using existing Circle logic) -->

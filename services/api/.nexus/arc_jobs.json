@@ -110,5 +110,229 @@
       "adapter_version": "1.0",
       "chain": "stubbed-testnet"
     }
+  },
+  {
+    "job_id": "job_arc_9_1777589104",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x86d31353344f78c03970c56ac48e663f3a2a86a830070e2762a0aa8ad531b6cb",
+    "timestamp": "2026-04-30T22:45:04.763050Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_10_1777589396",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x737774dc3a5d5270e0f202bede7ea91790f670673793250b3ab3b95d2ec0d860",
+    "timestamp": "2026-04-30T22:49:56.302521Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_11_1777589538",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xd122fb3e84c450b7c11b82ed57639102a528db0ebab4cee700cd186ebf552e71",
+    "timestamp": "2026-04-30T22:52:18.985537Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_12_1777595650",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xee3849265ac82ffbc24891fabeac93ded6c1173df7702695173d985e0ae82564",
+    "timestamp": "2026-05-01T00:34:10.327804Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_13_1777595904",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x2ca71e3b4ad763cb8a58ee8e1ec7894018a847264782365a70d447e1ac034f77",
+    "timestamp": "2026-05-01T00:38:24.809134Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_14_1777648588",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x721716c6b6212f751b216f2cc881c7678c3ed11bead6d84e37cadc7b835f70ce",
+    "timestamp": "2026-05-01T15:16:28.115212Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_15_1777648850",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x3fe39533b6d3893167c5171115e05c2a5719d0f55406bf2e8d31805399c5d502",
+    "timestamp": "2026-05-01T15:20:50.645926Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_16_1777655170",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xa48b57054454c529390f024e8ee2d1a907629b1d78e31760b40a810185f81810",
+    "timestamp": "2026-05-01T17:06:10.197331Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_17_1777655664",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xd50162b937232851c567ff83a4fbdfd750df36c528ad35e6daa1941045d7c95a",
+    "timestamp": "2026-05-01T17:14:24.637581Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_18_1777665013",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x59a8bb5f0aac333c49f2e23e180dffb182d8bbda64ffef3d37ce4377ab367ae0",
+    "timestamp": "2026-05-01T19:50:13.477963Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_19_1777665483",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x30884f880819ab30907227e22762439ac20a051aeaf1aa94240447ae0cfe05f5",
+    "timestamp": "2026-05-01T19:58:03.819697Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_20_1777666941",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x0a6c10fa092fb332b1e6d05f9a7e50777454aee3e51f156f7dfa7a4e0984dbdf",
+    "timestamp": "2026-05-01T20:22:21.582972Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_21_1777667328",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x0463c0a1877ed6f283b1036c9a33b5d3649d9f673c8d327abed18f2315e31ae2",
+    "timestamp": "2026-05-01T20:28:48.795169Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_22_1777672109",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0xd6ab3472fe16e2157eb63046f83c5e1ec3e41bea11291b2393d7c9bcf0e9da52",
+    "timestamp": "2026-05-01T21:48:29.645316Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_23_1777672544",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x06a79295cc5868b907f3656a97141c05a1a533871ffc2a6e4d5408d952052961",
+    "timestamp": "2026-05-01T21:55:44.412981Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
+  },
+  {
+    "job_id": "job_arc_24_1777672873",
+    "task_id": "GH-40",
+    "agent_id": "dev",
+    "status": "completed",
+    "proof_hash": "0x6fd1ca77000d58308fda6308c06d9622ccd6e0223c3b9b5d23de54b6739d9dfe",
+    "timestamp": "2026-05-01T22:01:13.544979Z",
+    "metadata": {
+      "action": "complete",
+      "evidence_keys": "commit,lines",
+      "adapter_version": "1.0",
+      "chain": "stubbed-testnet"
+    }
   }
 ]

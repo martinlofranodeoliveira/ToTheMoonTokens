@@ -1,54 +1,60 @@
-import aiohttp
+from __future__ import annotations
+
+import argparse
 import asyncio
 import logging
+from typing import Any
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+import httpx
+
 logger = logging.getLogger(__name__)
 
-async def is_token_safe(session: aiohttp.ClientSession, token_address: str) -> bool:
-    """
-    Calls the TTM SaaS API to audit a token for honeypots and security risks.
-    Returns True if the token is safe to trade, False if it's a scam or unsafe.
-    """
-    url = f"http://127.0.0.1:8010/api/v1/tokens/{token_address}/audit"
-    
-    try:
-        async with session.get(url, timeout=15) as response:
-            response.raise_for_status()
-            data = await response.json()
-            
-            # We assume the API returns a boolean indicating safety, e.g., {"is_safe": true}
-            is_safe = data.get("is_safe", data.get("safe", False))
-            
-            if not is_safe:
-                logger.warning(f"Token {token_address} is NOT safe to trade. Audit data: {data}")
-                return False
-                
-            logger.info(f"Token {token_address} passed the security audit.")
-            return True
-            
-    except Exception as e:
-        logger.error(f"Error communicating with TTM SaaS API for token {token_address}: {e}")
-        # Default to False (unsafe) if the audit cannot be completed
-        return False
 
-async def main_cli():
-    import sys
-    if len(sys.argv) != 2:
-        print("Usage: python auditor.py <token_address>")
-        sys.exit(1)
-        
-    address = sys.argv[1]
-    async with aiohttp.ClientSession() as session:
-        is_safe = await is_token_safe(session, address)
-        
-        if is_safe:
-            print(f"Result: Token {address} is SAFE.")
-            sys.exit(0)
-        else:
-            print(f"Result: Token {address} is UNSAFE.")
-            sys.exit(1)
+async def audit_token(
+    client: httpx.AsyncClient,
+    token_address: str,
+    *,
+    api_key: str,
+) -> dict[str, Any] | None:
+    response = await client.get(
+        f"/api/v1/tokens/{token_address}/audit",
+        headers={"X-API-Key": api_key},
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data if isinstance(data, dict) else None
+
+
+async def is_token_safe(
+    client: httpx.AsyncClient,
+    token_address: str,
+    *,
+    api_key: str,
+    max_risk_score: int = 80,
+) -> bool:
+    try:
+        audit = await audit_token(client, token_address, api_key=api_key)
+    except Exception as exc:
+        logger.warning("token_audit_failed", extra={"token_address": token_address, "error": str(exc)})
+        return False
+    security = audit.get("security", {}) if audit else {}
+    is_honeypot = bool(security.get("is_honeypot"))
+    risk_score = int(security.get("risk_score") or 100)
+    return not is_honeypot and risk_score < max_risk_score
+
+
+async def main_cli() -> None:
+    parser = argparse.ArgumentParser(description="Audit a token through the TTM SaaS API")
+    parser.add_argument("token_address")
+    parser.add_argument("--api-key", required=True)
+    parser.add_argument("--api-base-url", default="http://127.0.0.1:8010")
+    args = parser.parse_args()
+
+    async with httpx.AsyncClient(base_url=args.api_base_url, timeout=20) as client:
+        safe = await is_token_safe(client, args.token_address, api_key=args.api_key)
+    print("SAFE" if safe else "UNSAFE")
+
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(main_cli())

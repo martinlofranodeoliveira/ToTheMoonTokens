@@ -1,4 +1,22 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: tothemoontokens-db
+    environment:
+      POSTGRES_USER: ttm
+      POSTGRES_PASSWORD: ttm
+      POSTGRES_DB: ttm
+    ports:
+      - "5432:5432"
+    volumes:
+      - ttm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ttm -d ttm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   api:
     build:
       context: ./services/api
@@ -12,8 +30,12 @@ services:
       LOG_LEVEL: INFO
       API_HOST: 0.0.0.0
       API_PORT: 8010
+      DATABASE_URL: postgresql+psycopg://ttm:ttm@db:5432/ttm
     ports:
       - "8010:8010"
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3)"]
@@ -46,3 +68,6 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+
+volumes:
+  ttm_pgdata:

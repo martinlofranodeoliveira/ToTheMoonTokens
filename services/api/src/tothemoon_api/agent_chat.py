@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -127,7 +128,7 @@ class GeminiMarketplaceAgent:
         authorized_artifact_id: str | None = None,
         authorized_payment_ids: set[str] | None = None,
     ) -> dict[str, Any]:
-        tools = {
+        tools: dict[str, Callable[..., dict[str, Any]]] = {
             "list_artifacts": self.list_artifacts,
             "list_orders": self.list_orders,
             "create_checkout": self.create_checkout,
@@ -191,7 +192,9 @@ class GeminiMarketplaceAgent:
                 self.unlock_artifact,
             ],
             tool_config=types.ToolConfig(
-                function_calling_config=types.FunctionCallingConfig(mode="AUTO")
+                function_calling_config=types.FunctionCallingConfig(
+                    mode=types.FunctionCallingConfigMode.AUTO
+                )
             ),
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
             temperature=0.2,

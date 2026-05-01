@@ -23,6 +23,7 @@ RUN groupadd --system app && useradd --system --gid app --home /home/app --creat
 
 COPY --from=builder /install /usr/local
 WORKDIR /app
+COPY alembic.ini ./alembic.ini
 COPY --from=builder /app/src ./src
 
 USER app

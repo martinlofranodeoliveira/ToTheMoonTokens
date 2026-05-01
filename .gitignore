@@ -25,3 +25,4 @@ ops/evidence/*.json
 .env.hackathon
 ~$*
 *.tmp
+*.tsbuildinfo

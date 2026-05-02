@@ -198,20 +198,26 @@ jobs:
                 return json.loads(response.read().decode() or "{}")
 
         encoded_project = urllib.parse.quote(str(project_id), safe="")
-        terminal_ok = {"success", "skipped"}
+        max_attempts = int(os.environ.get("GITLAB_PIPELINE_WAIT_ATTEMPTS", "240"))
+        terminal_ok = {"success"}
         terminal_bad = {"failed", "canceled"}
-        for attempt in range(90):
+        for attempt in range(max_attempts):
             pipelines = get(f"/projects/{encoded_project}/pipelines?sha={sha}&per_page=1")
             if pipelines:
                 pipeline = pipelines[0]
                 status = pipeline.get("status")
-                print(f"GitLab pipeline {pipeline.get('id')} status={status}")
+                print(
+                    f"GitLab pipeline {pipeline.get('id')} "
+                    f"status={status} attempt={attempt + 1}/{max_attempts}"
+                )
                 if status in terminal_ok:
                     raise SystemExit(0)
                 if status in terminal_bad:
                     raise SystemExit(f"GitLab pipeline failed with status={status}")
+                if status == "skipped":
+                    raise SystemExit("GitLab pipeline was skipped; release evidence is missing")
             else:
-                print("Waiting for GitLab pipeline to appear")
+                print(f"Waiting for GitLab pipeline to appear attempt={attempt + 1}/{max_attempts}")
             time.sleep(10)
         raise SystemExit("Timed out waiting for GitLab pipeline")
         PY

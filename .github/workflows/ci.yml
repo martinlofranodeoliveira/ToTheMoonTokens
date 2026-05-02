@@ -98,12 +98,14 @@ jobs:
     env:
       GITLAB_BASE_URL: ${{ secrets.GITLAB_BASE_URL }}
       GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_SHA: ${{ github.sha }}
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Mirror main to GitLab
+    - name: Mirror main to GitLab and wait for GitLab CI
       shell: bash
       run: |
         set -euo pipefail
@@ -111,17 +113,104 @@ jobs:
           echo "GITLAB_BASE_URL and GITLAB_TOKEN secrets are required for GitLab CI mirror."
           exit 1
         fi
-        base="${GITLAB_BASE_URL%.git}"
-        base="${base%/}"
-        if [[ "$base" != http://* && "$base" != https://* ]]; then
-          base="https://${base}"
-        fi
-        if printf '%s' "$base" | grep -Eq '/[^/]+/[^/]+$'; then
-          project_url="${base}.git"
-        else
-          project_url="${base}/${GITHUB_REPOSITORY}.git"
-        fi
-        project_url="${project_url#https://}"
+        python3 <<'PY' >/tmp/gitlab_project.env
+        import json
+        import os
+        import sys
+        import urllib.error
+        import urllib.parse
+        import urllib.request
+
+        token = os.environ["GITLAB_TOKEN"]
+        raw_base = os.environ["GITLAB_BASE_URL"].strip().rstrip("/")
+        if not raw_base.startswith(("http://", "https://")):
+            raw_base = "https://" + raw_base
+        parsed = urllib.parse.urlparse(raw_base)
+        api_origin = f"{parsed.scheme}://{parsed.netloc}"
+        repo_name = os.environ["GITHUB_REPOSITORY"].split("/", 1)[1]
+        repo_path = repo_name.lower()
+
+        def request(method, path, data=None):
+            body = None
+            headers = {"PRIVATE-TOKEN": token}
+            if data is not None:
+                body = urllib.parse.urlencode(data).encode()
+                headers["Content-Type"] = "application/x-www-form-urlencoded"
+            req = urllib.request.Request(
+                f"{api_origin}/api/v4{path}",
+                data=body,
+                headers=headers,
+                method=method,
+            )
+            with urllib.request.urlopen(req, timeout=30) as response:
+                return json.loads(response.read().decode() or "{}")
+
+        base_path = parsed.path.strip("/")
+        if base_path and len(base_path.split("/")) >= 2:
+            encoded = urllib.parse.quote(base_path, safe="")
+            project = request("GET", f"/projects/{encoded}")
+        else:
+            query = urllib.parse.urlencode({"membership": "true", "search": repo_name, "simple": "true", "per_page": "100"})
+            projects = request("GET", f"/projects?{query}")
+            matches = [
+                project for project in projects
+                if project.get("path", "").lower() == repo_path
+                or project.get("name", "").lower() == repo_path
+                or project.get("path_with_namespace", "").lower().endswith("/" + repo_path)
+            ]
+            if matches:
+                project = sorted(matches, key=lambda item: item.get("last_activity_at", ""), reverse=True)[0]
+            else:
+                try:
+                    project = request("POST", "/projects", {"name": repo_name, "path": repo_name, "visibility": "private"})
+                except urllib.error.HTTPError as exc:
+                    sys.stderr.write(exc.read().decode(errors="replace"))
+                    raise
+
+        print(f"GITLAB_HTTP_URL={project['http_url_to_repo']}")
+        print(f"GITLAB_PROJECT_ID={project['id']}")
+        print(f"GITLAB_API_ORIGIN={api_origin}")
+        PY
+        source /tmp/gitlab_project.env
+        project_url="${GITLAB_HTTP_URL#https://}"
         project_url="${project_url#http://}"
         git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@${project_url}"
         git push gitlab "HEAD:refs/heads/main"
+        python3 <<'PY'
+        import json
+        import os
+        import time
+        import urllib.parse
+        import urllib.request
+
+        token = os.environ["GITLAB_TOKEN"]
+        api_origin = os.environ["GITLAB_API_ORIGIN"]
+        project_id = os.environ["GITLAB_PROJECT_ID"]
+        sha = os.environ["GITHUB_SHA"]
+
+        def get(path):
+            req = urllib.request.Request(
+                f"{api_origin}/api/v4{path}",
+                headers={"PRIVATE-TOKEN": token},
+            )
+            with urllib.request.urlopen(req, timeout=30) as response:
+                return json.loads(response.read().decode() or "{}")
+
+        encoded_project = urllib.parse.quote(str(project_id), safe="")
+        terminal_ok = {"success", "skipped"}
+        terminal_bad = {"failed", "canceled"}
+        for attempt in range(90):
+            pipelines = get(f"/projects/{encoded_project}/pipelines?sha={sha}&per_page=1")
+            if pipelines:
+                pipeline = pipelines[0]
+                status = pipeline.get("status")
+                print(f"GitLab pipeline {pipeline.get('id')} status={status}")
+                if status in terminal_ok:
+                    raise SystemExit(0)
+                if status in terminal_bad:
+                    raise SystemExit(f"GitLab pipeline failed with status={status}")
+            else:
+                print("Waiting for GitLab pipeline to appear")
+            time.sleep(10)
+        raise SystemExit("Timed out waiting for GitLab pipeline")
+        PY

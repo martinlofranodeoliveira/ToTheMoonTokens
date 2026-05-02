@@ -105,32 +105,36 @@ ln -sfn "$release_dir" "$deploy_root/current"
 cp "$deploy_root/shared/.env" "$release_dir/.env"
 cd "$release_dir"
 
-docker compose -f docker-compose.vm.yml config >/dev/null
-if ! docker compose -p tothemoontokens -f docker-compose.vm.yml up -d --build --remove-orphans; then
+compose() {
+  sudo docker compose -p tothemoontokens -f docker-compose.vm.yml "$@"
+}
+
+compose config >/dev/null
+if ! compose up -d --build --remove-orphans; then
   echo "Deploy failed; attempting rollback." >&2
   if [[ -n "$previous_target" && -d "$previous_target" ]]; then
     ln -sfn "$previous_target" "$deploy_root/current"
     cp "$deploy_root/shared/.env" "$previous_target/.env"
     cd "$previous_target"
-    docker compose -p tothemoontokens -f docker-compose.vm.yml up -d --build --remove-orphans || true
+    compose up -d --build --remove-orphans || true
   fi
   exit 1
 fi
 
-if ! docker compose -p tothemoontokens -f docker-compose.vm.yml exec -T api alembic upgrade head; then
+if ! compose exec -T api alembic upgrade head; then
   echo "Database migration failed; attempting rollback." >&2
   if [[ -n "$previous_target" && -d "$previous_target" ]]; then
     ln -sfn "$previous_target" "$deploy_root/current"
     cp "$deploy_root/shared/.env" "$previous_target/.env"
     cd "$previous_target"
-    docker compose -p tothemoontokens -f docker-compose.vm.yml up -d --build --remove-orphans || true
+    compose up -d --build --remove-orphans || true
   fi
   exit 1
 fi
 
 for attempt in $(seq 1 30); do
   if curl -fsS http://127.0.0.1/health >/dev/null; then
-    docker compose -p tothemoontokens -f docker-compose.vm.yml ps
+    compose ps
     rm -f "$remote_archive" "$remote_env"
     exit 0
   fi
@@ -142,7 +146,7 @@ if [[ -n "$previous_target" && -d "$previous_target" ]]; then
   ln -sfn "$previous_target" "$deploy_root/current"
   cp "$deploy_root/shared/.env" "$previous_target/.env"
   cd "$previous_target"
-  docker compose -p tothemoontokens -f docker-compose.vm.yml up -d --build --remove-orphans || true
+  compose up -d --build --remove-orphans || true
 fi
 exit 1
 REMOTE

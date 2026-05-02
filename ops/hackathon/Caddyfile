@@ -17,14 +17,22 @@
     }
 
     handle_path /ops/* {
-        reverse_proxy web:4173
+        reverse_proxy web:8080
+    }
+
+    handle /saas {
+        redir /saas/ 308
+    }
+
+    handle /saas/* {
+        reverse_proxy web-next:8080
     }
 
     handle_path /pitch/* {
-        reverse_proxy pitch:4174
+        reverse_proxy pitch:8080
     }
 
     handle {
-        reverse_proxy pitch:4174
+        reverse_proxy pitch:8080
     }
 }

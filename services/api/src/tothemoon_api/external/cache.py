@@ -4,10 +4,10 @@ import functools
 import json
 import time
 from collections.abc import Callable
-from contextlib import suppress
 from typing import Any, TypeVar, cast
 
 from tothemoon_api.config import get_settings
+from tothemoon_api.external.adapters import refresh_freshness_metadata
 
 redis: Any | None = None
 try:
@@ -44,6 +44,12 @@ def _redis_client() -> Any | None:
     return _REDIS_CLIENT
 
 
+def _disable_redis_cache() -> None:
+    global _REDIS_CLIENT, _REDIS_DISABLED
+    _REDIS_CLIENT = None
+    _REDIS_DISABLED = True
+
+
 def _make_key(namespace: str, args: tuple[object, ...], kwargs: dict[str, object]) -> str:
     raw = json.dumps(
         {"args": args, "kwargs": kwargs},
@@ -64,21 +70,24 @@ def cached(ttl: int, namespace: str) -> Callable[[Callable[..., T]], Callable[..
                 try:
                     hit = client.get(key)
                     if hit:
-                        return cast(T, json.loads(hit))
+                        return cast(T, refresh_freshness_metadata(json.loads(hit)))
                 except Exception:
+                    _disable_redis_cache()
                     client = None
 
             expires_at, payload = _MEMORY_CACHE.get(key, (0.0, ""))
             if expires_at > time.monotonic():
-                return cast(T, json.loads(payload))
+                return cast(T, refresh_freshness_metadata(json.loads(payload)))
 
             value = fn(*args, **kwargs)
             encoded = json.dumps(value, default=str, separators=(",", ":"))
             if client is not None:
-                with suppress(Exception):
+                try:
                     client.setex(key, ttl, encoded)
+                except Exception:
+                    _disable_redis_cache()
             _MEMORY_CACHE[key] = (time.monotonic() + ttl, encoded)
-            return value
+            return cast(T, refresh_freshness_metadata(value))
 
         return wrapper
 
@@ -86,4 +95,7 @@ def cached(ttl: int, namespace: str) -> Callable[[Callable[..., T]], Callable[..
 
 
 def clear_external_cache() -> None:
+    global _REDIS_CLIENT, _REDIS_DISABLED
     _MEMORY_CACHE.clear()
+    _REDIS_CLIENT = None
+    _REDIS_DISABLED = False

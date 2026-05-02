@@ -19,7 +19,9 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     with op.batch_alter_table("api_keys") as batch_op:
         batch_op.add_column(sa.Column("org_id", sa.Integer(), nullable=True))
-        batch_op.create_foreign_key("fk_api_keys_org_id_organizations", "organizations", ["org_id"], ["id"])
+        batch_op.create_foreign_key(
+            "fk_api_keys_org_id_organizations", "organizations", ["org_id"], ["id"]
+        )
         batch_op.create_index("ix_api_keys_org_id", ["org_id"], unique=False)
 
     with op.batch_alter_table("usage_records") as batch_op:

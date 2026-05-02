@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import get_db
-from .db_models import ApiKey, User
+from .db_models import ApiKey, Membership, User
 from .observability import bind_trace_context
 
 ph = PasswordHasher()
@@ -82,13 +82,23 @@ def verify_api_key(
     if not api_key:
         raise HTTPException(status_code=401, detail="Missing X-API-Key")
     prefix = api_key[:12]
-    candidates = (
-        db.query(ApiKey).filter(ApiKey.prefix == prefix, ApiKey.revoked_at.is_(None)).all()
-    )
+    candidates = db.query(ApiKey).filter(ApiKey.prefix == prefix, ApiKey.revoked_at.is_(None)).all()
     for candidate in candidates:
         try:
             ph.verify(candidate.key_hash, api_key)
         except (InvalidHashError, VerificationError, VerifyMismatchError):
+            continue
+        if candidate.org_id is None:
+            continue
+        owner_membership = (
+            db.query(Membership)
+            .filter(
+                Membership.user_id == candidate.user_id,
+                Membership.org_id == candidate.org_id,
+            )
+            .first()
+        )
+        if owner_membership is None or not candidate.owner.is_active:
             continue
         candidate.last_used_at = datetime.utcnow()
         db.commit()

@@ -29,7 +29,10 @@ def test_hackathon_summary_exposes_judge_facing_proof(_mock_arc_health):
     assert len(payload["latest_transactions"]) <= 8
     assert payload["transactions"][0]["seq"] >= payload["transactions"][-1]["seq"]
     assert all(item["tx_hash"].startswith("0x") for item in payload["transactions"])
-    assert all(item["explorer_url"].startswith("https://testnet.arcscan.app/tx/") for item in payload["transactions"])
+    assert all(
+        item["explorer_url"].startswith("https://testnet.arcscan.app/tx/")
+        for item in payload["transactions"]
+    )
     assert payload["proof"]["throughput_tx_per_min"] >= 1
     assert payload["proof"]["sample_tx_hash"].startswith("0x")
     assert payload["circle"]["wallet_set_id"]

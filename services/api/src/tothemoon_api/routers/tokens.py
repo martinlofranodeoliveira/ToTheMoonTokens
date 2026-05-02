@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/v1/tokens", tags=["Tokens"])
 VerifiedApiKey = Annotated[ApiKey, Depends(verify_api_key)]
 DbSession = Annotated[Session, Depends(get_db)]
 
+
 @router.get("/{token_address}/audit", response_model=dict[str, Any])
 def get_token_audit(
     token_address: str,
@@ -29,7 +30,7 @@ def get_token_audit(
         enforce_quota(api_key, "token_audit", db)
         security_data: dict[str, Any] = get_token_security_audit(token_address)
         market_data: dict[str, Any] = get_token_market_data(token_address)
-        
+
         result: dict[str, Any] = {
             "token_address": token_address,
             "security": security_data,

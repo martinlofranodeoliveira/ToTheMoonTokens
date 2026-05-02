@@ -67,6 +67,66 @@ def test_readiness_endpoint_returns_checks():
     assert payload["ok"] is True
     assert payload["checks"]["mainnet_permanently_blocked"] is True
     assert payload["checks"]["strategies_loaded"] is True
+    assert payload["checks"]["external_adapters_paper_only"] is True
+
+
+def test_readiness_fails_when_external_adapter_contract_is_unsafe(monkeypatch):
+    monkeypatch.setattr(
+        "tothemoon_api.main.get_external_adapter_contract",
+        lambda: {
+            "order_submission_enabled": True,
+            "mainnet_order_submission_enabled": False,
+            "providers": [
+                {
+                    "name": "unsafe_exchange",
+                    "read_only": False,
+                    "supports_order_submission": True,
+                    "mainnet_order_submission": False,
+                }
+            ],
+        },
+    )
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    payload = response.json()["detail"]
+    assert payload["ok"] is False
+    assert payload["checks"]["external_adapters_paper_only"] is False
+
+
+def test_readiness_fails_when_external_adapter_contract_is_malformed(monkeypatch):
+    monkeypatch.setattr(
+        "tothemoon_api.main.get_external_adapter_contract",
+        lambda: {
+            "order_submission_enabled": False,
+            "mainnet_order_submission_enabled": False,
+            "providers": ["not-a-provider-object"],
+        },
+    )
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    payload = response.json()["detail"]
+    assert payload["checks"]["external_adapters_paper_only"] is False
+
+
+def test_readiness_fails_when_external_adapter_contract_has_no_providers(monkeypatch):
+    monkeypatch.setattr(
+        "tothemoon_api.main.get_external_adapter_contract",
+        lambda: {
+            "order_submission_enabled": False,
+            "mainnet_order_submission_enabled": False,
+            "providers": [],
+        },
+    )
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    payload = response.json()["detail"]
+    assert payload["checks"]["external_adapters_paper_only"] is False
 
 
 def test_cors_preflight_responds_for_allowed_origin():

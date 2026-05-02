@@ -1,0 +1,96 @@
+TTM
+Agent Market
+Dashboard
+API Keys
+Billing
+Invoices
+Settings
+Audit Log
+Status
+pro
+demo fallback
+
+PITCH DEMO WORKSPACE
+
+Dashboard
+demo@tothemoon.local
+Demo fallback active
+500 Internal Server Error Live backend data is used automatically when it recovers.
+Retry live
+Trades
+86
+Volume
+$128,450.00
+Fees
+$321.12
+P&L
+$8,601.25
+30d Activity
+4280 requests
+04-26
+04-27
+04-28
+04-29
+04-30
+05-01
+05-02
+0
+7500
+15000
+22500
+30000
+
+DEMO ONLY · ARC TESTNET METADATA
+
+Paid Agent Lifecycle
+No mainnet execution
+
+Paid lifecycle metadata is unavailable; showing safe demo placeholders.
+
+NEXT ACTION
+Payment requirement is open. Verify the test transaction before delivery unlocks.
+1 · Price
+Delivery Packet selected
+2 · Escrow
+pending
+3 · Verify
+PENDING
+4 · Deliver
+Locked until verification
+Delivery Packet
+$0.00 USDC
+Reviewed delivery packet with execution summary and unlock metadata.
+Review Bundle
+$0.01 USDC
+Reviewer-approved evidence bundle with settlement and quality checkpoints.
+Create payment requirement
+Verify payment
+Unlock delivery
+Payment
+pending
+Nexus
+REQUESTED
+Review
+not ready
+Delivery
+locked
+Artifact
+Delivery Packet
+Payment ID
+pay_demo_1…567890
+Settlement
+PENDING
+Nexus Job
+nexus-pay-…y-demo
+Arc Proof
+0xabcdef12…567890
+Arc Write
+stubbed
+Simulation
+Token
+Amount
+Run
+Copilot
+MOON
+pending
+0

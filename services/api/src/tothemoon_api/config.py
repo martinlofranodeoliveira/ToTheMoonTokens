@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     gemini_vertex_project: str = Field("", alias="GEMINI_VERTEX_PROJECT")
     gemini_vertex_location: str = Field("us-central1", alias="GEMINI_VERTEX_LOCATION")
     database_url: str = Field("sqlite:///./saas.db", alias="DATABASE_URL")
+    allow_import_time_init_db: bool = Field(False, alias="ALLOW_IMPORT_TIME_INIT_DB")
     jwt_secret: str = Field("", alias="JWT_SECRET")
     jwt_algorithm: str = Field("HS256", alias="JWT_ALGORITHM")
     jwt_expires_minutes: int = Field(60, alias="JWT_EXPIRES_MINUTES")
@@ -196,18 +197,28 @@ class Settings(BaseSettings):
             )
         if float(self.external_http_timeout_s) <= 0:
             errors.append(
-                "EXTERNAL_HTTP_TIMEOUT_S must be > 0, "
-                f"got {self.external_http_timeout_s}"
+                f"EXTERNAL_HTTP_TIMEOUT_S must be > 0, got {self.external_http_timeout_s}"
             )
         if not 0 <= float(self.sentry_traces_sample_rate) <= 1:
             errors.append(
                 "SENTRY_TRACES_SAMPLE_RATE must be between 0 and 1, "
                 f"got {self.sentry_traces_sample_rate}"
             )
-        if self.app_env == "production" and self.allow_mainnet_trading:
+        app_env = self.app_env.strip().lower()
+        if app_env == "production" and self.allow_mainnet_trading:
             errors.append("ALLOW_MAINNET_TRADING=true is forbidden in production by project policy")
-        if self.app_env == "production" and (not self.jwt_secret or len(self.jwt_secret) < 32):
+        if app_env == "production" and (not self.jwt_secret or len(self.jwt_secret) < 32):
             errors.append("JWT_SECRET >= 32 chars is required in production")
+        if app_env == "production" and self.stripe_webhook_secret.strip() in {
+            "",
+            "whsec_dev_secret",
+        }:
+            errors.append("STRIPE_WEBHOOK_SECRET must be externally configured in production")
+        if app_env == "production" and self.allow_import_time_init_db:
+            errors.append(
+                "ALLOW_IMPORT_TIME_INIT_DB=true is forbidden in production; "
+                "run Alembic migrations explicitly after backup/snapshot verification."
+            )
         if errors:
             raise SettingsError("\n".join(errors))
 
@@ -227,6 +238,8 @@ def get_settings() -> Settings:
     settings.marketplace_settlement_timeout_s = float(settings.marketplace_settlement_timeout_s)
     settings.circle_bootstrap_on_startup = bool(settings.circle_bootstrap_on_startup)
     settings.autonomous_payments_enabled = bool(settings.autonomous_payments_enabled)
+    settings.allow_import_time_init_db = bool(settings.allow_import_time_init_db)
+    settings.app_env = settings.app_env.strip().lower()
     settings.log_level = settings.log_level.upper()
     settings.demo_buyer_wallet_role = settings.demo_buyer_wallet_role.strip().upper()
     settings.gemini_model = settings.gemini_model.strip()

@@ -7,6 +7,12 @@ from typing import Any
 import httpx
 
 from tothemoon_api.config import get_settings
+from tothemoon_api.external.adapters import (
+    ExternalProviderAdapter,
+    call_provider,
+    provider_adapter,
+    provider_metadata,
+)
 from tothemoon_api.external.cache import cached
 from tothemoon_api.external.health import record_provider_status
 
@@ -16,6 +22,7 @@ GOPLUS_TOKEN_SECURITY_URL = "https://api.gopluslabs.io/api/v1/token_security/{ch
 GOPLUS_SOLANA_SECURITY_URL = "https://api.gopluslabs.io/api/v1/solana/token_security"
 HONEYPOT_URL = "https://api.honeypot.is/v2/IsHoneypot"
 TOKENSNIFFER_URL = "https://tokensniffer.com/api/v2/tokens/{chain_id}/{token_address}"
+SECURITY_CACHE_TTL_SECONDS = 300
 
 CHAIN_IDS = {
     "eth": "1",
@@ -50,6 +57,34 @@ def _placeholder_audit(token_address: str) -> dict[str, Any]:
         "buy_tax": 0,
         "sell_tax": 0,
         "providers": ["local_fallback"],
+        **provider_metadata(
+            "local_fallback",
+            status="placeholder",
+            confidence="low",
+            ttl_seconds=SECURITY_CACHE_TTL_SECONDS,
+        ),
+        "warning": "Placeholder security data is for demos only and is not a live safety decision.",
+    }
+
+
+def _unavailable_audit(token_address: str) -> dict[str, Any]:
+    return {
+        "token_address": token_address,
+        "is_honeypot": True,
+        "liquidity_locked_pct": 0.0,
+        "contract_verified": False,
+        "risk_score": 99,
+        "buy_tax": 0,
+        "sell_tax": 0,
+        "providers": ["provider_unavailable"],
+        "provider_health": "degraded",
+        **provider_metadata(
+            "provider_unavailable",
+            status="degraded",
+            confidence="none",
+            ttl_seconds=SECURITY_CACHE_TTL_SECONDS,
+        ),
+        "warning": "Security providers unavailable; token is blocked for safety.",
     }
 
 
@@ -134,7 +169,9 @@ def _fetch_goplus(token_address: str, chain: str) -> dict[str, Any]:
             "contract_verified": not _bool_flag(result.get("is_open_source") == "0"),
         }
     except Exception as exc:
-        record_provider_status("goplus", status="degraded", started_at=started_at, last_error=str(exc))
+        record_provider_status(
+            "goplus", status="degraded", started_at=started_at, last_error=str(exc)
+        )
         raise
 
 
@@ -156,7 +193,11 @@ def _fetch_honeypotis(token_address: str, chain: str) -> dict[str, Any]:
         result = payload.get("honeypotResult") or payload.get("summary") or {}
         simulation = payload.get("simulationResult") or {}
         is_honeypot = _bool_flag(result.get("isHoneypot") or result.get("honeypot"))
-        risk = payload.get("summary", {}).get("risk") if isinstance(payload.get("summary"), dict) else None
+        risk = (
+            payload.get("summary", {}).get("risk")
+            if isinstance(payload.get("summary"), dict)
+            else None
+        )
         risk_score = 99 if str(risk).lower() == "high" else _risk_score(is_honeypot, default=25)
         record_provider_status("honeypotis", status="ok", started_at=started_at)
         return {
@@ -213,29 +254,48 @@ def _fetch_tokensniffer(token_address: str, chain: str) -> dict[str, Any]:
         raise
 
 
+def get_security_adapters() -> list[ExternalProviderAdapter]:
+    return [
+        provider_adapter("goplus", {"security_audit"}, _fetch_goplus),
+        provider_adapter("honeypotis", {"security_audit"}, _fetch_honeypotis),
+        provider_adapter(
+            "tokensniffer",
+            {"security_audit"},
+            _fetch_tokensniffer,
+            requires_api_key=True,
+        ),
+    ]
+
+
 def _provider_results(token_address: str, chain: str) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for fetch in (_fetch_goplus, _fetch_honeypotis, _fetch_tokensniffer):
+    for adapter in get_security_adapters():
         try:
-            results.append(fetch(token_address, chain))
+            result = call_provider(adapter, token_address, chain)
+            if "freshness" not in result:
+                result = {
+                    **result,
+                    **provider_metadata(adapter.name, ttl_seconds=SECURITY_CACHE_TTL_SECONDS),
+                }
+            results.append(result)
         except ProviderSkipped:
             continue
         except Exception as exc:
             logger.warning(
                 "security_provider_failed",
-                extra={"provider": fetch.__name__, "token_address": token_address, "error": str(exc)},
+                extra={"provider": adapter.name, "token_address": token_address, "error": str(exc)},
             )
     return results
 
 
-@cached(ttl=300, namespace="security")
+@cached(ttl=SECURITY_CACHE_TTL_SECONDS, namespace="security")
 def _get_token_security_audit_cached(token_address: str, chain: str) -> dict[str, Any]:
     if _is_placeholder_address(token_address):
         return _placeholder_audit(token_address)
 
     results = _provider_results(token_address, chain)
     if not results:
-        return _placeholder_audit(token_address)
+        return _unavailable_audit(token_address)
 
     is_honeypot = sum(1 for result in results if result.get("is_honeypot")) >= 2
     return {
@@ -243,10 +303,17 @@ def _get_token_security_audit_cached(token_address: str, chain: str) -> dict[str
         "is_honeypot": is_honeypot,
         "liquidity_locked_pct": 0.0,
         "contract_verified": all(result.get("contract_verified", True) for result in results),
-        "risk_score": max((_risk_score(False, result.get("risk_score")) for result in results), default=50),
+        "risk_score": max(
+            (_risk_score(False, result.get("risk_score")) for result in results), default=50
+        ),
         "buy_tax": max((_float(result.get("buy_tax")) for result in results), default=0.0),
         "sell_tax": max((_float(result.get("sell_tax")) for result in results), default=0.0),
         "providers": [str(result["provider"]) for result in results],
+        **provider_metadata(
+            "security_consensus",
+            confidence="medium" if len(results) == 1 else "high",
+            ttl_seconds=SECURITY_CACHE_TTL_SECONDS,
+        ),
     }
 
 

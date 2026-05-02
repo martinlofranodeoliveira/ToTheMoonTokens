@@ -109,7 +109,92 @@ export type Health = {
   providers?: Record<string, { status: string; latency_ms: number | null; last_error: string | null }>;
 };
 
-const configuredBase = import.meta.env.VITE_TTM_API_BASE_URL || "http://127.0.0.1:8010";
+export type BillableArtifact = {
+  id: string;
+  name: string;
+  description: string;
+  price_usd: number;
+  type: "delivery_packet" | "review_bundle" | "market_intel_brief";
+};
+
+export type PaymentIntentRecord = {
+  payment_id: string;
+  artifact_id: string;
+  artifact_name: string;
+  artifact_type: string;
+  amount_usd: number;
+  buyer_address: string;
+  deposit_address: string;
+  job_id: string | null;
+  status: "pending" | "verified" | "failed";
+  settlement_status: string | null;
+  reason: string | null;
+  tx_hash: string | null;
+  circle_transaction_id: string | null;
+  executed: boolean;
+  download_url: string | null;
+  execution_message: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaymentIntentResponse = {
+  payment_id: string;
+  amount_usd: number;
+  currency: "USDC";
+  deposit_address: string;
+  payment_requirement: Record<string, unknown>;
+  status: "pending" | "verified" | "failed";
+  job_id: string | null;
+};
+
+export type PaymentVerificationResponse = {
+  payment_id: string;
+  status: "pending" | "verified" | "failed";
+  unlocked_artifact_id: string | null;
+  settlement_status: string | null;
+  reason: string | null;
+};
+
+export type JobExecutionResponse = {
+  artifact_id: string;
+  status: "completed" | "failed";
+  message: string;
+  download_url: string | null;
+};
+
+export type NexusJob = {
+  id: string;
+  description: string;
+  state: "REQUESTED" | "PAYMENT_UNLOCKED" | "WORK_RESERVED" | "REVIEW_PENDING" | "DELIVERED";
+  payment_id: string | null;
+  artifact_id: string | null;
+  artifact_type: string | null;
+  amount_usdc: number | null;
+  buyer_address: string | null;
+  settlement_status: string | null;
+  tx_hash: string | null;
+  download_url: string | null;
+  history: Array<{ state: string; reason: string; at: string }>;
+};
+
+export type ArcJobProof = {
+  job_id: string;
+  task_id: string;
+  agent_id: string;
+  status: string;
+  proof_hash: string;
+  timestamp: string;
+  metadata: Record<string, string>;
+  work_unit_id: string | null;
+  payment_id: string | null;
+  payment_status: string | null;
+  settlement_status: string | null;
+  tx_hash: string | null;
+  onchain_write_status: string;
+};
+
+const configuredBase = import.meta.env.VITE_TTM_API_BASE_URL || (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:8010");
 export const API_ROOT = configuredBase.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
 export const API_BASE = `${API_ROOT}/api/v1`;
 
@@ -213,6 +298,39 @@ export const api = {
       method: "POST",
       headers: bearer(token),
     });
+  },
+  artifacts() {
+    return request<BillableArtifact[]>(`${API_ROOT}/api/payments/catalog`);
+  },
+  paymentOrders() {
+    return request<PaymentIntentRecord[]>(`${API_ROOT}/api/payments/orders`);
+  },
+  createPaymentIntent(artifactId: string, buyerAddress: string) {
+    return request<PaymentIntentResponse>(`${API_ROOT}/api/payments/intent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artifact_id: artifactId, buyer_address: buyerAddress }),
+    });
+  },
+  verifyPayment(paymentId: string, txHash: string) {
+    return request<PaymentVerificationResponse>(`${API_ROOT}/api/payments/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payment_id: paymentId, tx_hash: txHash }),
+    });
+  },
+  executePayment(artifactId: string, paymentId: string) {
+    return request<JobExecutionResponse>(`${API_ROOT}/api/payments/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artifact_id: artifactId, payment_id: paymentId }),
+    });
+  },
+  nexusJob(jobId: string) {
+    return request<NexusJob>(`${API_ROOT}/api/jobs/${jobId}`);
+  },
+  arcJobs() {
+    return request<ArcJobProof[]>(`${API_ROOT}/api/arc/jobs?limit=5`);
   },
   health() {
     return request<Health>(`${API_ROOT}/health`);

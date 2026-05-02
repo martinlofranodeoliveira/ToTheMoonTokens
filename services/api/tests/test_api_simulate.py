@@ -29,11 +29,11 @@ def _create_api_key() -> tuple[str, str]:
 
 def test_simulate_endpoint():
     _token, api_key = _create_api_key()
-    response = client.post("/api/v1/simulate/order", json={
-        "token_address": "0xABC",
-        "amount": 50.0,
-        "side": "BUY"
-    }, headers={"X-API-Key": api_key})
+    response = client.post(
+        "/api/v1/simulate/order",
+        json={"token_address": "0xABC", "amount": 50.0, "side": "BUY"},
+        headers={"X-API-Key": api_key},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "SUCCESS"
@@ -43,11 +43,11 @@ def test_simulate_endpoint():
 
 def test_positions_list_and_close():
     _token, api_key = _create_api_key()
-    created = client.post("/api/v1/simulate/order", json={
-        "token_address": "0xABC",
-        "amount": 50.0,
-        "side": "BUY"
-    }, headers={"X-API-Key": api_key})
+    created = client.post(
+        "/api/v1/simulate/order",
+        json={"token_address": "0xABC", "amount": 50.0, "side": "BUY"},
+        headers={"X-API-Key": api_key},
+    )
     assert created.status_code == 200
     trade_id = created.json()["trade_id"]
 
@@ -65,9 +65,7 @@ def test_positions_list_and_close():
 
 
 def test_simulate_endpoint_requires_api_key():
-    response = client.post("/api/v1/simulate/order", json={
-        "token_address": "0xABC",
-        "amount": 50.0,
-        "side": "SELL"
-    })
+    response = client.post(
+        "/api/v1/simulate/order", json={"token_address": "0xABC", "amount": 50.0, "side": "SELL"}
+    )
     assert response.status_code == 401

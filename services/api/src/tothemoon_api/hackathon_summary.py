@@ -220,7 +220,9 @@ def get_hackathon_summary() -> dict[str, Any]:
         if isinstance(evidence, dict) and evidence.get("wallet_set_id")
         else (settings.circle_wallet_set_id or None)
     )
-    all_transactions = [_public_transaction(tx) for tx in reversed(transactions)] if transactions else []
+    all_transactions = (
+        [_public_transaction(tx) for tx in reversed(transactions)] if transactions else []
+    )
     latest_transactions = all_transactions[:8]
     treasury_address = connectors.treasury_address or next(
         (wallet["address"] for wallet in wallets if wallet["name"] == "treasury"),

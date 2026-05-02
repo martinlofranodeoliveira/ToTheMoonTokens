@@ -61,8 +61,12 @@ def test_dashboard_isolates_orgs():
     _simulate(key_a, amount=150.0)
     _simulate(key_b, amount=25.0)
 
-    dashboard_a = client.get("/api/v1/saas/dashboard", headers={"Authorization": f"Bearer {token_a}"})
-    dashboard_b = client.get("/api/v1/saas/dashboard", headers={"Authorization": f"Bearer {token_b}"})
+    dashboard_a = client.get(
+        "/api/v1/saas/dashboard", headers={"Authorization": f"Bearer {token_a}"}
+    )
+    dashboard_b = client.get(
+        "/api/v1/saas/dashboard", headers={"Authorization": f"Bearer {token_b}"}
+    )
 
     assert dashboard_a.status_code == 200
     assert dashboard_b.status_code == 200

@@ -7,18 +7,121 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  backend-baseline:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-        
-    - name: Install dependencies and run tests
-      working-directory: services/api
+
+    - name: Run backend baseline checks
+      run: make api-baseline
+
+  frontend-baseline:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+        cache-dependency-path: apps/web-next/package-lock.json
+
+    - name: Run frontend production build baseline
+      env:
+        NODE_ENV: production
+        npm_config_omit: dev
+      run: make web-next-build
+
+  backend-frontend-evidence:
+    needs:
+      - backend-baseline
+      - frontend-baseline
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+        cache-dependency-path: apps/web-next/package-lock.json
+
+    - name: Collect backend/frontend CI evidence
+      run: make ci-evidence
+
+    - name: Upload backend/frontend CI evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-frontend-ci-evidence
+        path: ops/evidence/backend-frontend-ci-evidence.json
+        if-no-files-found: error
+
+  vm-deploy-evidence:
+    needs:
+      - backend-baseline
+      - frontend-baseline
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Collect VM deploy CI evidence
+      run: make vm-deploy-ci-evidence
+
+    - name: Upload VM deploy CI evidence
+      uses: actions/upload-artifact@v4
+      with:
+        name: vm-deploy-ci-evidence
+        path: ops/evidence/vm-deploy-ci-evidence.json
+        if-no-files-found: error
+
+  mirror-to-gitlab:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - backend-baseline
+      - frontend-baseline
+      - backend-frontend-evidence
+      - vm-deploy-evidence
+    runs-on: ubuntu-latest
+    env:
+      GITLAB_BASE_URL: ${{ secrets.GITLAB_BASE_URL }}
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Mirror main to GitLab
+      shell: bash
       run: |
-        pip install -e .[dev]
-        pytest tests/
+        set -euo pipefail
+        if [ -z "${GITLAB_BASE_URL:-}" ] || [ -z "${GITLAB_TOKEN:-}" ]; then
+          echo "GITLAB_BASE_URL and GITLAB_TOKEN secrets are required for GitLab CI mirror."
+          exit 1
+        fi
+        base="${GITLAB_BASE_URL%.git}"
+        base="${base%/}"
+        if [[ "$base" != http://* && "$base" != https://* ]]; then
+          base="https://${base}"
+        fi
+        if printf '%s' "$base" | grep -Eq '/[^/]+/[^/]+$'; then
+          project_url="${base}.git"
+        else
+          project_url="${base}/${GITHUB_REPOSITORY}.git"
+        fi
+        project_url="${project_url#https://}"
+        project_url="${project_url#http://}"
+        git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@${project_url}"
+        git push gitlab "HEAD:refs/heads/main"

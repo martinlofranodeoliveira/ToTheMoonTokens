@@ -39,6 +39,16 @@ def test_payment_intent_creation_and_verification_flow(monkeypatch):
     intent_payload = intent_response.json()
     assert intent_payload["status"] == "pending"
     assert intent_payload["amount_usd"] == 0.005
+    assert intent_payload["currency"] == "USDC"
+    assert intent_payload["payment_requirement"] == {
+        "asset": "USDC",
+        "network": "arc_testnet",
+        "amount": "0.005",
+        "amount_native_units": "5000000000000000",
+        "pay_to": "0xMockDepositAddressForTestnetOnly",
+        "payment_id": intent_payload["payment_id"],
+        "verification_endpoint": "/api/payments/verify",
+    }
     payment_id = intent_payload["payment_id"]
 
     verify_response = client.post(
@@ -94,7 +104,57 @@ def test_job_lifecycle_requires_payment(monkeypatch):
         json={"artifact_id": "artifact_delivery_packet", "payment_id": payment_id},
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "completed"
+    execute_payload = response.json()
+    assert execute_payload["status"] == "completed"
+    assert execute_payload["download_url"] == "/api/artifacts/artifact_delivery_packet/download"
+
+    orders_response = client.get("/api/payments/orders")
+    assert orders_response.status_code == 200
+    [order] = orders_response.json()
+    assert order["status"] == "verified"
+    assert order["settlement_status"] == "SETTLED"
+    assert order["executed"] is True
+    assert order["download_url"] == execute_payload["download_url"]
+
+    job_response = client.get(f"/api/jobs/{order['job_id']}")
+    assert job_response.status_code == 200
+    job_payload = job_response.json()
+    assert job_payload["state"] == "DELIVERED"
+    assert job_payload["download_url"] == execute_payload["download_url"]
+    assert [event["to_state"] for event in job_payload["transitions"]] == [
+        "REQUESTED",
+        "PAYMENT_UNLOCKED",
+        "WORK_RESERVED",
+        "REVIEW_PENDING",
+        "DELIVERED",
+    ]
+
+
+def test_delivery_unlock_is_blocked_until_payment_verified(monkeypatch):
+    monkeypatch.setattr(circle_client, "ensure_wallets_loaded", lambda: None)
+
+    intent_response = client.post(
+        "/api/payments/intent",
+        json={"artifact_id": "artifact_delivery_packet", "buyer_address": "0xBuyerAddress"},
+    )
+    assert intent_response.status_code == 200
+    intent_payload = intent_response.json()
+
+    blocked_response = client.post(
+        "/api/payments/execute",
+        json={
+            "artifact_id": "artifact_delivery_packet",
+            "payment_id": intent_payload["payment_id"],
+        },
+    )
+    assert blocked_response.status_code == 402
+    assert blocked_response.json()["detail"] == "Payment required to unlock this job."
+
+    job_response = client.get(f"/api/jobs/{intent_payload['job_id']}")
+    assert job_response.status_code == 200
+    job_payload = job_response.json()
+    assert job_payload["state"] == "REQUESTED"
+    assert job_payload["download_url"] is None
 
 
 def test_execute_requires_matching_payment_intent(monkeypatch):

@@ -27,6 +27,11 @@ class JobTransition(BaseModel):
 class NexusJobCreateRequest(BaseModel):
     id: str
     description: str = "Nexus job"
+    payment_id: str | None = None
+    artifact_id: str | None = None
+    artifact_type: str | None = None
+    amount_usdc: float | None = None
+    buyer_address: str | None = None
 
 
 class NexusJob(BaseModel):
@@ -35,6 +40,14 @@ class NexusJob(BaseModel):
     transitions: list[JobTransition] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     description: str = "Nexus job"
+    payment_id: str | None = None
+    artifact_id: str | None = None
+    artifact_type: str | None = None
+    amount_usdc: float | None = None
+    buyer_address: str | None = None
+    settlement_status: str | None = None
+    tx_hash: str | None = None
+    download_url: str | None = None
 
     def transition_to(self, new_state: JobState, reason: str) -> None:
         self.transitions.append(
@@ -61,10 +74,27 @@ def clear_jobs() -> None:
     _jobs.clear()
 
 
-def create_job(job_id: str, description: str) -> NexusJob:
+def create_job(
+    job_id: str,
+    description: str,
+    *,
+    payment_id: str | None = None,
+    artifact_id: str | None = None,
+    artifact_type: str | None = None,
+    amount_usdc: float | None = None,
+    buyer_address: str | None = None,
+) -> NexusJob:
     if job_id in _jobs:
         raise ValueError(f"Job {job_id} already exists")
-    job = NexusJob(id=job_id, description=description)
+    job = NexusJob(
+        id=job_id,
+        description=description,
+        payment_id=payment_id,
+        artifact_id=artifact_id,
+        artifact_type=artifact_type,
+        amount_usdc=amount_usdc,
+        buyer_address=buyer_address,
+    )
     job.transitions.append(
         JobTransition(
             from_state=None,
@@ -92,6 +122,73 @@ def transition_job(job_id: str, new_state: JobState, reason: str) -> NexusJob | 
     if expected_current != job.state:
         return None
     job.transition_to(new_state, reason)
+    return job
+
+
+def create_or_update_paid_job(
+    *,
+    job_id: str,
+    payment_id: str,
+    artifact_id: str,
+    artifact_type: str,
+    amount_usdc: float,
+    buyer_address: str,
+) -> NexusJob:
+    job = get_job(job_id)
+    if job is None:
+        return create_job(
+            job_id,
+            f"Paid Nexus job for {artifact_id}",
+            payment_id=payment_id,
+            artifact_id=artifact_id,
+            artifact_type=artifact_type,
+            amount_usdc=amount_usdc,
+            buyer_address=buyer_address,
+        )
+
+    job.payment_id = payment_id
+    job.artifact_id = artifact_id
+    job.artifact_type = artifact_type
+    job.amount_usdc = amount_usdc
+    job.buyer_address = buyer_address
+    return job
+
+
+def record_payment_unlocked(
+    *,
+    job_id: str,
+    payment_id: str,
+    settlement_status: str | None,
+    tx_hash: str | None,
+) -> NexusJob | None:
+    job = get_job(job_id)
+    if job is None:
+        return None
+
+    job.payment_id = payment_id
+    job.settlement_status = settlement_status
+    job.tx_hash = tx_hash
+    if job.state == "REQUESTED":
+        job.transition_to("PAYMENT_UNLOCKED", "Payment confirmed")
+    return job
+
+
+def reserve_paid_work_for_review(job_id: str) -> NexusJob | None:
+    job = get_job(job_id)
+    if job is None:
+        return None
+    if job.state == "PAYMENT_UNLOCKED":
+        job.transition_to("WORK_RESERVED", "Nexus work allocated")
+    if job.state == "WORK_RESERVED":
+        job.transition_to("REVIEW_PENDING", "Work completed, awaiting review")
+    return job if job.state in {"REVIEW_PENDING", "DELIVERED"} else None
+
+
+def unlock_delivery_after_review(job_id: str, download_url: str) -> NexusJob | None:
+    job = deliver_job(job_id)
+    if job is None:
+        return None
+    job.download_url = download_url
     return job
 
 
@@ -133,7 +230,15 @@ def clear_jobs_endpoint():
 @router.post("", response_model=NexusJob)
 def create_job_endpoint(request: NexusJobCreateRequest):
     try:
-        return create_job(request.id, request.description)
+        return create_job(
+            request.id,
+            request.description,
+            payment_id=request.payment_id,
+            artifact_id=request.artifact_id,
+            artifact_type=request.artifact_type,
+            amount_usdc=request.amount_usdc,
+            buyer_address=request.buyer_address,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 

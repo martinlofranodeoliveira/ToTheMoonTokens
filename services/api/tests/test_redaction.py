@@ -3,6 +3,7 @@ from __future__ import annotations
 from tothemoon_api.observability import (
     REDACTED_PLACEHOLDER,
     redact_sensitive_fields,
+    redact_sensitive_value,
 )
 
 
@@ -51,3 +52,17 @@ def test_list_under_sensitive_key_is_replaced_wholesale():
 def test_deeply_nested_sensitive_key_still_redacted():
     out = _run({"outer": {"inner": {"private_key": "deadbeef"}}})
     assert out["outer"]["inner"]["private_key"] == REDACTED_PLACEHOLDER
+
+
+def test_sensitive_value_inside_non_sensitive_error_field_is_redacted():
+    out = _run({"event": "provider_failed", "error": "401 Authorization=Bearer abc.def.ghi"})
+    assert out["error"] == f"401 {REDACTED_PLACEHOLDER}"
+
+
+def test_provider_secret_patterns_inside_string_values_are_redacted():
+    assert redact_sensitive_value("provider rejected api_key=sk_live_deadbeef") == (
+        f"provider rejected {REDACTED_PLACEHOLDER}"
+    )
+    assert redact_sensitive_value("stripe signature whsec_deadbeef failed") == (
+        f"stripe signature {REDACTED_PLACEHOLDER} failed"
+    )

@@ -234,11 +234,16 @@ button { font-family: inherit; color: inherit; cursor: pointer; border: 0; backg
   text-transform: uppercase; letter-spacing: 0.12em;
   color: var(--circle-green);
 }
+.live.fallback { color: var(--warn); }
 .live .dot {
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--circle-green);
   box-shadow: 0 0 0 0 var(--circle-green-glow);
   animation: pulse-ring 2s ease-out infinite;
+}
+.live.fallback .dot {
+  background: var(--warn);
+  box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4);
 }
 @keyframes pulse-ring {
   0%   { box-shadow: 0 0 0 0 rgba(17,217,139,0.5); opacity: 1; }
@@ -492,6 +497,45 @@ button { font-family: inherit; color: inherit; cursor: pointer; border: 0; backg
 .col-filter { padding: 20px; border-right: 0; overflow-y: auto; }
 .col-main   { padding: 20px 24px; overflow-y: auto; }
 .col-right  { padding: 20px; border-left: 0; overflow-y: auto; }
+
+.app-status-wrap {
+  position: sticky;
+  top: 84px;
+  z-index: 35;
+  padding: 12px 24px 0;
+  pointer-events: none;
+}
+.app-status-wrap .data-status { pointer-events: auto; }
+.data-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(18, 21, 27, 0.94);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px);
+}
+.data-status.live-mode {
+  border-color: rgba(17, 217, 139, 0.25);
+  background: rgba(17, 217, 139, 0.06);
+}
+.data-status.fallback-mode {
+  border-color: rgba(245, 166, 35, 0.28);
+  background: rgba(245, 166, 35, 0.08);
+}
+.data-status.fallback-mode svg { color: var(--warn); }
+.data-status.live-mode svg { color: var(--circle-green); }
+.data-status.compact { padding: 8px 12px; }
+
+@media (max-width: 900px) {
+  .app-status-wrap { top: 120px; padding: 10px 12px 0; }
+  .data-status { align-items: flex-start; flex-direction: column; }
+  .data-status .row[style*="margin-left"] { margin-left: 0 !important; }
+}
 
 /* ---------- Kpis / big numbers ---------- */
 .kpi {

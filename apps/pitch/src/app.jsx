@@ -14,6 +14,8 @@ function App() {
   const [tweaksOpen, setTweaksOpen] = useStateApp(false);
   const [editMode, setEditMode] = useStateApp(false);
   const [tweaks, setTweaks] = useStateApp(TWEAK_DEFAULTS);
+  const [backendData, setBackendData] = useStateApp(() => window.TTM.fallbackPitchBackendData());
+  const [backendLoading, setBackendLoading] = useStateApp(true);
 
   const [blockNum, setBlockNum] = useStateApp(1_234_567);
   const [nanopayCount] = useStateApp(63);
@@ -33,6 +35,20 @@ function App() {
     window.addEventListener('message', onMsg);
     window.parent.postMessage({ type: '__edit_mode_available' }, '*');
     return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const refreshBackendData = () => {
+    setBackendLoading(true);
+    window.TTM.loadPitchBackendData()
+      .then(data => setBackendData(data))
+      .catch(error => setBackendData(window.TTM.fallbackPitchBackendData(error)))
+      .finally(() => setBackendLoading(false));
+  };
+
+  useEffectApp(() => {
+    refreshBackendData();
+    const id = setInterval(refreshBackendData, 15000);
+    return () => clearInterval(id);
   }, []);
 
   const setTweak = (patch) => {
@@ -58,10 +74,15 @@ function App() {
       <ChainStrip blockNum={blockNum} nanopayCount={nanopayCount} showPaper={tweaks.paperMode}/>
       <div className="app">
         <TopNav active={route} onNav={navigate}/>
+        {['marketplace','payment','dashboard'].includes(route) && (
+          <div className="app-status-wrap">
+            <DataStatusBanner backendData={backendData} onRetry={refreshBackendData} compact={backendLoading}/>
+          </div>
+        )}
         {route === 'landing'      && <Landing navigate={navigate} blockNum={blockNum} nanopayCount={nanopayCount}/>}
         {route === 'marketplace'  && <Marketplace state={state} navigate={navigate} tickSpeed={tweaks.tickSpeed}/>}
-        {route === 'payment'      && <PaymentFlow state={state} navigate={navigate}/>}
-        {route === 'dashboard'    && <Dashboard state={state} navigate={navigate}/>}
+        {route === 'payment'      && <PaymentFlow state={state} navigate={navigate} backendData={backendData}/>}
+        {route === 'dashboard'    && <Dashboard state={state} navigate={navigate} backendData={backendData}/>}
         {route === 'architecture' && <Architecture navigate={navigate}/>}
         {route === 'about'        && <About navigate={navigate}/>}
       </div>

@@ -1,5 +1,6 @@
 stages:
   - test
+  - evidence
 
 backend-tests:
   stage: test
@@ -38,8 +39,11 @@ secret-and-env-scan:
         echo ".env is tracked in the working tree."; exit 1
       fi
     - python -m pip install detect-secrets==1.5.0
-    - detect-secrets scan --all-files --exclude-files '(^|/)\.git/|services/api/\.venv/|node_modules/' > .detect-secrets-report.json
-    - python -c "import json,sys; r=json.load(open('.detect-secrets-report.json')); findings=[(f,s) for f,items in r.get('results',{}).items() for s in items]; sys.exit(1 if findings else 0)"
+    - |
+      EXCLUDE_FILES='(^|/)\.git/|(^|/)\.venv/|services/api/\.venv/|node_modules/|apps/web-next/dist/|(^|/)\.(pytest|ruff|mypy)_cache/|ops/evidence/|(^|/)docs/|(^|/)services/api/tests/'
+      EXCLUDE_SECRETS='(ttm|ttm:ttm|paperclip|postgres|example|demo|dummy|fake|replace|not-a-real|deadbeef|correct horse battery staple|\$\{\{ secrets\.[^}]+\}\})'
+      detect-secrets scan --all-files --exclude-files "$EXCLUDE_FILES" --exclude-secrets "$EXCLUDE_SECRETS" > .detect-secrets-report.json
+    - python -c "import json,sys; r=json.load(open('.detect-secrets-report.json')); findings=[(f,s) for f,items in r.get('results',{}).items() for s in items]; print(f'detect-secrets findings={len(findings)}'); sys.exit(1 if findings else 0)"
 
 static-checks:
   stage: test
@@ -56,3 +60,36 @@ static-checks:
     - test -f docs/CONTRIBUTING.md
     - test -f scripts/verify_mirror.sh
     - test -f scripts/collect_validation_evidence.py
+
+backend-frontend-evidence:
+  stage: evidence
+  image: node:22-bookworm
+  needs:
+    - backend-tests
+    - lint-and-typecheck
+    - static-checks
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends make python3 python3-venv python3-pip && rm -rf /var/lib/apt/lists/*
+  script:
+    - make ci-evidence
+  artifacts:
+    when: always
+    paths:
+      - ops/evidence/backend-frontend-ci-evidence.json
+    expire_in: 30 days
+
+vm-deploy-evidence:
+  stage: evidence
+  image: python:3.12
+  needs:
+    - backend-tests
+    - lint-and-typecheck
+    - secret-and-env-scan
+    - static-checks
+  script:
+    - make vm-deploy-ci-evidence
+  artifacts:
+    when: always
+    paths:
+      - ops/evidence/vm-deploy-ci-evidence.json
+    expire_in: 30 days

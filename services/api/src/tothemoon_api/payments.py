@@ -21,6 +21,12 @@ from .models import (
     PaymentVerificationRequest,
     PaymentVerificationResponse,
 )
+from .nexus_jobs import (
+    create_or_update_paid_job,
+    record_payment_unlocked,
+    reserve_paid_work_for_review,
+    unlock_delivery_after_review,
+)
 from .settlement import SettlementRequest, clear_seen_payment_intents, verify_settlement
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
@@ -44,6 +50,18 @@ def _to_native_usdc_units(amount: float) -> int:
 def _format_usdc_amount(amount: float) -> str:
     normalized = Decimal(str(amount)).normalize()
     return format(normalized, "f")
+
+
+def _payment_requirement(intent: PaymentIntentRecord) -> dict[str, object]:
+    return {
+        "asset": "USDC",
+        "network": "arc_testnet",
+        "amount": _format_usdc_amount(intent.amount_usd),
+        "amount_native_units": str(_to_native_usdc_units(intent.amount_usd)),
+        "pay_to": intent.deposit_address,
+        "payment_id": intent.payment_id,
+        "verification_endpoint": "/api/payments/verify",
+    }
 
 
 def _now_iso() -> str:
@@ -129,6 +147,8 @@ def create_checkout(
     now = _now_iso()
     payment_id = str(uuid.uuid4())
 
+    nexus_job_id = job_id or f"nexus-{payment_id}"
+
     intent = PaymentIntentRecord(
         payment_id=payment_id,
         artifact_id=artifact.id,
@@ -137,7 +157,7 @@ def create_checkout(
         amount_usd=artifact.price_usd,
         buyer_address=buyer_address,
         deposit_address=_treasury_address(),
-        job_id=job_id,
+        job_id=nexus_job_id,
         status="pending",
         settlement_status="PENDING",
         reason=None,
@@ -149,6 +169,14 @@ def create_checkout(
         created_at=now,
         updated_at=now,
     )
+    create_or_update_paid_job(
+        job_id=nexus_job_id,
+        payment_id=payment_id,
+        artifact_id=artifact.id,
+        artifact_type=artifact.type,
+        amount_usdc=artifact.price_usd,
+        buyer_address=buyer_address,
+    )
     return _save_payment_intent(intent)
 
 
@@ -158,6 +186,22 @@ def create_demo_checkout(artifact_id: str, buyer_address: str) -> PaymentIntentR
         raise HTTPException(status_code=404, detail="Artifact not found")
     demo_job = request_job(DemoJobRequest(artifact_type=artifact.type))
     return create_checkout(artifact_id, buyer_address, job_id=demo_job.id)
+
+
+def _try_mark_demo_job_paid(job_id: str) -> None:
+    try:
+        ensure_job_paid(job_id)
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+
+
+def _try_advance_demo_job_to_delivered(job_id: str) -> None:
+    try:
+        advance_job_to_delivered(job_id)
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
 
 
 def _mock_receipt(
@@ -269,6 +313,13 @@ def verify_payment_intent(payment_id: str, tx_hash: str) -> PaymentVerificationR
         reason=settlement_result.reason or None,
         tx_hash=tx_hash,
     )
+    if updated.status == "verified" and updated.job_id:
+        record_payment_unlocked(
+            job_id=updated.job_id,
+            payment_id=updated.payment_id,
+            settlement_status=updated.settlement_status,
+            tx_hash=updated.tx_hash,
+        )
 
     return PaymentVerificationResponse(
         payment_id=payment_id,
@@ -315,6 +366,13 @@ def pay_payment_intent(payment_id: str) -> PaymentPayResponse:
 
     intent = _require_payment_intent(payment_id)
     if intent.status == "verified" and intent.tx_hash:
+        if intent.job_id:
+            record_payment_unlocked(
+                job_id=intent.job_id,
+                payment_id=intent.payment_id,
+                settlement_status=intent.settlement_status,
+                tx_hash=intent.tx_hash,
+            )
         return PaymentPayResponse(
             payment_id=intent.payment_id,
             status=intent.status,
@@ -375,7 +433,13 @@ def pay_payment_intent(payment_id: str) -> PaymentPayResponse:
         verification = verify_payment_intent(payment_id, tx_hash)
         paid_intent = _require_payment_intent(payment_id)
         if verification.status == "verified" and paid_intent.job_id:
-            ensure_job_paid(paid_intent.job_id)
+            _try_mark_demo_job_paid(paid_intent.job_id)
+            record_payment_unlocked(
+                job_id=paid_intent.job_id,
+                payment_id=paid_intent.payment_id,
+                settlement_status=paid_intent.settlement_status,
+                tx_hash=paid_intent.tx_hash,
+            )
 
         return PaymentPayResponse(
             payment_id=paid_intent.payment_id,
@@ -418,12 +482,21 @@ def unlock_payment_intent(payment_id: str, artifact_id: str) -> JobExecutionResp
             download_url=intent.download_url,
         )
 
+    if intent.job_id and reserve_paid_work_for_review(intent.job_id) is None:
+        raise HTTPException(status_code=409, detail="Review gate is not ready for delivery unlock.")
+
     execution = JobExecutionResponse(
         artifact_id=artifact_id,
         status="completed",
-        message="Job executed successfully after payment verification.",
+        message="Job executed successfully after payment verification and review.",
         download_url=f"/api/artifacts/{artifact_id}/download",
     )
+    download_url = execution.download_url
+    if not download_url:
+        raise HTTPException(status_code=500, detail="Artifact download URL was not generated")
+    if intent.job_id and unlock_delivery_after_review(intent.job_id, download_url) is None:
+        raise HTTPException(status_code=409, detail="Review required before delivery unlock.")
+
     _update_payment_intent(
         intent,
         executed=True,
@@ -437,7 +510,7 @@ def unlock_and_deliver_payment_intent(payment_id: str) -> PaymentIntentRecord:
     intent = _require_payment_intent(payment_id)
     unlock_payment_intent(payment_id, intent.artifact_id)
     if intent.job_id:
-        advance_job_to_delivered(intent.job_id)
+        _try_advance_demo_job_to_delivered(intent.job_id)
     return _require_payment_intent(payment_id)
 
 
@@ -461,7 +534,9 @@ def create_payment_intent(request: PaymentIntentRequest):
     return PaymentIntentResponse(
         payment_id=intent.payment_id,
         amount_usd=intent.amount_usd,
+        currency="USDC",
         deposit_address=intent.deposit_address,
+        payment_requirement=_payment_requirement(intent),
         status=intent.status,
         job_id=intent.job_id,
     )

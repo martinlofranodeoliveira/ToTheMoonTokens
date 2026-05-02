@@ -1,4 +1,80 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: tothemoontokens-db
+    environment:
+      POSTGRES_USER: ttm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ttm
+    volumes:
+      - ttm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ttm -d ttm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    image: tothemoontokens-api:vm
+    container_name: tothemoontokens-api
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      API_HOST: 0.0.0.0
+      API_PORT: 8010
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      WALLET_MODE: ${WALLET_MODE:-manual_only}
+      AUTONOMOUS_PAYMENTS_ENABLED: ${AUTONOMOUS_PAYMENTS_ENABLED:-false}
+      CIRCLE_BOOTSTRAP_ON_STARTUP: ${CIRCLE_BOOTSTRAP_ON_STARTUP:-false}
+      ALLOW_IMPORT_TIME_INIT_DB: ${ALLOW_IMPORT_TIME_INIT_DB:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    image: tothemoontokens-web:vm
+    container_name: tothemoontokens-web
+    environment:
+      API_BASE_URL: ${PUBLIC_HOST:-}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  web-next:
+    build:
+      context: ./apps/web-next
+      dockerfile: Dockerfile
+    image: tothemoontokens-web-next:vm
+    container_name: tothemoontokens-web-next
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  pitch:
+    build:
+      context: ./apps/pitch
+      dockerfile: Dockerfile
+    image: tothemoontokens-pitch:vm
+    container_name: tothemoontokens-pitch
+    depends_on:
+      - api
+    restart: unless-stopped
+
   caddy:
     image: caddy:2.8-alpine
     container_name: tothemoontokens-caddy
@@ -14,9 +90,11 @@ services:
     depends_on:
       - api
       - web
+      - web-next
       - pitch
     restart: unless-stopped
 
 volumes:
+  ttm_pgdata:
   caddy_data:
   caddy_config:

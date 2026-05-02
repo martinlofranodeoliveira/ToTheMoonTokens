@@ -7,13 +7,21 @@ from typing import Any
 import httpx
 
 from tothemoon_api.config import get_settings
+from tothemoon_api.external.adapters import (
+    ExternalProviderAdapter,
+    call_provider,
+    provider_adapter,
+    provider_metadata,
+)
 from tothemoon_api.external.cache import cached
 from tothemoon_api.external.health import record_provider_status
+from tothemoon_api.external.security import ProviderSkipped
 
 logger = logging.getLogger(__name__)
 
 DEXSCREENER_TOKEN_URL = "https://api.dexscreener.com/latest/dex/tokens/{token_address}"
 BIRDEYE_OVERVIEW_URL = "https://public-api.birdeye.so/defi/token_overview"
+MARKET_CACHE_TTL_SECONDS = 30
 
 
 def _placeholder_market(token_address: str) -> dict[str, Any]:
@@ -26,6 +34,13 @@ def _placeholder_market(token_address: str) -> dict[str, Any]:
         "volume_24h": 1_500_000.0,
         "liquidity_usd": 250_000.0,
         "provider": "local_fallback",
+        **provider_metadata(
+            "local_fallback",
+            status="placeholder",
+            confidence="low",
+            ttl_seconds=MARKET_CACHE_TTL_SECONDS,
+        ),
+        "warning": "Placeholder market data is for demos only and is not live pricing.",
     }
 
 
@@ -66,6 +81,7 @@ def _normalize_dex_pair(token_address: str, pair: dict[str, Any]) -> dict[str, A
         "liquidity_usd": _float(pair.get("liquidity", {}).get("usd")),
         "volatility_index": round(abs(price_change_h1) / 100, 6),
         "provider": "dexscreener",
+        **provider_metadata("dexscreener", ttl_seconds=MARKET_CACHE_TTL_SECONDS),
     }
 
 
@@ -99,13 +115,15 @@ def _fetch_birdeye(token_address: str) -> dict[str, Any]:
     settings = get_settings()
     if not settings.birdeye_api_key:
         record_provider_status("birdeye", status="skipped", last_error="missing API key")
-        raise RuntimeError("Birdeye API key is not configured")
+        raise ProviderSkipped("Birdeye API key is not configured")
 
     started_at = perf_counter()
     try:
         headers = {"X-API-KEY": settings.birdeye_api_key, "accept": "application/json"}
         with httpx.Client(timeout=settings.external_http_timeout_s) as client:
-            response = client.get(BIRDEYE_OVERVIEW_URL, params={"address": token_address}, headers=headers)
+            response = client.get(
+                BIRDEYE_OVERVIEW_URL, params={"address": token_address}, headers=headers
+            )
             response.raise_for_status()
         data = response.json().get("data") or {}
         if not isinstance(data, dict) or not data:
@@ -123,26 +141,47 @@ def _fetch_birdeye(token_address: str) -> dict[str, Any]:
             "liquidity_usd": _float(data.get("liquidity")),
             "volatility_index": round(abs(_float(data.get("priceChange1hPercent"))) / 100, 6),
             "provider": "birdeye",
+            **provider_metadata("birdeye", ttl_seconds=MARKET_CACHE_TTL_SECONDS),
         }
     except Exception as exc:
-        record_provider_status("birdeye", status="degraded", started_at=started_at, last_error=str(exc))
+        record_provider_status(
+            "birdeye", status="degraded", started_at=started_at, last_error=str(exc)
+        )
         raise
 
 
-@cached(ttl=30, namespace="market")
+def get_market_adapters() -> list[ExternalProviderAdapter]:
+    return [
+        provider_adapter("dexscreener", {"market_data"}, _fetch_dexscreener),
+        provider_adapter("birdeye", {"market_data"}, _fetch_birdeye, requires_api_key=True),
+    ]
+
+
+@cached(ttl=MARKET_CACHE_TTL_SECONDS, namespace="market")
 def _get_token_market_data_cached(token_address: str) -> dict[str, Any]:
     if _is_placeholder_address(token_address):
         return _placeholder_market(token_address)
-    try:
-        return _fetch_dexscreener(token_address)
-    except Exception:
-        logger.warning("dexscreener_failed", exc_info=True, extra={"token_address": token_address})
-
-    try:
-        return _fetch_birdeye(token_address)
-    except Exception:
-        logger.warning("birdeye_failed", exc_info=True, extra={"token_address": token_address})
-        return _placeholder_market(token_address)
+    for adapter in get_market_adapters():
+        try:
+            result = call_provider(adapter, token_address)
+            if "freshness" not in result:
+                result = {
+                    **result,
+                    **provider_metadata(adapter.name, ttl_seconds=MARKET_CACHE_TTL_SECONDS),
+                }
+            return result
+        except ProviderSkipped:
+            logger.info(
+                "market_provider_skipped",
+                extra={"provider": adapter.name, "token_address": token_address},
+            )
+        except Exception:
+            logger.warning(
+                "market_provider_failed",
+                exc_info=True,
+                extra={"provider": adapter.name, "token_address": token_address},
+            )
+    return _placeholder_market(token_address)
 
 
 def get_token_market_data(token_address: str) -> dict[str, Any]:

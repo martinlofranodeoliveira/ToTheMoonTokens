@@ -44,7 +44,9 @@ class ApiKey(Base):
     __tablename__ = "api_keys"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
     org_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
@@ -82,7 +84,9 @@ class Plan(Base):
     monthly_token_audit_limit: Mapped[int] = mapped_column(Integer, nullable=False)
     active_api_key_limit: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
-    organizations: Mapped[list["Organization"]] = relationship("Organization", back_populates="plan")
+    organizations: Mapped[list["Organization"]] = relationship(
+        "Organization", back_populates="plan"
+    )
 
     def limit_for(self, resource: str) -> int:
         if self.code == "enterprise":
@@ -97,7 +101,9 @@ class Organization(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("plans.id"), nullable=False, index=True)
+    plan_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("plans.id"), nullable=False, index=True
+    )
     real_mode_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     real_mode_approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     real_mode_daily_limit_usd: Mapped[Decimal] = mapped_column(
@@ -135,7 +141,9 @@ class Membership(Base):
     __table_args__ = (UniqueConstraint("user_id", "org_id", name="uq_memberships_user_org"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
     org_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
@@ -160,11 +168,34 @@ class Subscription(Base):
     )
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="inactive")
     provider: Mapped[str] = mapped_column(String(40), nullable=False, default="circle")
-    provider_subscription_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    provider_customer_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    provider_subscription_id: Mapped[str | None] = mapped_column(
+        String(120), nullable=True, index=True
+    )
     current_period_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
-    organization: Mapped[Organization] = relationship("Organization", back_populates="subscriptions")
+    organization: Mapped[Organization] = relationship(
+        "Organization", back_populates="subscriptions"
+    )
+
+
+class BillingWebhookEvent(Base):
+    __tablename__ = "billing_webhook_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    provider: Mapped[str] = mapped_column(String(40), nullable=False, default="stripe")
+    event_id: Mapped[str] = mapped_column(String(120), nullable=False, unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, default="processing")
+    org_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+    )
+    received_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class UsageRecord(Base):

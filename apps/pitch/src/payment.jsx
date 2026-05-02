@@ -1,8 +1,14 @@
 /* Payment Flow Inspector — the wow factor */
 const { useState: useStateP, useEffect: useEffectP, useRef: useRefP } = React;
 
-function PaymentFlow({ state, navigate }) {
-  const FLOW = window.TTM.PAYMENT_FLOW;
+function PaymentFlow({ state, navigate, backendData }) {
+  const FLOW = backendData?.paymentFlow || window.TTM.PAYMENT_FLOW;
+  const isLive = backendData?.mode === 'live';
+  const firstOrder = backendData?.orders?.[0] || null;
+  const firstArtifact = backendData?.catalog?.[0] || null;
+  const intentLabel = firstOrder?.payment_id ? window.TTM.truncHash(firstOrder.payment_id, 8, 6) : '0x8f3a…e12b';
+  const amountLabel = `${Number(firstOrder?.amount_usd || firstArtifact?.price_usd || 0.0012).toFixed(4)} USDC`;
+  const startedLabel = firstOrder?.created_at ? new Date(firstOrder.created_at).toLocaleTimeString('en-US', { hour12: false, timeZoneName: 'short' }) : '14:32:08.441 UTC';
   const [stepIdx, setStepIdx] = useStateP(5); // 5 = all complete
   const [expanded, setExpanded] = useStateP(new Set([2, 3])); // capture + settle expanded by default
   const [replaying, setReplaying] = useStateP(false);
@@ -67,17 +73,22 @@ function PaymentFlow({ state, navigate }) {
           <span style={{ color: 'var(--text)' }}>Payment</span>
         </div>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em' }}>
-          Payment flow for intent <span className="mono" style={{ color: 'var(--arc-blue)' }}>0x8f3a…e12b</span>
+          Payment flow for intent <span className="mono" style={{ color: 'var(--arc-blue)' }}>{intentLabel}</span>
         </h1>
         <div className="row g12" style={{ marginTop: 12, color: 'var(--text-2)', fontSize: 13 }}>
           <div className="row g6"><Avatar id="consumer_01" size="sm"/><span className="mono-s">consumer_01</span></div>
           <Icon name="arrow-r" size={12} className="t3"/>
           <div className="row g6"><Avatar id="research_02" size="sm"/><span className="mono-s">research_02</span></div>
           <span className="t3">·</span>
-          <span className="mono" style={{ color: 'var(--circle-green)' }}>0.0012 USDC</span>
+          <span className="mono" style={{ color: 'var(--circle-green)' }}>{amountLabel}</span>
           <span className="t3">·</span>
-          <span className="mono-s t3">started 4s ago · 14:32:08.441 UTC</span>
+          <span className="mono-s t3">{isLive ? 'backend order' : 'local fixture'} · {startedLabel}</span>
         </div>
+      </div>
+
+      <div className="row g8" style={{ marginBottom: 20, flexWrap: 'wrap' }}>
+        <span className={`pill ${isLive ? 'pill-green' : 'pill-med'}`}>{isLive ? 'live endpoint data' : 'fallback fixture data'}</span>
+        <span className="mono-s t3">payments catalog · orders · jobs · arc proofs</span>
       </div>
 
       {/* Replay controls */}

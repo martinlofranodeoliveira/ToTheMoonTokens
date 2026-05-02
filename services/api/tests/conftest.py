@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -6,9 +7,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-_DB_PATH = Path(__file__).resolve().parents[1] / ".test_saas.db"
-os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH.as_posix()}")
+_DB_PATH = Path(tempfile.gettempdir()) / f"tothemoon_api_test_{os.getpid()}.db"
+os.environ["DATABASE_URL"] = f"sqlite:///{_DB_PATH.as_posix()}"
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-with-at-least-32-characters")
+os.environ.setdefault("ALLOW_IMPORT_TIME_INIT_DB", "true")
+os.environ["STRIPE_WEBHOOK_SECRET"] = "whsec_dev_secret"
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
@@ -16,6 +19,9 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from tothemoon_api.database import engine
+
+    engine.dispose()
     _DB_PATH.unlink(missing_ok=True)
 
 

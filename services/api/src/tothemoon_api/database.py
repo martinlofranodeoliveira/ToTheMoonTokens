@@ -33,5 +33,5 @@ def get_db() -> Generator[Session, None, None]:
 def init_db() -> None:
     from . import db_models as _db_models  # noqa: F401
 
-    if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    if settings.allow_import_time_init_db and SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
         Base.metadata.create_all(bind=engine)

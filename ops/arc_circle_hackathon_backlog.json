@@ -2,7 +2,8 @@
   {
     "backlogRef": "ARC-HACK-001",
     "title": "ARC-HACK-001 [P0] Implement Circle payment intent and verification flow for priced agent actions",
-    "status": "ready",
+    "status": "done",
+    "paperclipIssue": "GEN-36",
     "priority": "p0",
     "phase": "Phase 1 - Payments",
     "suggestedSquad": "backend + architecture + devops",
@@ -36,7 +37,8 @@
   {
     "backlogRef": "ARC-HACK-002",
     "title": "ARC-HACK-002 [P0] Add Arc-side job, proof, and agent-economy adapter for Nexus work units",
-    "status": "ready",
+    "status": "done",
+    "paperclipIssue": "GEN-37",
     "priority": "p0",
     "phase": "Phase 1 - Arc Integration",
     "suggestedSquad": "architecture + backend + devops",
@@ -67,7 +69,8 @@
   {
     "backlogRef": "ARC-HACK-003",
     "title": "ARC-HACK-003 [P0] Bridge paid jobs into Nexus orchestration, review, and delivery unlock",
-    "status": "backlog",
+    "status": "done",
+    "paperclipIssue": "GEN-38",
     "priority": "p0",
     "phase": "Phase 2 - Nexus Job Lifecycle",
     "suggestedSquad": "backend + architecture + qa",
@@ -97,7 +100,8 @@
   {
     "backlogRef": "ARC-HACK-004",
     "title": "ARC-HACK-004 [P0] Build buyer UI for request, payment status, job status, and artifact delivery",
-    "status": "ready",
+    "status": "done",
+    "paperclipIssue": "GEN-39",
     "priority": "p0",
     "phase": "Phase 2 - Product Demo UI",
     "suggestedSquad": "frontend + product + qa",
@@ -129,7 +133,8 @@
   {
     "backlogRef": "ARC-HACK-005",
     "title": "ARC-HACK-005 [P1] Reuse ToTheMoonTokens as a paid research-artifact vertical in strict paper mode",
-    "status": "backlog",
+    "status": "done",
+    "paperclipIssue": "GEN-40",
     "priority": "p1",
     "phase": "Phase 3 - Vertical Demo",
     "suggestedSquad": "backend + product + qa",
@@ -159,7 +164,7 @@
   {
     "backlogRef": "ARC-HACK-006",
     "title": "ARC-HACK-006 [P1] Add audit trail, observability, and end-to-end demo evidence for judges",
-    "status": "backlog",
+    "status": "ready",
     "priority": "p1",
     "phase": "Phase 3 - Evidence and QA",
     "suggestedSquad": "qa + devops + backend",
@@ -216,7 +221,8 @@
   {
     "backlogRef": "ARC-HACK-008",
     "title": "ARC-HACK-008 [P0] Wire pitch site to live backend with graceful mock fallback",
-    "status": "backlog",
+    "status": "done",
+    "paperclipIssue": "GEN-68",
     "priority": "p0",
     "phase": "Phase 2 - Product Demo UI",
     "suggestedSquad": "frontend + backend",

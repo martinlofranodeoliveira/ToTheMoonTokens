@@ -198,6 +198,179 @@ const PAYMENT_FLOW = [
   },
 ];
 
+const LIVE_DATA_TIMEOUT_MS = 1800;
+const LIVE_DATA_ENDPOINTS = {
+  catalog: '/api/payments/catalog',
+  orders: '/api/payments/orders',
+  jobs: '/api/jobs',
+  arcJobs: '/api/arc/jobs?limit=5',
+  summary: '/api/hackathon/summary',
+  health: '/health',
+};
+
+const demoBuyerAddress = '0x000000000000000000000000000000000000dEaD';
+
+function withTimeout(promise, timeoutMs = LIVE_DATA_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return promise(controller.signal).finally(() => clearTimeout(timeoutId));
+}
+
+async function fetchJson(path, signal) {
+  const response = await fetch(path, { cache: 'no-store', signal });
+  if (!response.ok) throw new Error(`${path} ${response.status}`);
+  return response.json();
+}
+
+function mapCatalogToFlow(catalog, orders, arcJobs) {
+  const artifact = catalog?.[0] || {
+    id: 'artifact_delivery_packet',
+    name: 'Delivery Packet',
+    price_usd: 0.001,
+    type: 'delivery_packet',
+  };
+  const order = orders?.[0] || null;
+  const proof = arcJobs?.[0] || null;
+  const paymentId = order?.payment_id || 'pay_demo_1234567890';
+  const shortPaymentId = truncHash(paymentId, 8, 6);
+  const txHash = order?.tx_hash || proof?.tx_hash || PAYMENT_FLOW[2].tx;
+  const settlementStatus = order?.settlement_status || proof?.settlement_status || 'PENDING';
+  const amount = Number(order?.amount_usd || artifact.price_usd || 0.001);
+
+  return PAYMENT_FLOW.map(step => {
+    if (step.id === 'quote') {
+      return {
+        ...step,
+        description: `Catalog quote loaded from ${LIVE_DATA_ENDPOINTS.catalog}.`,
+        request: { method: 'GET', endpoint: LIVE_DATA_ENDPOINTS.catalog, body: { artifact_id: artifact.id } },
+        response: {
+          artifact_id: artifact.id,
+          artifact_name: artifact.name,
+          artifact_type: artifact.type,
+          price_usdc: amount,
+        },
+      };
+    }
+    if (step.id === 'hold') {
+      return {
+        ...step,
+        title: 'Intent',
+        description: order ? 'Backend returned a persisted payment intent.' : 'No live order yet; showing the intent contract expected by the backend.',
+        request: { method: order ? 'GET' : 'POST', endpoint: order ? LIVE_DATA_ENDPOINTS.orders : '/api/payments/intent', body: { artifact_id: artifact.id, buyer_address: order?.buyer_address || demoBuyerAddress } },
+        response: {
+          payment_id: shortPaymentId,
+          deposit_address: order?.deposit_address || 'waiting for live intent',
+          status: order?.status || 'pending',
+          job_id: order?.job_id || null,
+        },
+      };
+    }
+    if (step.id === 'capture') {
+      return {
+        ...step,
+        title: 'Verify',
+        description: 'Settlement verification checks the submitted Arc transaction against the payment requirement.',
+        request: { method: 'POST', endpoint: '/api/payments/verify', body: { payment_id: shortPaymentId, tx_hash: txHash ? truncHash(txHash) : 'pending' } },
+        response: {
+          payment_id: shortPaymentId,
+          status: order?.status || 'pending',
+          settlement_status: settlementStatus,
+          reason: order?.reason || null,
+        },
+        tx: txHash,
+      };
+    }
+    if (step.id === 'settle') {
+      return {
+        ...step,
+        title: 'Arc proof',
+        description: proof ? 'Arc adapter proof loaded from the consolidated backend.' : 'Arc proof endpoint is reachable but has no jobs yet.',
+        request: { method: 'GET', endpoint: LIVE_DATA_ENDPOINTS.arcJobs, body: { limit: 5 } },
+        response: proof ? {
+          job_id: proof.job_id,
+          status: proof.status,
+          proof_hash: truncHash(proof.proof_hash || '', 10, 8),
+          onchain_write_status: proof.onchain_write_status,
+        } : { jobs: 0, status: 'empty' },
+        tx: txHash,
+      };
+    }
+    if (step.id === 'deliver') {
+      return {
+        ...step,
+        title: 'Deliver',
+        description: order?.executed ? 'Paid artifact has been unlocked by the backend.' : 'Delivery remains gated until verified payment and review complete.',
+        request: { method: 'POST', endpoint: '/api/payments/execute', body: { artifact_id: artifact.id, payment_id: shortPaymentId } },
+        response: {
+          artifact_id: artifact.id,
+          executed: Boolean(order?.executed),
+          download_url: order?.download_url || null,
+          message: order?.execution_message || 'Payment lifecycle ready for live unlock.',
+        },
+      };
+    }
+    return step;
+  });
+}
+
+function deriveLiveAgentStats(orders, jobs, summary) {
+  const verifiedOrders = (orders || []).filter(order => order.status === 'verified');
+  const pendingOrders = (orders || []).filter(order => order.status === 'pending');
+  const totalPaid = (orders || []).reduce((sum, order) => sum + Number(order.amount_usd || 0), 0);
+  const deliveredJobs = (jobs || []).filter(job => job.state === 'DELIVERED').length;
+  const transactionsTotal = summary?.proof?.transactions_total;
+
+  return {
+    verifiedOrders: verifiedOrders.length,
+    pendingOrders: pendingOrders.length,
+    totalPaid,
+    deliveredJobs,
+    transactionsTotal,
+  };
+}
+
+async function loadPitchBackendData() {
+  return withTimeout(async signal => {
+    const [catalog, orders, jobs, arcJobs, summary, health] = await Promise.all([
+      fetchJson(LIVE_DATA_ENDPOINTS.catalog, signal),
+      fetchJson(LIVE_DATA_ENDPOINTS.orders, signal),
+      fetchJson(LIVE_DATA_ENDPOINTS.jobs, signal),
+      fetchJson(LIVE_DATA_ENDPOINTS.arcJobs, signal),
+      fetchJson(LIVE_DATA_ENDPOINTS.summary, signal),
+      fetchJson(LIVE_DATA_ENDPOINTS.health, signal),
+    ]);
+    return {
+      mode: 'live',
+      message: 'Live backend data loaded from consolidated hackathon endpoints.',
+      loadedAt: new Date().toISOString(),
+      catalog,
+      orders,
+      jobs,
+      arcJobs,
+      summary,
+      health,
+      paymentFlow: mapCatalogToFlow(catalog, orders, arcJobs),
+      agentStats: deriveLiveAgentStats(orders, jobs, summary),
+    };
+  });
+}
+
+function fallbackPitchBackendData(error) {
+  return {
+    mode: 'fallback',
+    message: `Live backend unavailable; local demo fixtures are active${error ? ` (${error.message || error})` : ''}.`,
+    loadedAt: new Date().toISOString(),
+    catalog: [],
+    orders: [],
+    jobs: [],
+    arcJobs: [],
+    summary: null,
+    health: null,
+    paymentFlow: PAYMENT_FLOW,
+    agentStats: null,
+  };
+}
+
 // Speaker pairs for settlements
 function nextSettlement() {
   return {
@@ -275,4 +448,5 @@ window.TTM = {
   nextSettlement, nextSignal,
   tierPill, scoreColor, roleColor,
   fmtUSDC, relTime, formatTTL, hashStr,
+  LIVE_DATA_ENDPOINTS, loadPitchBackendData, fallbackPitchBackendData,
 };

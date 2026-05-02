@@ -1,0 +1,30 @@
+## curl /health
+timestamp=2026-05-02T17:01:05Z
+HTTP/1.1 200 OK
+Content-Length: 2030
+Content-Type: application/json
+Cross-Origin-Opener-Policy: same-origin
+Date: Sat, 02 May 2026 17:01:04 GMT
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+Referrer-Policy: strict-origin-when-cross-origin
+Server: Caddy
+Server: uvicorn
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-Request-Id: 48703a1b74d94131bef492e10becf3fd
+
+{"ok":true,"app":"ToTheMoonTokens","mode":"paper","artifact_scope":"paid_agent_artifacts","settlement_network":"arc_testnet","wallet_provider":"circle_developer_controlled_wallets","settlement_auth_mode":"manual","autonomous_payments_enabled":false,"wallet_set_id":null,"orderSubmissionEnabled":false,"wallets_loaded":false,"agent_chat_ready":false,"agent_model":"gemini-3-flash-preview","latency_ms":0.0,"reconnect_count":0,"last_error":null,"market_connector":{"status":"internal-only","latency_ms":0.0,"last_error":null,"sample_count":0,"public_exposure":false},"providers":{"goplus":{"status":"unknown","latency_ms":null,"last_error":null,"observed_at":null},"honeypotis":{"status":"unknown","latency_ms":null,"last_error":null,"observed_at":null},"tokensniffer":{"status":"unknown","latency_ms":null,"last_error":null,"observed_at":null},"dexscreener":{"status":"unknown","latency_ms":null,"last_error":null,"observed_at":null},"birdeye":{"status":"unknown","latency_ms":null,"last_error":null,"observed_at":null}},"external_adapter_contract":{"mode":"paper_only_read_through","order_submission_enabled":false,"mainnet_order_submission_enabled":false,"providers":[{"name":"goplus","capabilities":["security_audit"],"requires_api_key":false,"read_only":true,"supports_order_submission":false,"mainnet_order_submission":false},{"name":"honeypotis","capabilities":["security_audit"],"requires_api_key":false,"read_only":true,"supports_order_submission":false,"mainnet_order_submission":false},{"name":"tokensniffer","capabilities":["security_audit"],"requires_api_key":true,"read_only":true,"supports_order_submission":false,"mainnet_order_submission":false},{"name":"dexscreener","capabilities":["market_data"],"requires_api_key":false,"read_only":true,"supports_order_submission":false,"mainnet_order_submission":false},{"name":"birdeye","capabilities":["market_data"],"requires_api_key":true,"read_only":true,"supports_order_submission":false,"mainnet_order_submission":false}]},"observability":{"sentry":false,"otlp":false}}
+## curl /
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Content-Length: 1471
+Content-Type: text/html
+Date: Sat, 02 May 2026 17:01:05 GMT
+Etag: "69f52427-5bf"
+Last-Modified: Fri, 01 May 2026 22:07:35 GMT
+Server: Caddy
+Server: nginx/1.27.5
+
+
+## title/snippet
+title=TTM Agent Market — Agents pay agents. Per call. Sub-cent. Onchain.

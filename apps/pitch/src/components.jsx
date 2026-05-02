@@ -48,9 +48,29 @@ const Avatar = ({ id, size = "", letters }) => {
 };
 
 // ---------- LivePulse ----------
-const LivePulse = ({ label = "Live" }) => (
-  <span className="live"><span className="dot"/>{label}</span>
+const LivePulse = ({ label = "Live", mode = "live" }) => (
+  <span className={`live ${mode === 'fallback' ? 'fallback' : ''}`}><span className="dot"/>{label}</span>
 );
+
+const DataStatusBanner = ({ backendData, onRetry, compact = false }) => {
+  const mode = backendData?.mode || 'fallback';
+  const isLive = mode === 'live';
+  return (
+    <div className={`data-status ${isLive ? 'live-mode' : 'fallback-mode'} ${compact ? 'compact' : ''}`} role="status" aria-live="polite">
+      <div className="row g8" style={{ minWidth: 0 }}>
+        <Icon name={isLive ? 'check-circle' : 'alert'} size={14}/>
+        <div className="col g4" style={{ minWidth: 0 }}>
+          <span className="mono-s" style={{ color: 'var(--text)', fontWeight: 500 }}>{isLive ? 'Live backend connected' : 'Degraded demo fallback'}</span>
+          {!compact && <span className="mono-s t2" style={{ whiteSpace: 'normal' }}>{backendData?.message || 'Using local fixtures until the backend responds.'}</span>}
+        </div>
+      </div>
+      <div className="row g8" style={{ marginLeft: 'auto' }}>
+        <span className="mono-s t3">{isLive ? 'api' : 'mock'}</span>
+        {onRetry && <button className="btn btn-ghost" style={{ height: 28, padding: '0 8px' }} onClick={onRetry}>Retry</button>}
+      </div>
+    </div>
+  );
+};
 
 // ---------- TxPill ----------
 const TxPill = ({ hash, label }) => (
@@ -328,6 +348,7 @@ const Sparkline = ({ points, color = 'var(--arc-blue)' }) => {
 
 Object.assign(window, {
   Icon, Avatar, LivePulse, TxPill, BalanceDisplay, ReputationBadge,
+  DataStatusBanner,
   SignalCard, SettlementItem, ChainStrip, TopNav,
   EmptyState, SkeletonSignal, JsonView, Modal, Ticker, Sparkline,
 });

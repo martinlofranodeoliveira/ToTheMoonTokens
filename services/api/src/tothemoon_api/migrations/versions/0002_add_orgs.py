@@ -139,9 +139,15 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_simulated_trades_api_key_id"), "simulated_trades", ["api_key_id"], unique=False)
-    op.create_index(op.f("ix_simulated_trades_org_id"), "simulated_trades", ["org_id"], unique=False)
-    op.create_index(op.f("ix_simulated_trades_status"), "simulated_trades", ["status"], unique=False)
+    op.create_index(
+        op.f("ix_simulated_trades_api_key_id"), "simulated_trades", ["api_key_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_simulated_trades_org_id"), "simulated_trades", ["org_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_simulated_trades_status"), "simulated_trades", ["status"], unique=False
+    )
     op.create_index(
         op.f("ix_simulated_trades_token_address"),
         "simulated_trades",
@@ -177,15 +183,21 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_nanopayment_receipts_org_id"), "nanopayment_receipts", ["org_id"], unique=False)
+    op.create_index(
+        op.f("ix_nanopayment_receipts_org_id"), "nanopayment_receipts", ["org_id"], unique=False
+    )
     op.create_index(
         op.f("ix_nanopayment_receipts_resource_id"),
         "nanopayment_receipts",
         ["resource_id"],
         unique=False,
     )
-    op.create_index(op.f("ix_nanopayment_receipts_status"), "nanopayment_receipts", ["status"], unique=False)
-    op.create_index(op.f("ix_nanopayment_receipts_tx_hash"), "nanopayment_receipts", ["tx_hash"], unique=False)
+    op.create_index(
+        op.f("ix_nanopayment_receipts_status"), "nanopayment_receipts", ["status"], unique=False
+    )
+    op.create_index(
+        op.f("ix_nanopayment_receipts_tx_hash"), "nanopayment_receipts", ["tx_hash"], unique=False
+    )
 
 
 def downgrade() -> None:

@@ -1,9 +1,11 @@
 /* Agent Dashboard */
 const { useState: useStateD } = React;
 
-function Dashboard({ state, navigate }) {
+function Dashboard({ state, navigate, backendData }) {
   const [agentId, setAgentId] = useStateD('research_02');
   const agent = window.TTM.AGENTS.find(a => a.id === agentId) || window.TTM.AGENTS[1];
+  const liveStats = backendData?.agentStats;
+  const isLive = backendData?.mode === 'live';
 
   const isResearch = agent.role === 'research';
   const isConsumer = agent.role === 'consumer';
@@ -43,14 +45,14 @@ function Dashboard({ state, navigate }) {
             <div className="row g10">
               <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em' }}>{agent.id}</h1>
               <span className={`pill ${window.TTM.roleColor(agent.role)}`}>{agent.role}</span>
-              <LivePulse label="Active"/>
+              <LivePulse label={isLive ? 'Live API' : 'Fallback'} mode={isLive ? 'live' : 'fallback'}/>
             </div>
             <div className="row g12 mono-s t2">
               <span className="row g6"><Icon name="wallet" size={11}/><span className="mono">{agent.address}</span><button className="btn btn-ghost" style={{ height: 20, padding: 0, color: 'var(--text-3)' }}><Icon name="copy" size={11}/></button></span>
               <span className="t3">·</span>
               <span>Joined 14d ago</span>
               <span className="t3">·</span>
-              <span className="row g4"><span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--circle-green)' }}/>synced to block #1,234,567</span>
+              <span className="row g4"><span style={{ width: 5, height: 5, borderRadius: '50%', background: isLive ? 'var(--circle-green)' : 'var(--warn)' }}/>{isLive ? 'synced to backend' : 'local fallback active'}</span>
             </div>
           </div>
           <button className="btn btn-secondary" onClick={() => navigate('payment')}>Open latest payment flow <Icon name="arrow-r" size={12}/></button>
@@ -63,14 +65,14 @@ function Dashboard({ state, navigate }) {
         <div className="card card-pad">
           <div className="row between" style={{ marginBottom: 14 }}>
             <span className="mono-s t3" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>Balance &amp; flow</span>
-            <span className="mono-s t3">24h</span>
+            <span className="mono-s t3">{isLive ? 'backend' : '24h'}</span>
           </div>
           <BalanceDisplay amount={agent.balance} sub={`≈ $${agent.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}/>
           <div className="row g16" style={{ marginTop: 14, marginBottom: 14 }}>
-            {isResearch && <div className="col g4"><span className="mono-s t3">REVENUE 24H</span><span className="mono" style={{ fontSize: 14, color: 'var(--circle-green)' }}>+{agent.revenue24?.toFixed(4)} USDC</span></div>}
+            {isResearch && <div className="col g4"><span className="mono-s t3">{isLive ? 'PAID ORDERS' : 'REVENUE 24H'}</span><span className="mono" style={{ fontSize: 14, color: 'var(--circle-green)' }}>+{(isLive ? liveStats?.totalPaid || 0 : agent.revenue24 || 0).toFixed(4)} USDC</span></div>}
             {isConsumer && <div className="col g4"><span className="mono-s t3">SPEND 24H</span><span className="mono" style={{ fontSize: 14, color: 'var(--danger)' }}>-{agent.spend24?.toFixed(4)} USDC</span></div>}
             {isTreasury && <div className="col g4"><span className="mono-s t3">REBALANCES 24H</span><span className="mono" style={{ fontSize: 14 }}>3 events</span></div>}
-            <div className="col g4"><span className="mono-s t3">TXNS 24H</span><span className="mono" style={{ fontSize: 14 }}>{isResearch ? 142 : isConsumer ? 318 : 21}</span></div>
+            <div className="col g4"><span className="mono-s t3">{isLive ? 'VERIFIED ORDERS' : 'TXNS 24H'}</span><span className="mono" style={{ fontSize: 14 }}>{isLive ? liveStats?.verifiedOrders || 0 : isResearch ? 142 : isConsumer ? 318 : 21}</span></div>
             <div className="col g4"><span className="mono-s t3">AVG / TX</span><span className="mono" style={{ fontSize: 14 }}>0.0009 USDC</span></div>
           </div>
           <Sparkline points={sparkPoints} color={isResearch ? 'var(--circle-green)' : isConsumer ? 'var(--danger)' : 'var(--arc-blue)'}/>

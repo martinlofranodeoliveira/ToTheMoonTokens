@@ -1223,7 +1223,7 @@ CORS_ALLOWED_ORIGINS=https://app.tothemoontokens.com
 ```text
 ToTheMoonTokens/
   apps/
-    web-next/                # Next.js dashboard (Fase 7)
+    web-next/                # React/Vite SaaS dashboard (UI canonica)
     pitch/                   # já existe
   bot/                       # já existe, refatorar
   services/
@@ -1257,3 +1257,68 @@ ToTheMoonTokens/
 ---
 
 **Fim do plano.** Comece pela Fase 0 e siga em ordem. Boa execução.
+
+---
+
+## Anexo A — baseline dev local (2026-05-02)
+
+### Decisão de UI canônica
+
+O alvo canônico para as próximas tasks de UI SaaS é `apps/web-next`.
+
+Motivos:
+
+- `apps/web-next` já contém o dashboard SaaS React/Vite com autenticação, navegação, API keys, billing, invoices, settings, audit log, status e simulação paper.
+- `apps/web` permanece como superfície estática/legada servida por `make web-serve` e não deve receber novas features de produto SaaS sem uma decisão explícita de migração.
+- A documentação de baseline visual detalhada está em `docs/SAAS_UI_BASELINE.md`.
+
+### Comandos executados
+
+Backend:
+
+```bash
+make api-install
+python3 -m venv .venv
+make PYTHON="$PWD/.venv/bin/python" api-install
+make PYTHON="$PWD/.venv/bin/python" api-test
+```
+
+Frontend:
+
+```bash
+cd apps/web-next
+npm ci
+npm run build
+npm ci --include=dev
+npm run build
+```
+
+### Resultados e diagnóstico
+
+- `make api-install` com o Python do sistema falhou por PEP 668 (`externally-managed-environment`).
+- `make PYTHON="$PWD/.venv/bin/python" api-install` passou e instalou `services/api` com extras `dev` em `.venv`.
+- `make PYTHON="$PWD/.venv/bin/python" api-test` passou: suite `pytest` completa executou com 1 teste skipped e warnings de `datetime.utcnow()` já existentes.
+- `npm ci` em `apps/web-next` passou, mas por causa de `NODE_ENV=production` e `npm config omit=dev` omitiu dev dependencies.
+- `npm run build` após esse `npm ci` falhou com `sh: 1: tsc: not found`, porque `typescript` é dev dependency.
+- `npm ci --include=dev` passou com `0 vulnerabilities`.
+- `npm run build` passou: TypeScript build e bundle Vite de produção concluídos.
+
+### Próximos passos
+
+- Usar `apps/web-next` para todas as próximas melhorias de UI SaaS.
+- Em automação/CI local, instalar frontend com `npm ci --include=dev` quando o build TypeScript for necessário em ambiente com `NODE_ENV=production`.
+- Opcionalmente documentar no `Makefile` um alvo `web-next-build` que encapsule `npm ci --include=dev && npm run build`.
+
+---
+
+## Anexo B — fila executável Arc/Circle/Nexus (2026-05-02)
+
+Backlog operacional criado em Paperclip para transformar os itens Arc/Circle do hackathon em tarefas executáveis:
+
+- `GEN-36` / `ARC-HACK-001`: payment intent e verificação demo-safe para ações pagas. Status inicial: `todo`; próximo owner sugerido: Lily.
+- `GEN-37` / `ARC-HACK-002`: adapter Arc para job/proof metadata de work units pagos. Status inicial: `todo`; próximo owner sugerido: Theo.
+- `GEN-38` / `ARC-HACK-003`: lifecycle Nexus pago com gate de review/delivery. Status inicial: `blocked` até `GEN-36` e `GEN-37` estabilizarem contratos.
+- `GEN-39` / `ARC-HACK-004`: UI demo para pricing, payment status, lifecycle Nexus, proof Arc e delivery unlock. Status inicial: `blocked` até contratos backend de `GEN-36`–`GEN-38`.
+- `GEN-40` / `ARC-HACK-005`: regressão integrada e handoff do fluxo Arc/Circle/Nexus. Status inicial: `blocked` até `GEN-36`–`GEN-39` ficarem implementados ou fixture-stable.
+
+Próxima ação: atribuir `GEN-36` e `GEN-37` aos owners sugeridos ou ao primeiro backend disponível; manter `GEN-38`–`GEN-40` bloqueados para evitar trabalho especulativo sobre contratos instáveis.

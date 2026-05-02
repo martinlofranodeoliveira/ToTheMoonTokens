@@ -19,6 +19,11 @@ def test_health_endpoint_exposes_paper_mode_by_default():
     assert {"goplus", "honeypotis", "tokensniffer", "dexscreener", "birdeye"} <= set(
         payload["providers"]
     )
+    assert payload["external_adapter_contract"]["order_submission_enabled"] is False
+    assert payload["external_adapter_contract"]["mainnet_order_submission_enabled"] is False
+    assert payload["providers"]["goplus"]["observed_at"] is None or payload["providers"]["goplus"][
+        "observed_at"
+    ].endswith("Z")
 
 
 def test_dashboard_includes_guardrails_and_metrics():

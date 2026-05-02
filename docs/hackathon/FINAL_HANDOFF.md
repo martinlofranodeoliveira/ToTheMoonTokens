@@ -35,6 +35,18 @@ make demo-status
 - marketplace: `http://127.0.0.1:4173`
 - pitch site: `http://127.0.0.1:4174`
 
+### Demo local Arc/Circle/Nexus lifecycle
+
+Use o painel `Paid Agent Lifecycle` no marketplace para exercitar o caminho
+fixture-stable: `Create payment requirement` -> `Verify payment` -> `Unlock delivery`.
+Ele usa Arc testnet/demo-safe data, USDC em ambiente de teste, Circle wallet
+fixtures quando as credenciais reais nao estao configuradas, e Nexus apenas como
+estado de orquestracao embutido no backend.
+
+O caminho bloqueado esperado e: criar payment requirement e confirmar que
+`Unlock delivery` continua desabilitado e a entrega fica `locked` ate a
+verificacao do pagamento.
+
 ### Encerrar
 
 ```bash
@@ -96,12 +108,26 @@ make demo-stop
 
 ## Ultimos checks de codigo
 
+Checks estreitos que cobrem o lifecycle pago e o caminho bloqueado sem rodar a
+suite inteira:
+
+```bash
+cd services/api && pytest tests/test_payments.py -q
+cd apps/web-next && npm run test:e2e -- tests/e2e/saas.spec.ts -g "paid agent lifecycle"
+```
+
+Checks amplos antes de publicar/submeter:
+
 ```bash
 make api-test
 make api-lint
 make api-typecheck
 python3 scripts/verify_guardrails.py
 ```
+
+Risco residual: o e2e usa fixtures deterministicas para Arc/Circle/Nexus. Antes
+de gravar com servicos reais, valide um tx hash fresco no Circle Console e no
+Arcscan testnet sem mostrar segredos, entity secret, API keys ou cookies.
 
 Se quiser logs dos servidores locais:
 

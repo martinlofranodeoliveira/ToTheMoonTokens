@@ -6,6 +6,7 @@ import logging
 
 import httpx
 from auditor import is_token_safe
+from safety import fetch_bot_status
 from scanner import scan_market
 from trader import create_copilot_proposal
 
@@ -56,6 +57,16 @@ async def run_once(
     )
     proposals: list[dict[str, object]] = []
     async with httpx.AsyncClient(base_url=api_base_url, timeout=30) as client:
+        status = await fetch_bot_status(client, api_key=api_key)
+        logger.info(
+            "bot_orchestration_status",
+            extra={
+                "runtime_mode": status.get("runtime_mode"),
+                "order_submission_enabled": status.get("order_submission_enabled"),
+                "mainnet_order_submission_enabled": status.get("mainnet_order_submission_enabled"),
+                "workflow_status": status.get("workflows", {}),
+            },
+        )
         for token in tokens:
             try:
                 proposal = await analyze_and_propose(

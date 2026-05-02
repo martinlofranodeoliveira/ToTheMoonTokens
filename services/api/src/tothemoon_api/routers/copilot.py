@@ -12,8 +12,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..auth import current_user_from_jwt, verify_api_key
+from ..config import get_settings
 from ..database import get_db
 from ..db_models import ApiKey, CopilotProposal, Organization, User
+from ..external import get_external_adapter_contract
 from ..quota import enforce_quota
 from ..simulation import OrderRequest, TradeSide, simulate_trade
 from ..tenancy import primary_org_for_user
@@ -61,6 +63,41 @@ def _org_for_api_key(api_key: ApiKey) -> Organization:
     return api_key.organization
 
 
+def _bot_workflow_status(org: Organization) -> dict[str, object]:
+    return {
+        "scanner": "api_adapter_ready",
+        "auditor": "api_adapter_ready",
+        "trader": "paper_proposal_only",
+        "consecutive_failures": org.bot_consecutive_failures,
+        "circuit_breaker_tripped": org.bot_consecutive_failures >= 3,
+    }
+
+
+def _paper_bot_status(org: Organization) -> dict[str, object]:
+    settings = get_settings()
+    contract = get_external_adapter_contract()
+    return {
+        "org_id": org.id,
+        "runtime_mode": settings.runtime_mode,
+        "paper_only_default": settings.runtime_mode == "paper",
+        "guarded_testnet_allowed": settings.runtime_mode == "guarded_testnet",
+        "order_submission_enabled": False,
+        "mainnet_order_submission_enabled": False,
+        "real_mode_enabled_for_org": org.real_mode_enabled,
+        "workflows": _bot_workflow_status(org),
+        "safeguards": {
+            "guarded_testnet_enabled": bool(
+                settings.enable_live_trading and not settings.allow_mainnet_trading
+            ),
+            "production_mainnet_blocked": settings.app_env == "production"
+            or not settings.allow_mainnet_trading,
+            "adapter_contract_enforced": contract["order_submission_enabled"] is False
+            and contract["mainnet_order_submission_enabled"] is False,
+        },
+        "external_adapter_contract": contract,
+    }
+
+
 @router.post("/proposals", status_code=201)
 def create_proposal(
     payload: CopilotProposalCreate,
@@ -68,6 +105,11 @@ def create_proposal(
     db: DbSession,
 ) -> dict[str, object]:
     org = _org_for_api_key(api_key)
+    status = _paper_bot_status(org)
+    if status["runtime_mode"] == "blocked_mainnet":
+        raise HTTPException(status_code=503, detail="Mainnet runtime is blocked by project policy")
+    if status["mainnet_order_submission_enabled"] is not False:
+        raise HTTPException(status_code=503, detail="Mainnet order submission is blocked")
     if payload.mode == "real" and not org.real_mode_enabled:
         raise HTTPException(status_code=403, detail="Real mode is disabled for this organization")
 
@@ -88,6 +130,12 @@ def create_proposal(
     db.commit()
     db.refresh(proposal)
     return {"proposal": _proposal_payload(proposal)}
+
+
+@router.get("/bot/status")
+def get_bot_status(api_key: VerifiedApiKey) -> dict[str, object]:
+    org = _org_for_api_key(api_key)
+    return _paper_bot_status(org)
 
 
 @router.get("/proposals")
@@ -122,7 +170,9 @@ def approve_proposal(
         raise HTTPException(status_code=409, detail="Proposal is not pending")
     if proposal.mode == "real":
         if not org.real_mode_enabled:
-            raise HTTPException(status_code=403, detail="Real mode is disabled for this organization")
+            raise HTTPException(
+                status_code=403, detail="Real mode is disabled for this organization"
+            )
         proposal.status = "approved_manual_required"
         proposal.approved_at = datetime.utcnow()
         proposal.updated_at = datetime.utcnow()
@@ -132,7 +182,9 @@ def approve_proposal(
 
     api_key = (
         db.query(ApiKey)
-        .filter(ApiKey.id == proposal.api_key_id, ApiKey.org_id == org.id, ApiKey.revoked_at.is_(None))
+        .filter(
+            ApiKey.id == proposal.api_key_id, ApiKey.org_id == org.id, ApiKey.revoked_at.is_(None)
+        )
         .first()
     )
     if api_key is None:

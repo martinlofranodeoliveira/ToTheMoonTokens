@@ -23,7 +23,19 @@ SENSITIVE_FIELD_PATTERN = re.compile(
     r"(token|secret|password|passwd|seed|private[_-]?key|api[_-]?key|acknowledg|authorization|bearer)",
     re.IGNORECASE,
 )
+SENSITIVE_VALUE_PATTERN = re.compile(
+    r"((?:authorization|bearer)\s*[=:]\s*Bearer\s+\S+|Bearer\s+\S+|"
+    r"sk_(?:test|live)_[A-Za-z0-9_\-]+|whsec_[A-Za-z0-9_\-]+|"
+    r"(?:api[_-]?key|token|secret|password|passwd|authorization|cookie|signature)\s*[=:]\s*[^\s,;]+)",
+    re.IGNORECASE,
+)
 REDACTED_PLACEHOLDER = "[REDACTED]"
+
+
+def redact_sensitive_value(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    return SENSITIVE_VALUE_PATTERN.sub(REDACTED_PLACEHOLDER, value)
 
 
 def redact_sensitive_fields(
@@ -48,7 +60,7 @@ def redact_sensitive_fields(
             }
         if isinstance(value, (list, tuple)) and SENSITIVE_FIELD_PATTERN.search(parent_key):
             return REDACTED_PLACEHOLDER
-        return value
+        return redact_sensitive_value(value)
 
     return {
         key: (
@@ -180,7 +192,9 @@ def configure_runtime_observability(app: Any, settings: object) -> None:
     provider = TracerProvider(
         resource=Resource.create(
             {
-                "service.name": str(getattr(settings, "otel_service_name", "") or "tothemoontokens-api"),
+                "service.name": str(
+                    getattr(settings, "otel_service_name", "") or "tothemoontokens-api"
+                ),
                 "deployment.environment": str(getattr(settings, "app_env", "") or "local"),
             }
         )

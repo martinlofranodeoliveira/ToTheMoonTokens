@@ -1,6 +1,6 @@
 {
   "id": "project-scope",
   "title": "ToTheMoonTokens Project Scope",
-  "description": "Mantem os agentes focados no MVP do hackathon, com artefatos pagos, settlement auditavel e sem retorno ao produto legado de trading.",
+  "description": "Mantem os agentes focados no MVP do hackathon, frontend SaaS em /saas/, CI/CD GitHub-GitLab-VM, artefatos pagos, settlement auditavel e sem retorno ao produto legado de trading.",
   "roles": ["ceo", "pm", "architect", "sm", "dev", "qa", "devops"]
 }

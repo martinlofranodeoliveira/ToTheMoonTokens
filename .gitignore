@@ -6,6 +6,12 @@ __pycache__/
 dist/
 build/
 node_modules/
+coverage/
+playwright-report/
+test-results/
+apps/web-next/dist/
+apps/web-next/playwright-report/
+apps/web-next/test-results/
 .DS_Store
 .nexus-worktree.json
 .gemini/
@@ -26,3 +32,5 @@ ops/evidence/*.json
 ~$*
 *.tmp
 *.tsbuildinfo
+
+.env.deploy

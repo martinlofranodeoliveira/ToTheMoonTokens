@@ -1,0 +1,46 @@
+{
+  "issue": "GEN-53",
+  "baseURL": "http://34.29.171.34",
+  "saasURL": "http://34.29.171.34/saas/",
+  "startedAt": "2026-05-02T17:02:27.184Z",
+  "finishedAt": "2026-05-02T17:02:40.038Z",
+  "health": {
+    "httpStatus": 200,
+    "mode": "paper",
+    "orderSubmissionEnabled": false,
+    "autonomous_payments_enabled": false,
+    "settlement_network": "arc_testnet"
+  },
+  "results": [
+    {
+      "name": "desktop",
+      "url": "http://34.29.171.34/saas/",
+      "httpStatus": 200,
+      "title": "TTM SaaS Dashboard",
+      "emailVisible": true,
+      "signInTextVisible": true,
+      "ordersBlockedVisible": true,
+      "consoleErrors": [],
+      "screenshot": "ops/evidence/gen-53/desktop-saas-current-page.png",
+      "domTextEvidence": "ops/evidence/gen-53/desktop-saas-current-page.txt"
+    },
+    {
+      "name": "mobile",
+      "url": "http://34.29.171.34/saas/",
+      "httpStatus": 200,
+      "title": "TTM SaaS Dashboard",
+      "emailVisible": true,
+      "signInTextVisible": true,
+      "ordersBlockedVisible": true,
+      "consoleErrors": [],
+      "screenshot": "ops/evidence/gen-53/mobile-saas-current-page.png",
+      "domTextEvidence": "ops/evidence/gen-53/mobile-saas-current-page.txt"
+    },
+    {
+      "name": "Desktop signup/auth dashboard journey",
+      "result": "blocked",
+      "reason": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByText('gen53-1777741349947@example.com')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 10000ms\n  - waiting for getByText('gen53-1777741349947@example.com')\n"
+    }
+  ],
+  "summary": "SaaS dashboard route /saas/ renders signed-out auth in desktop and mobile; safe paper-mode status shows orders blocked; signup/auth dashboard journey was attempted against the live API."
+}

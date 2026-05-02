@@ -99,7 +99,7 @@ async def login(
         raise HTTPException(status_code=400, detail="Missing username or password")
 
     user = db.query(User).filter(User.email == username).first()
-    if not user or not verify_password(password, user.password_hash):
+    if not user or not user.is_active or not verify_password(password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     org = primary_org_for_user(user, db)
     record_audit_log(
@@ -197,7 +197,15 @@ def usage(user: CurrentUser, db: DbSession) -> dict[str, object]:
 
 
 @router.get("/saas/api-keys")
-def list_api_keys(user: CurrentUser) -> list[dict[str, object]]:
+def list_api_keys(user: CurrentUser, db: DbSession) -> list[dict[str, object]]:
+    org = primary_org_for_user(user, db)
+    api_keys = (
+        db.query(ApiKey)
+        .filter(ApiKey.org_id == org.id)
+        .order_by(ApiKey.created_at.desc(), ApiKey.id.desc())
+        .all()
+    )
+    db.commit()
     return [
         {
             "id": key.id,
@@ -209,7 +217,7 @@ def list_api_keys(user: CurrentUser) -> list[dict[str, object]]:
             "revoked_at": key.revoked_at,
             "created_at": key.created_at,
         }
-        for key in sorted(user.api_keys, key=lambda item: item.created_at, reverse=True)
+        for key in api_keys
     ]
 
 
@@ -269,7 +277,8 @@ def revoke_api_key(
     db: DbSession,
     request: Request,
 ) -> dict[str, object]:
-    api_key = db.query(ApiKey).filter(ApiKey.id == api_key_id, ApiKey.user_id == user.id).first()
+    org = primary_org_for_user(user, db)
+    api_key = db.query(ApiKey).filter(ApiKey.id == api_key_id, ApiKey.org_id == org.id).first()
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
     before = {"revoked_at": api_key.revoked_at, "prefix": api_key.prefix}

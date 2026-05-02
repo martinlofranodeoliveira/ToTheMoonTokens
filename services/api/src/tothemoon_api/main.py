@@ -8,12 +8,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .agent_chat import router as agent_router
 from .arc import ping_arc_network
-from .arc_adapter import ArcJobProof, NexusTaskEvent, get_arc_jobs, submit_nexus_task_event
+from .arc_adapter import (
+    ArcJobProof,
+    NexusTaskEvent,
+    PaidWorkUnit,
+    get_arc_jobs,
+    submit_nexus_task_event,
+    submit_paid_work_unit,
+)
 from .backtesting import RISK_PROFILES, run_backtest, run_walk_forward
 from .circle import circle_client
 from .config import get_settings
 from .database import init_db
 from .demo_agent import router as demo_router
+from .external import get_external_adapter_contract
 from .external.health import get_provider_health
 from .guards import connector_status, evaluate_guardrails, gemini_configured
 from .hackathon_summary import router as hackathon_router
@@ -244,6 +252,7 @@ def health() -> dict[str, object]:
             "public_exposure": False,
         },
         "providers": get_provider_health(),
+        "external_adapter_contract": get_external_adapter_contract(),
         "observability": {
             "sentry": bool(settings.sentry_dsn),
             "otlp": bool(settings.otel_exporter_otlp_endpoint),
@@ -253,10 +262,30 @@ def health() -> dict[str, object]:
 
 @app.get("/ready")
 def ready() -> dict[str, object]:
+    external_adapter_contract_safe = False
+    try:
+        contract = get_external_adapter_contract()
+        providers = contract.get("providers")
+        external_adapter_contract_safe = (
+            contract.get("order_submission_enabled") is False
+            and contract.get("mainnet_order_submission_enabled") is False
+            and isinstance(providers, list)
+            and len(providers) > 0
+            and all(
+                isinstance(provider, dict)
+                and provider.get("read_only") is True
+                and provider.get("supports_order_submission") is False
+                and provider.get("mainnet_order_submission") is False
+                for provider in providers
+            )
+        )
+    except Exception:
+        log.exception("external_adapter_contract_check_failed")
     checks: dict[str, bool] = {
         "settings_valid": True,
         "strategies_loaded": len(strategy_catalog()) > 0,
         "mainnet_permanently_blocked": not evaluate_guardrails(settings).can_submit_mainnet_orders,
+        "external_adapters_paper_only": external_adapter_contract_safe,
     }
     ok = all(checks.values())
     if not ok:
@@ -473,6 +502,11 @@ def api_get_depth(symbol: str = "BTCUSDT", limit: int = Query(default=20, ge=5, 
 @app.post("/api/arc/jobs", response_model=ArcJobProof)
 def create_arc_job(event: NexusTaskEvent):
     return submit_nexus_task_event(event)
+
+
+@app.post("/api/arc/paid-work-units", response_model=ArcJobProof)
+def create_arc_paid_work_unit(work_unit: PaidWorkUnit):
+    return submit_paid_work_unit(work_unit)
 
 
 @app.get("/api/arc/jobs", response_model=list[ArcJobProof])

@@ -1,0 +1,44 @@
+{
+  "issue": "GEN-53",
+  "baseURL": "http://34.29.171.34",
+  "startedAt": "2026-05-02T14:50:22.991Z",
+  "finishedAt": "2026-05-02T14:50:30.158Z",
+  "results": [
+    {
+      "name": "HTTP health exposes safe paper mode",
+      "result": "passed",
+      "httpStatus": 200,
+      "mode": "paper",
+      "orderSubmissionEnabled": false,
+      "autonomous_payments_enabled": false,
+      "settlement_network": "arc_testnet"
+    },
+    {
+      "name": "Desktop signed-out SaaS auth render",
+      "result": "blocked",
+      "reason": "Public VM serves Agent Market landing page without SaaS auth controls; email@company.com input not found.",
+      "httpStatus": 200,
+      "title": "TTM Agent Market \u2014 Agents pay agents. Per call. Sub-cent. Onchain.",
+      "consoleErrors": [],
+      "screenshot": "ops/evidence/gen-53/desktop-current-page.png",
+      "domTextEvidence": "ops/evidence/gen-53/desktop-current-page.txt"
+    },
+    {
+      "name": "Mobile responsive SaaS navigation render",
+      "result": "blocked",
+      "reason": "Public VM mobile render is same Agent Market landing page; SaaS auth/dashboard navigation not present.",
+      "httpStatus": 200,
+      "title": "TTM Agent Market \u2014 Agents pay agents. Per call. Sub-cent. Onchain.",
+      "consoleErrors": [],
+      "screenshot": "ops/evidence/gen-53/mobile-current-page.png",
+      "domTextEvidence": "ops/evidence/gen-53/mobile-current-page.txt"
+    },
+    {
+      "name": "Dashboard/auth journey",
+      "result": "blocked",
+      "reason": "Cannot start dashboard/auth journey because deployed root UI lacks login/signup controls; API endpoints exist behind Caddy but frontend is not the SaaS dashboard build."
+    }
+  ],
+  "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByPlaceholder('email@company.com')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for getByPlaceholder('email@company.com')\n\n    at Proxy.<anonymous> (/home/paperclip/.paperclip/instances/default/projects/09ac4c2e-0f24-4944-a8fb-f20db83edd1e/90999087-7bd7-4d57-ab82-e7a6a4d43156/ToTheMoonTokens/apps/web-next/node_modules/playwright/lib/matchers/expect.js:213:24)\n    at main (file:///home/paperclip/.paperclip/instances/default/projects/09ac4c2e-0f24-4944-a8fb-f20db83edd1e/90999087-7bd7-4d57-ab82-e7a6a4d43156/ToTheMoonTokens/apps/web-next/gen53-smoke.mjs:45:62)",
+  "summary": "Health and safe paper-mode checks passed; browser/UI smoke is blocked by deployed frontend mismatch on the public VM."
+}

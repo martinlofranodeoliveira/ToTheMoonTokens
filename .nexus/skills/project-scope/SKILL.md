@@ -21,6 +21,21 @@ Use esta skill quando a task envolver este repositorio.
 - UI legivel para demo
 - testes automatizados no caminho principal
 
+
+## Frontend e deploy publico
+
+- trate `apps/web-next` como a superficie SaaS React ativa; `apps/web` e `apps/pitch` continuam sendo superficies estaticas de demo
+- em deploy GCP VM, o dashboard SaaS publico deve responder em `/saas/`; a raiz `/` pode continuar como landing do Agent Market
+- qualquer tarefa frontend precisa validar `npm ci --include=dev`, `npm run build` e smoke Playwright quando tocar fluxo de login, dashboard, billing, API keys ou responsividade
+- browser smoke em producao deve registrar `/health`, `/ready`, `/`, `/pitch/`, `/ops/`, `/saas/` e `/config.js`, incluindo desktop e mobile quando a tarefa for UI
+- nao marque UI como pronta se ela so funciona em mock local; confirme o caminho servido pelo Caddy/Compose ou registre o blocker exato
+
+## CI/CD e evidencia
+
+- pushes para `main` precisam manter GitHub Actions, mirror GitLab e deploy VM no mesmo SHA
+- antes de handoff de release, rode ou cite evidencia de `make api-baseline`, `make web-next-build`, CI GitHub, CI GitLab e smoke publico da VM
+- nao publique segredos em logs, docs ou screenshots; use apenas nomes de secrets e endpoints publicos
+
 ## Leituras obrigatorias antes de implementar
 
 - `README.md`

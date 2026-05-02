@@ -147,8 +147,12 @@ def simulate_trade(
     market = get_token_market_data(order.token_address)
     chain = str(market.get("chain") or "evm")
     spot = _market_price(order, market)
-    slippage_bps = order.slippage_bps if order.slippage_bps is not None else chain_slippage_bps(chain)
-    gas = order.gas_fee if order.gas_fee is not None else chain_gas_usd_estimate(chain, order.amount)
+    slippage_bps = (
+        order.slippage_bps if order.slippage_bps is not None else chain_slippage_bps(chain)
+    )
+    gas = (
+        order.gas_fee if order.gas_fee is not None else chain_gas_usd_estimate(chain, order.amount)
+    )
     gas_usd = _decimal(gas)
     fee_usd = _decimal(order.amount) * _decimal(order.fee_bps) / Decimal("10000")
     tax_usd = _decimal(order.amount) * _tax_rate(order, audit)
@@ -232,7 +236,11 @@ def close_position(trade: SimulatedTrade) -> OrderResponse:
     tax_usd = _decimal(order.amount) * _tax_rate(order, audit)
     executed = _executed_price(spot, TradeSide.SELL, slippage_bps)
 
-    pnl = (executed - _decimal(trade.entry_price)) / _decimal(trade.entry_price) * _decimal(trade.amount)
+    pnl = (
+        (executed - _decimal(trade.entry_price))
+        / _decimal(trade.entry_price)
+        * _decimal(trade.amount)
+    )
     pnl -= _decimal(trade.fees_total or 0) + gas_usd + fee_usd + tax_usd
     trade.exit_price = executed
     trade.realized_pnl_usd = pnl

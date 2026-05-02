@@ -111,3 +111,36 @@ def test_multiple_errors_are_reported_together():
     assert "LOG_LEVEL" in message
     assert "WALLET_MODE" in message
     assert "MAX_POSITION_SIZE_PCT" in message
+
+
+def test_production_env_validation_is_case_insensitive():
+    settings = Settings(app_env="Production", jwt_secret="short")
+    with pytest.raises(SettingsError, match="JWT_SECRET"):
+        settings.validate()
+
+
+def test_production_rejects_import_time_init_db():
+    settings = Settings(
+        app_env="production",
+        jwt_secret="production-jwt-secret-with-32-characters",
+        stripe_webhook_secret="whsec_production_secret",
+        allow_import_time_init_db=True,
+    )
+    with pytest.raises(SettingsError, match="ALLOW_IMPORT_TIME_INIT_DB"):
+        settings.validate()
+
+
+def test_production_rejects_default_stripe_webhook_secret():
+    settings = Settings(
+        app_env="production",
+        jwt_secret="production-jwt-secret-with-32-characters",
+    )
+    with pytest.raises(SettingsError, match="STRIPE_WEBHOOK_SECRET"):
+        settings.validate()
+
+
+def test_get_settings_normalizes_app_env(monkeypatch):
+    from tothemoon_api.config import get_settings
+
+    monkeypatch.setenv("APP_ENV", "LOCAL")
+    assert get_settings().app_env == "local"

@@ -1,0 +1,138 @@
+name: Deploy GCP VM
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gcp-vm-deploy
+  cancel-in-progress: false
+
+jobs:
+  backend-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run backend baseline checks
+        run: make api-baseline
+
+  frontend-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web-next/package-lock.json
+
+      - name: Run frontend production build baseline
+        env:
+          NODE_ENV: production
+          npm_config_omit: dev
+        run: make web-next-build
+
+  vm-deploy-evidence:
+    needs:
+      - backend-baseline
+      - frontend-baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect VM deploy CI evidence
+        run: make vm-deploy-ci-evidence
+
+      - name: Upload VM deploy CI evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vm-deploy-ci-evidence
+          path: ops/evidence/vm-deploy-ci-evidence.json
+          if-no-files-found: error
+
+  deploy:
+    needs:
+      - vm-deploy-evidence
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+      CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_VM_NAME: ${{ secrets.GCP_VM_NAME }}
+      GCP_VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+      PUBLIC_HOST: ${{ secrets.PUBLIC_HOST }}
+      TTM_RELEASE_ID: gha-${{ github.run_id }}-${{ github.sha }}
+      TTM_DEPLOY_ROOT: /opt/tothemoontokens
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Write deployment env file
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          cat > .env.deploy <<'ENVEOF'
+          APP_ENV=production
+          API_HOST=0.0.0.0
+          API_PORT=8010
+          LOG_LEVEL=INFO
+          CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+          PAPER_JOURNAL_FILE=.nexus/paper_journal.json
+          ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.network
+          MARKETPLACE_SETTLEMENT_TIMEOUT_S=3
+          WALLET_MODE=manual_only
+          AUTONOMOUS_PAYMENTS_ENABLED=false
+          CIRCLE_BOOTSTRAP_ON_STARTUP=false
+          CIRCLE_API_KEY=${{ secrets.CIRCLE_API_KEY }}
+          CIRCLE_ENTITY_SECRET=${{ secrets.CIRCLE_ENTITY_SECRET }}
+          CIRCLE_WALLET_SET_ID=${{ secrets.CIRCLE_WALLET_SET_ID }}
+          DEMO_BUYER_WALLET_ROLE=RESEARCH_03
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL=gemini-3-flash-preview
+          GEMINI_USE_VERTEXAI=false
+          GEMINI_VERTEX_PROJECT=
+          GEMINI_VERTEX_LOCATION=us-central1
+          POSTGRES_PASSWORD=${{ secrets.GCP_VM_DB_PASSWORD }}
+          DATABASE_URL=postgresql+psycopg://ttm:${{ secrets.GCP_VM_DB_PASSWORD }}@db:5432/ttm
+          ALLOW_IMPORT_TIME_INIT_DB=false
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          REDIS_URL=
+          EXTERNAL_HTTP_TIMEOUT_S=5
+          GOPLUS_API_KEY=${{ secrets.GOPLUS_API_KEY }}
+          TOKENSNIFFER_API_KEY=${{ secrets.TOKENSNIFFER_API_KEY }}
+          BIRDEYE_API_KEY=${{ secrets.BIRDEYE_API_KEY }}
+          OTEL_SERVICE_NAME=tothemoontokens-api
+          OTEL_EXPORTER_OTLP_ENDPOINT=${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          OTEL_EXPORTER_OTLP_HEADERS=${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
+          SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+          SENTRY_ENVIRONMENT=production
+          SENTRY_TRACES_SAMPLE_RATE=0
+          OBSERVABILITY_TEST_RAISE_ENABLED=false
+          PUBLIC_HOST=${{ secrets.PUBLIC_HOST }}
+          ENVEOF
+          sed -i 's/^          //' .env.deploy
+
+      - name: Deploy to GCP VM
+        run: scripts/deploy_gcp_vm.sh

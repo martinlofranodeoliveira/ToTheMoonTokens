@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from time import perf_counter
 from typing import Any
 
+from tothemoon_api.observability import redact_sensitive_value
+
 _DEFAULT_PROVIDERS = ("goplus", "honeypotis", "tokensniffer", "dexscreener", "birdeye")
 _PROVIDER_HEALTH: dict[str, dict[str, Any]] = {
-    provider: {"status": "unknown", "latency_ms": None, "last_error": None}
+    provider: {"status": "unknown", "latency_ms": None, "last_error": None, "observed_at": None}
     for provider in _DEFAULT_PROVIDERS
 }
+
+
+def utc_now_iso() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def record_provider_status(
@@ -23,7 +30,8 @@ def record_provider_status(
     _PROVIDER_HEALTH[provider] = {
         "status": status,
         "latency_ms": latency_ms,
-        "last_error": last_error,
+        "last_error": redact_sensitive_value(last_error),
+        "observed_at": utc_now_iso(),
     }
 
 

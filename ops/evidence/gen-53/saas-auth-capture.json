@@ -1,0 +1,27 @@
+{
+  "name": "Desktop signup/auth dashboard journey capture",
+  "startedAt": "2026-05-02T17:03:50.010Z",
+  "url": "http://34.29.171.34/saas/",
+  "requests": [
+    {
+      "url": "http://34.29.171.34/api/v1/auth/signup",
+      "status": 500,
+      "statusText": "Internal Server Error"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  ],
+  "email": "gen53-1777741430685@example.com",
+  "finalUrl": "http://34.29.171.34/saas/",
+  "headingDashboardVisible": true,
+  "signedInEmailVisible": false,
+  "demoEmailVisible": true,
+  "signInPanelVisible": false,
+  "paymentRequirementVisible": false,
+  "toastText": null,
+  "bodyTextPath": "ops/evidence/gen-53/desktop-saas-auth-capture.txt",
+  "screenshot": "ops/evidence/gen-53/desktop-saas-auth-capture.png",
+  "result": "blocked",
+  "finishedAt": "2026-05-02T17:03:58.990Z"
+}

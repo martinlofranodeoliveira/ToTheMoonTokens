@@ -330,7 +330,9 @@ class PaymentIntentRequest(BaseModel):
 class PaymentIntentResponse(BaseModel):
     payment_id: str
     amount_usd: float
+    currency: Literal["USDC"] = "USDC"
     deposit_address: str
+    payment_requirement: dict[str, Any]
     status: Literal["pending", "verified", "failed"]
     job_id: str | None = None
 

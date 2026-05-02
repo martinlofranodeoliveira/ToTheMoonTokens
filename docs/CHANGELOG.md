@@ -1,4 +1,14 @@
+## Unreleased
+
+- Added `make ci-evidence` to run backend compile/lint/test plus frontend build checks and publish secret-free backend/frontend CI evidence artifacts.
 # Changelog
+
+## Production deployment evidence
+
+- Added `docs/production-readiness-gate.md` for GEN-25 with local/staging/production separation, staging real-provider credential expectations, smoke commands, migration rollback evidence, owner blockers, and a production go/no-go gate.
+- Added GitHub Actions and GitLab CI artifact evidence for the GCP VM deploy path via `make vm-deploy-ci-evidence` and `ops/evidence/vm-deploy-ci-evidence.json`.
+- Added `docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md` with a production deployment checklist, smoke-check expectations, rollback evidence requirements, and a copyable operator evidence template.
+- Linked the production checklist from `docs/DELIVERY_VALIDATION.md` so release validation and deployment evidence stay connected.
 
 ## Fase 8 - Observabilidade enterprise
 
@@ -30,6 +40,7 @@
 - Added DexScreener market-data integration with Birdeye fallback and deterministic local fallback for offline placeholder tokens.
 - Added GoPlus, Honeypot.is, and TokenSniffer security provider clients with 2-of-3 honeypot consensus.
 - Added Redis-backed external response caching with in-memory fallback and provider health state exposed from `/health`.
+- Added a typed external-provider adapter contract exposed from `/health` so bot orchestration remains paper-only/read-through across market and security providers.
 - Added external provider configuration to `.env.example`.
 - Added tests for security consensus, risk-score aggregation, 30-second market cache behavior, DexScreener fallback, and provider health output.
 

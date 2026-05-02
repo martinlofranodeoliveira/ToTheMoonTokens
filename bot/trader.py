@@ -13,6 +13,8 @@ async def create_copilot_proposal(
     amount_usd: float = 100.0,
     mode: str = "paper",
 ) -> dict[str, Any]:
+    if mode != "paper":
+        raise ValueError("Bot trader entrypoint is paper-only; real orders require manual API approval")
     momentum = float(token.get("momentum") or 0.0)
     volume = float(token.get("volume_24h") or 0.0)
     liquidity = float(token.get("liquidity_usd") or 0.0)

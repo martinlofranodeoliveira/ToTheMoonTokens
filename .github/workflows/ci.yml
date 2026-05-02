@@ -172,6 +172,7 @@ jobs:
         print(f"GITLAB_API_ORIGIN={api_origin}")
         PY
         source /tmp/gitlab_project.env
+        export GITLAB_HTTP_URL GITLAB_PROJECT_ID GITLAB_API_ORIGIN
         project_url="${GITLAB_HTTP_URL#https://}"
         project_url="${project_url#http://}"
         git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@${project_url}"
